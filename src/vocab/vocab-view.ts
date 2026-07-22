@@ -132,7 +132,7 @@ export function renderVocabHome(hash: string): HTMLElement {
   container.className = 'vocab-home';
 
   const nav = document.createElement('nav');
-  nav.innerHTML = `<a href="#/vocab">단어장</a><a href="#/vocab/today">오늘 복습</a><a href="#/kana">가나 퀴즈</a>`;
+  nav.innerHTML = `<a href="#/vocab">단어장</a><a href="#/vocab/today">오늘 복습</a><a href="#/kana">가나 퀴즈</a><a href="#/sentences">문어장</a><a href="#/practice">문장 연습</a>`;
   container.appendChild(nav);
 
   const srsStore = loadSrsStore();
