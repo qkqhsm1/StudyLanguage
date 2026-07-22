@@ -1,0 +1,31 @@
+body {
+  font-family: system-ui, sans-serif;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+nav a {
+  margin-right: 0.75rem;
+}
+
+.word-card {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.word-japanese {
+  font-size: 1.4rem;
+}
+
+.word-reading {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.skill-list {
+  list-style: none;
+  padding: 0;
+}
