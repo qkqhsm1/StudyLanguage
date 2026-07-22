@@ -93,6 +93,17 @@ function renderCardList(entries: VocabEntry[], srsStore: SrsStore, container: HT
 
   list.addEventListener('click', (event) => {
     const target = event.target as HTMLElement;
+
+    if (target.classList.contains('audio-play')) {
+      const audioUrl = target.dataset.audioUrl;
+      if (audioUrl) {
+        new Audio(audioUrl).play().catch(() => {
+          // ponytail: playback can fail silently (autoplay policy, network) — no UI feedback needed for a manual click-to-play button
+        });
+      }
+      return;
+    }
+
     const entryId = target.dataset.entryId;
     if (!entryId) return;
 

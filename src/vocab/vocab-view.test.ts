@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderSkillList, renderVocabHome, renderWordCard } from './vocab-view';
 import type { VocabEntry } from '../types';
 
@@ -66,6 +66,19 @@ describe('renderSkillList', () => {
 describe('renderVocabHome integration', () => {
   beforeEach(() => {
     localStorage.clear();
+  });
+
+  it('clicking the audio button plays the word audio without throwing', () => {
+    // jsdom doesn't implement real playback; mock the prototype method it's missing.
+    const playSpy = vi.fn().mockResolvedValue(undefined);
+    window.HTMLMediaElement.prototype.play = playSpy;
+
+    const view = renderVocabHome('#/vocab/skill/Basics');
+    const audioBtn = view.querySelector<HTMLButtonElement>('.audio-play');
+    expect(audioBtn).not.toBeNull();
+
+    expect(() => audioBtn!.click()).not.toThrow();
+    expect(playSpy).toHaveBeenCalledTimes(1);
   });
 
   it('grading a card as known persists SRS state and moves it out of the unknown bucket', () => {
