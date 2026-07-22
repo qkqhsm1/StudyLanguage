@@ -36,3 +36,17 @@ export interface SrsState {
 }
 
 export type SrsStore = Record<string, SrsState>;
+
+export interface SentenceEntry {
+  id: string;
+  japanese: string;
+  reading: string;
+  korean: string;
+  english: string;
+  category: string;
+}
+
+export interface SentenceData {
+  categories: string[];
+  entries: SentenceEntry[];
+}
