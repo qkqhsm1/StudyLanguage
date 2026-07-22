@@ -66,7 +66,10 @@ export function renderComposePractice(rng: () => number = Math.random): HTMLElem
 
   const correctAnswer = document.createElement('div');
   correctAnswer.className = 'compose-correct-answer hidden';
-  correctAnswer.textContent = `정답: ${current.japanese}`;
+  correctAnswer.textContent =
+    current.japanese === current.reading
+      ? `정답: ${current.japanese}`
+      : `정답: ${current.japanese} (${current.reading})`;
   container.appendChild(correctAnswer);
 
   const nextBtn = document.createElement('button');
@@ -78,7 +81,7 @@ export function renderComposePractice(rng: () => number = Math.random): HTMLElem
   container.appendChild(nextBtn);
 
   submitBtn.addEventListener('click', () => {
-    const isCorrect = normalize(typed) === normalize(current.japanese);
+    const isCorrect = normalize(typed) === normalize(current.reading);
     feedback.textContent = isCorrect ? '정답!' : '오답';
     correctAnswer.classList.remove('hidden');
     nextBtn.classList.remove('hidden');
