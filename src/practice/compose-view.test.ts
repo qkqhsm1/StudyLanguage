@@ -180,4 +180,69 @@ describe('renderComposePractice', () => {
     expect(view.querySelector('.compose-hint-message')?.textContent).toContain('⌫');
     expect(view.querySelector('.keyboard-key.hint-highlight')?.textContent).toBe(combo);
   });
+
+  it('hints the whole combo up front with no deletion wording when the base char has not been typed yet', () => {
+    const smallKana = ['ゃ', 'ゅ', 'ょ', 'ャ', 'ュ', 'ョ'];
+    const entryIndex = SENTENCES.entries.findIndex((e) =>
+      smallKana.some((k) => {
+        const i = e.reading.indexOf(k);
+        return i > 0;
+      }),
+    );
+    const rng = () => entryIndex / SENTENCES.entries.length;
+    const view = renderComposePractice(rng);
+    const currentId = view.dataset.currentId!;
+    const current = SENTENCES.entries.find((e) => e.id === currentId)!;
+
+    const smallIndex = current.reading
+      .split('')
+      .findIndex((ch, i) => i > 0 && smallKana.includes(ch));
+    const combo = current.reading[smallIndex - 1] + current.reading[smallIndex];
+
+    // Type up to (but not including) the base char right before the combo.
+    for (const char of current.reading.slice(0, smallIndex - 1)) {
+      clickKey(view, char);
+    }
+
+    view.querySelector<HTMLButtonElement>('.compose-hint')!.click();
+
+    const message = view.querySelector('.compose-hint-message')!.textContent!;
+    expect(message).toContain(combo);
+    expect(message).not.toContain('⌫');
+    expect(view.querySelector('.keyboard-key.hint-highlight')?.textContent).toBe(combo);
+  });
+
+  it('keeps the highlight and hint message visible after backspace, since that is how a combo hint is followed', () => {
+    // Regression test: Fix A (clear hint on any typing) used to fire on backspace too,
+    // wiping the very hint that told the user to press backspace.
+    const smallKana = ['ゃ', 'ゅ', 'ょ', 'ャ', 'ュ', 'ョ'];
+    const entryIndex = SENTENCES.entries.findIndex((e) =>
+      smallKana.some((k) => {
+        const i = e.reading.indexOf(k);
+        return i > 0;
+      }),
+    );
+    const rng = () => entryIndex / SENTENCES.entries.length;
+    const view = renderComposePractice(rng);
+    const currentId = view.dataset.currentId!;
+    const current = SENTENCES.entries.find((e) => e.id === currentId)!;
+
+    const smallIndex = current.reading
+      .split('')
+      .findIndex((ch, i) => i > 0 && smallKana.includes(ch));
+
+    // Type up through the base char, so the hint fires the Case B (deletion) flow.
+    for (const char of current.reading.slice(0, smallIndex)) {
+      clickKey(view, char);
+    }
+
+    view.querySelector<HTMLButtonElement>('.compose-hint')!.click();
+    expect(view.querySelector('.keyboard-key.hint-highlight')).not.toBeNull();
+    expect(view.querySelector('.compose-hint-message')!.classList.contains('hidden')).toBe(false);
+
+    view.querySelector<HTMLButtonElement>('.keyboard-backspace')!.click();
+
+    expect(view.querySelector('.keyboard-key.hint-highlight')).not.toBeNull();
+    expect(view.querySelector('.compose-hint-message')!.classList.contains('hidden')).toBe(false);
+  });
 });

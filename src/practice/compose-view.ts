@@ -57,7 +57,7 @@ export function renderComposePractice(rng: () => number = Math.random): HTMLElem
 
   let typed = '';
   let hintUsed = false;
-  // renderTyped needs to clear any pulsing hint key/message on every keystroke, but the
+  // renderTyped needs to clear any pulsing hint key/message on onChar/onClear, but the
   // keyboard (which owns setHighlight) isn't created until after the first renderTyped()
   // call below — so route through a mutable reference instead of reordering everything.
   let highlightSetter: ((char: string | null) => void) | null = null;
@@ -66,15 +66,21 @@ export function renderComposePractice(rng: () => number = Math.random): HTMLElem
     answerField.textContent = typed;
     const isValidPrefix = normalize(current.reading).startsWith(normalize(typed));
     answerField.classList.toggle('compose-answer-field-error', !isValidPrefix);
+  }
+  renderTyped();
+
+  // Only onChar/onClear consume the hint — onBackspace never types the hinted char, and
+  // it's how the user follows a Case B (deletion) combo hint, so it must not wipe it.
+  function clearHint(): void {
     highlightSetter?.(null);
     hintMessage.classList.add('hidden');
   }
-  renderTyped();
 
   const { element: keyboard, setHighlight } = renderKanaKeyboard({
     onChar: (char) => {
       typed += char;
       renderTyped();
+      clearHint();
     },
     onBackspace: () => {
       typed = typed.slice(0, -1);
@@ -83,18 +89,21 @@ export function renderComposePractice(rng: () => number = Math.random): HTMLElem
     onClear: () => {
       typed = '';
       renderTyped();
+      clearHint();
     },
   });
   highlightSetter = setHighlight;
   container.appendChild(keyboard);
 
   hintBtn.addEventListener('click', () => {
-    const combo = nextHintCombo(current.reading, typed);
-    if (combo) {
+    const comboHint = nextHintCombo(current.reading, typed);
+    if (comboHint) {
       hintUsed = true;
-      hintMessage.textContent = `💡 ${combo}는 한 키로 입력해요 — ⌫로 앞 글자를 지우고 반짝이는 ${combo} 키를 눌러주세요`;
+      hintMessage.textContent = comboHint.needsDelete
+        ? `💡 ${comboHint.combo}는 한 키로 입력해요 — ⌫로 앞 글자를 지우고 반짝이는 ${comboHint.combo} 키를 눌러주세요`
+        : `💡 다음은 ${comboHint.combo}예요 — 한 키로 입력되니 반짝이는 키를 눌러주세요`;
       hintMessage.classList.remove('hidden');
-      setHighlight(combo);
+      setHighlight(comboHint.combo);
       return;
     }
 
