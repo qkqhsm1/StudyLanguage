@@ -39,6 +39,20 @@ nav a {
   font-weight: 600;
 }
 
+/* 넓은 화면에서는 상단 메뉴를 본문 폭에 맞춰 좌우 양끝으로 펼치고 글씨도 키운다.
+   폰에서는 위 기본값(왼쪽 정렬 + 줄바꿈) 그대로 — 지금 폰 화면은 유지. */
+@media (min-width: 900px) {
+  nav {
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 1.5rem;
+  }
+
+  nav a {
+    font-size: 15px;
+  }
+}
+
 .card {
   background: var(--card-bg);
   border-radius: 20px;
