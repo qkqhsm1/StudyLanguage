@@ -281,3 +281,73 @@ nav a {
   margin-top: 10px;
   font-weight: 600;
 }
+
+.kana-keyboard {
+  background: var(--card-bg);
+  border-radius: 20px;
+  padding: 14px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+.keyboard-toggle {
+  display: block;
+  margin: 0 auto 10px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  padding: 6px 18px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.keyboard-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 5px;
+}
+
+.keyboard-key {
+  aspect-ratio: 1;
+  background: var(--bg);
+  border: none;
+  border-radius: 9px;
+  font-size: 21px;
+  color: var(--text);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.keyboard-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr 1.3fr;
+  gap: 5px;
+  margin-top: 5px;
+}
+
+.keyboard-controls button {
+  background: var(--bg);
+  border: none;
+  border-radius: 9px;
+  padding: 11px 0;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.keyboard-space {
+  font-size: 13px !important;
+}
+
+.keyboard-backspace {
+  background: var(--danger-bg) !important;
+  color: var(--danger-text) !important;
+  font-size: 13px !important;
+}
+
+.keyboard-clear {
+  font-size: 13px !important;
+}
