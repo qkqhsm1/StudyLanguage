@@ -74,7 +74,13 @@ export function renderKanaQuizView(rng: () => number = Math.random): HTMLElement
     questionArea.appendChild(nextBtn);
 
     function handleCorrect(): void {
+      // 틀렸다 맞힌 경우 kana-wrong을 반드시 떼야 한다. 두 클래스가 같이 붙으면
+      // CSS 소스 순서상 kana-wrong의 빨간 규칙이 이겨서 파란 정답 모션이 안 뜬다.
+      // remove 후 리플로우를 강제해야 flash 애니메이션이 실제로 재생된다.
+      questionArea.classList.remove('kana-wrong');
+      void questionArea.offsetWidth;
       questionArea.classList.add('kana-correct');
+
       feedback.textContent = '정답!';
       // 넘어가는 사이에 또 입력해서 다음 문제까지 채점되는 걸 막는다.
       input.disabled = true;
@@ -87,7 +93,8 @@ export function renderKanaQuizView(rng: () => number = Math.random): HTMLElement
       input.focus();
 
       // 클래스를 뗐다 붙이지 않으면 같은 애니메이션이 두 번째부터 재생되지 않는다.
-      questionArea.classList.remove('kana-wrong');
+      // kana-correct도 함께 떼어 두 클래스가 겹치지 않게 한다(상호 배타).
+      questionArea.classList.remove('kana-wrong', 'kana-correct');
       void questionArea.offsetWidth;
       questionArea.classList.add('kana-wrong');
 

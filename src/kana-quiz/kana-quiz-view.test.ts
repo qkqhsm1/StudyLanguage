@@ -42,6 +42,21 @@ describe('renderKanaQuizView', () => {
     expect(view.querySelector('.kana-question-area')?.classList.contains('kana-correct')).toBe(true);
   });
 
+  it('switches cleanly from wrong to correct without leaving the wrong state', () => {
+    const view = renderKanaQuizView();
+    const area = view.querySelector('.kana-question-area')!;
+
+    submit(view, 'zzz-definitely-wrong');
+    expect(area.classList.contains('kana-wrong')).toBe(true);
+
+    submit(view, view.dataset.currentRomaji!);
+    // The blue correct state must win — the red wrong class can't linger, or the
+    // correct-flash CSS gets overridden and the card stays red on a right answer.
+    expect(area.classList.contains('kana-correct')).toBe(true);
+    expect(area.classList.contains('kana-wrong')).toBe(false);
+    expect(view.querySelector('.kana-feedback')?.textContent).toBe('정답!');
+  });
+
   it('advances to the next question on its own after a correct answer', () => {
     const view = renderKanaQuizView(alternatingRng());
     const firstRomaji = view.dataset.currentRomaji;
