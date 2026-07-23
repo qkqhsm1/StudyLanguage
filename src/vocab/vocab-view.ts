@@ -106,7 +106,7 @@ export function renderSkillList(skills: string[]): HTMLElement {
   return renderIconLinkList(skills, '#/vocab/skill/');
 }
 
-function renderCardList(entries: VocabEntry[], srsStore: SrsStore, container: HTMLElement): HTMLElement {
+export function renderCardList(entries: VocabEntry[], srsStore: SrsStore, container: HTMLElement): HTMLElement {
   const list = document.createElement('div');
   list.className = 'card-list';
   for (const entry of entries) {

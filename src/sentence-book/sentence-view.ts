@@ -116,7 +116,7 @@ export function attachSentenceCardActions(list: HTMLElement, container: HTMLElem
   });
 }
 
-function renderSentenceList(entries: SentenceEntry[], srsStore: SrsStore, container: HTMLElement): HTMLElement {
+export function renderSentenceList(entries: SentenceEntry[], srsStore: SrsStore, container: HTMLElement): HTMLElement {
   const list = document.createElement('div');
   list.className = 'sentence-list card-list';
   for (const entry of entries) {
