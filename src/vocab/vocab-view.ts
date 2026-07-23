@@ -1,7 +1,8 @@
 import vocabData from '../data/vocabulary.json';
 import { loadJSON, saveJSON } from '../storage';
 import { buildTodayQueue, describeReviewStatus, reviewEntry, toggleBookmark } from '../srs';
-import { categoryIcon, renderIconLinkList } from '../data/category-icons';
+import { categoryIcon } from '../data/category-icons';
+import { entriesForDay, totalDays } from '../data/vocab-days';
 import { NAV_HTML } from '../nav';
 import type { SrsGrade, SrsState, SrsStore, VocabData, VocabEntry } from '../types';
 
@@ -102,8 +103,50 @@ export function renderWordCard(entry: VocabEntry, srsState: SrsState | undefined
   return card;
 }
 
-export function renderSkillList(skills: string[]): HTMLElement {
-  return renderIconLinkList(skills, '#/vocab/skill/');
+/** Day 목록. 306개 스킬 대신 Day 1..N을 보여주고, 각 Day에 그 50단어 중 몇 개를
+ *  "암기됨"으로 표시했는지 진척도를 함께 보여준다(워드마스터식 점증 느낌). */
+export function renderDayList(entries: VocabEntry[], srsStore: SrsStore): HTMLElement {
+  const list = document.createElement('div');
+  list.className = 'skill-list';
+
+  const days = totalDays(entries.length);
+  for (let day = 1; day <= days; day++) {
+    const dayEntries = entriesForDay(entries, day);
+    const known = dayEntries.filter((e) => srsStore[e.id]?.grade === 'known').length;
+
+    const link = document.createElement('a');
+    link.className = 'skill-list-item';
+    link.href = `#/vocab/day/${day}`;
+
+    const icon = document.createElement('span');
+    icon.className = 'skill-list-icon';
+    icon.textContent = String(day);
+    link.appendChild(icon);
+
+    const body = document.createElement('span');
+    body.className = 'skill-list-body';
+
+    const name = document.createElement('span');
+    name.className = 'skill-list-name';
+    name.textContent = `Day ${day}`;
+    body.appendChild(name);
+
+    const sub = document.createElement('span');
+    sub.className = 'skill-list-sub';
+    sub.textContent = `${dayEntries.length}단어 · ${known}개 암기`;
+    body.appendChild(sub);
+
+    link.appendChild(body);
+
+    const chevron = document.createElement('span');
+    chevron.className = 'skill-list-chevron';
+    chevron.textContent = '›';
+    link.appendChild(chevron);
+
+    list.appendChild(link);
+  }
+
+  return list;
 }
 
 export function renderCardList(entries: VocabEntry[], srsStore: SrsStore, container: HTMLElement): HTMLElement {
@@ -165,15 +208,15 @@ export function renderVocabHome(hash: string): HTMLElement {
     heading.textContent = `오늘 복습할 단어 (${queue.length})`;
     container.appendChild(heading);
     container.appendChild(renderCardList(queue, srsStore, container));
-  } else if (hash.startsWith('#/vocab/skill/')) {
-    const skillName = decodeURIComponent(hash.replace('#/vocab/skill/', ''));
-    const entries = TYPED_VOCAB_DATA.entries.filter((e) => e.skillName === skillName);
+  } else if (hash.startsWith('#/vocab/day/')) {
+    const day = Number.parseInt(hash.replace('#/vocab/day/', ''), 10);
+    const entries = entriesForDay(TYPED_VOCAB_DATA.entries, day);
     const heading = document.createElement('h2');
-    heading.textContent = skillName;
+    heading.textContent = `Day ${day}`;
     container.appendChild(heading);
     container.appendChild(renderCardList(entries, srsStore, container));
   } else {
-    container.appendChild(renderSkillList(TYPED_VOCAB_DATA.skills));
+    container.appendChild(renderDayList(TYPED_VOCAB_DATA.entries, srsStore));
   }
 
   return container;

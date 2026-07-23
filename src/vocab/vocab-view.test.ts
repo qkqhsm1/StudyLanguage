@@ -1,6 +1,24 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { renderSkillList, renderVocabHome, renderWordCard } from './vocab-view';
-import type { VocabEntry } from '../types';
+import { renderDayList, renderVocabHome, renderWordCard } from './vocab-view';
+import { WORDS_PER_DAY } from '../data/vocab-days';
+import type { SrsState, SrsStore, VocabEntry } from '../types';
+
+function makeVocabEntries(n: number): VocabEntry[] {
+  return Array.from({ length: n }, (_, i) => ({
+    id: `e${i}`,
+    japanese: `語${i}`,
+    reading: '',
+    romaji: `go${i}`,
+    korean: `뜻${i}`,
+    audioUrl: null,
+    skillName: 'X',
+    skillIndex: 1,
+  }));
+}
+
+function knownState(): SrsState {
+  return { grade: 'known', intervalDays: 3, easeFactor: 2.6, dueDate: '2026-06-01', bookmarked: false };
+}
 
 const KANJI_ENTRY: VocabEntry = {
   id: '4-店',
@@ -82,14 +100,27 @@ describe('renderWordCard', () => {
   });
 });
 
-describe('renderSkillList', () => {
-  it('renders one item per skill with an icon, name, and link to the skill detail route', () => {
-    const list = renderSkillList(['Basics', 'Cafe']);
+describe('renderDayList', () => {
+  it('renders one item per day of WORDS_PER_DAY, linking to the day route', () => {
+    const entries = makeVocabEntries(WORDS_PER_DAY * 2 + 3); // 3 days, last one short
+    const list = renderDayList(entries, {});
     const links = list.querySelectorAll('a.skill-list-item');
-    expect(links).toHaveLength(2);
-    expect(links[1].getAttribute('href')).toBe('#/vocab/skill/Cafe');
-    expect(links[1].querySelector('.skill-list-icon')?.textContent).toBe('☕');
-    expect(links[1].querySelector('.skill-list-name')?.textContent).toBe('Cafe');
+
+    expect(links).toHaveLength(3);
+    expect(links[0].getAttribute('href')).toBe('#/vocab/day/1');
+    expect(links[0].querySelector('.skill-list-icon')?.textContent).toBe('1');
+    expect(links[0].querySelector('.skill-list-name')?.textContent).toBe('Day 1');
+    expect(links[2].getAttribute('href')).toBe('#/vocab/day/3');
+  });
+
+  it('shows each day’s word count and how many are marked known', () => {
+    const entries = makeVocabEntries(WORDS_PER_DAY + 5); // day 1 = 50, day 2 = 5
+    const store: SrsStore = { e0: knownState(), e1: knownState() }; // 2 of day 1 known
+    const list = renderDayList(entries, store);
+    const subs = Array.from(list.querySelectorAll('.skill-list-sub')).map((s) => s.textContent);
+
+    expect(subs[0]).toBe(`${WORDS_PER_DAY}단어 · 2개 암기`);
+    expect(subs[1]).toBe('5단어 · 0개 암기');
   });
 });
 
@@ -103,7 +134,7 @@ describe('renderVocabHome integration', () => {
     const playSpy = vi.fn().mockResolvedValue(undefined);
     window.HTMLMediaElement.prototype.play = playSpy;
 
-    const view = renderVocabHome('#/vocab/skill/Basics');
+    const view = renderVocabHome('#/vocab/day/1');
     const audioBtn = view.querySelector<HTMLButtonElement>('.audio-play');
     expect(audioBtn).not.toBeNull();
 
@@ -112,7 +143,7 @@ describe('renderVocabHome integration', () => {
   });
 
   it('grading a card as known persists SRS state and moves it out of the unknown bucket', () => {
-    const view = renderVocabHome('#/vocab/skill/Basics');
+    const view = renderVocabHome('#/vocab/day/1');
     const knownButton = view.querySelector<HTMLButtonElement>('.srs-grade-known');
     expect(knownButton).not.toBeNull();
     knownButton!.click();
