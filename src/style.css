@@ -516,6 +516,26 @@ nav a {
   margin-top: 12px;
 }
 
+/* 문제 카드 안의 작은 "읽기 보기" — 정답 보기(풀폭 버튼)와 달리 문장 바로
+   아래 붙는 조용한 링크형 버튼이다. */
+.interpret-reading-reveal {
+  margin-top: 10px;
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--accent);
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.interpret-reading {
+  margin-top: 8px;
+  font-size: 20px;
+  color: var(--text-secondary);
+}
+
 .home-greeting {
   font-size: 22px;
   font-weight: 700;

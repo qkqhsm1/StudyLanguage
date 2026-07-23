@@ -31,6 +31,26 @@ export function renderInterpretPractice(rng: () => number = Math.random): HTMLEl
   question.textContent = current.japanese;
   questionCard.appendChild(question);
 
+  // 한자가 있어 표기와 읽기가 다를 때만 "읽기 보기"를 준다. 한자를 못 읽어 막히는
+  // 경우의 대비책 — 뜻(정답)과는 별개라 여기서 읽기를 봐도 채점에는 영향이 없다.
+  if (current.reading && current.reading !== current.japanese) {
+    const readingReveal = document.createElement('button');
+    readingReveal.type = 'button';
+    readingReveal.className = 'interpret-reading-reveal';
+    readingReveal.textContent = '읽기 보기';
+    questionCard.appendChild(readingReveal);
+
+    const reading = document.createElement('div');
+    reading.className = 'interpret-reading hidden';
+    reading.textContent = current.reading;
+    questionCard.appendChild(reading);
+
+    readingReveal.addEventListener('click', () => {
+      reading.classList.remove('hidden');
+      readingReveal.classList.add('hidden');
+    });
+  }
+
   container.appendChild(questionCard);
 
   const revealBtn = document.createElement('button');

@@ -55,4 +55,37 @@ describe('renderInterpretPractice', () => {
     const answer = view.querySelector('.interpret-answer')!;
     expect(answer.textContent).toBe(captured.korean);
   });
+
+  it('offers a reading reveal for a sentence whose kanji reads differently', () => {
+    const captured: CapturedPhrase = {
+      id: 'my-kanji',
+      korean: '집에 가고 싶어요',
+      japanese: '家に帰りたいです',
+      reading: 'いえにかえりたいです',
+      createdAt: '2026-01-10',
+    };
+    savePhrases([captured]);
+    const view = renderInterpretPractice(() => 0.999999);
+    expect(view.dataset.currentId).toBe('my-kanji');
+
+    const reveal = view.querySelector<HTMLButtonElement>('.interpret-reading-reveal')!;
+    expect(reveal).not.toBeNull();
+
+    const reading = view.querySelector('.interpret-reading')!;
+    expect(reading.classList.contains('hidden')).toBe(true);
+
+    reveal.click();
+    expect(reading.classList.contains('hidden')).toBe(false);
+    expect(reading.textContent).toBe('いえにかえりたいです');
+    expect(reveal.classList.contains('hidden')).toBe(true);
+  });
+
+  it('omits the reading reveal for a kana-only sentence', () => {
+    // rng 0 -> entries[0], greetings-1 (おはようございます。), whose reading equals
+    // its japanese, so there is no kanji to look up.
+    const view = renderInterpretPractice(() => 0);
+    const current = SENTENCES.entries.find((e) => e.id === view.dataset.currentId)!;
+    expect(current.japanese).toBe(current.reading);
+    expect(view.querySelector('.interpret-reading-reveal')).toBeNull();
+  });
 });
