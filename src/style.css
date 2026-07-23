@@ -413,6 +413,69 @@ nav a {
   }
 }
 
+/* 가나표: 히라가나/가타카나 전환 알약 토글 + 행×단 격자. */
+.kana-chart-toggle {
+  display: inline-flex;
+  background: var(--bg);
+  border-radius: 999px;
+  padding: 3px;
+  margin-bottom: 18px;
+}
+
+.kana-chart-tab {
+  border: none;
+  background: none;
+  border-radius: 999px;
+  padding: 8px 20px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.kana-chart-tab.selected {
+  background: var(--accent);
+  color: #fff;
+}
+
+.kana-chart-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 24px 0 10px;
+}
+
+.kana-chart-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--cols, 5), 1fr);
+  gap: 8px;
+}
+
+.kana-chart-cell {
+  padding: 12px 6px;
+  text-align: center;
+}
+
+/* 빈 자리는 배경 없이 자리만 차지해 단(column)이 어긋나지 않게 한다. */
+.kana-chart-cell-empty {
+  visibility: hidden;
+}
+
+.kana-chart-char {
+  font-size: 30px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+.kana-chart-reading {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
 .kana-keyboard {
   background: var(--card-bg);
   border-radius: 20px;
