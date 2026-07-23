@@ -4,12 +4,15 @@ export interface StreakState {
 }
 
 function toDateStr(date: Date): string {
-  return date.toISOString().slice(0, 10);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 function yesterdayOf(date: Date): string {
   const d = new Date(date);
-  d.setUTCDate(d.getUTCDate() - 1);
+  d.setDate(d.getDate() - 1);
   return toDateStr(d);
 }
 
@@ -17,7 +20,7 @@ export function updateStreak(prev: StreakState | undefined, today: Date = new Da
   const todayStr = toDateStr(today);
 
   if (prev?.lastDate === todayStr) {
-    return prev;
+    return { ...prev };
   }
   if (prev?.lastDate === yesterdayOf(today)) {
     return { lastDate: todayStr, streak: prev.streak + 1 };

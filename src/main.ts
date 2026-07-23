@@ -14,20 +14,36 @@ function renderPracticePicker(): HTMLElement {
   nav.innerHTML = NAV_HTML;
   container.appendChild(nav);
 
-  const list = document.createElement('ul');
-  const interpretItem = document.createElement('li');
-  const interpretLink = document.createElement('a');
-  interpretLink.href = '#/practice/interpret';
-  interpretLink.textContent = '일본어 → 한국어 해석 연습';
-  interpretItem.appendChild(interpretLink);
-  list.appendChild(interpretItem);
+  const list = document.createElement('div');
+  list.className = 'skill-list';
 
-  const composeItem = document.createElement('li');
-  const composeLink = document.createElement('a');
-  composeLink.href = '#/practice/compose';
-  composeLink.textContent = '한국어 → 일본어 작문 연습';
-  composeItem.appendChild(composeLink);
-  list.appendChild(composeItem);
+  const items: Array<{ href: string; icon: string; name: string }> = [
+    { href: '#/practice/interpret', icon: '📖', name: '일본어 → 한국어 해석 연습' },
+    { href: '#/practice/compose', icon: '✍️', name: '한국어 → 일본어 작문 연습' },
+  ];
+
+  for (const item of items) {
+    const link = document.createElement('a');
+    link.className = 'skill-list-item';
+    link.href = item.href;
+
+    const icon = document.createElement('span');
+    icon.className = 'skill-list-icon';
+    icon.textContent = item.icon;
+    link.appendChild(icon);
+
+    const name = document.createElement('span');
+    name.className = 'skill-list-name';
+    name.textContent = item.name;
+    link.appendChild(name);
+
+    const chevron = document.createElement('span');
+    chevron.className = 'skill-list-chevron';
+    chevron.textContent = '›';
+    link.appendChild(chevron);
+
+    list.appendChild(link);
+  }
 
   container.appendChild(list);
   return container;

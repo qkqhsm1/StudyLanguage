@@ -34,4 +34,13 @@ describe('updateStreak', () => {
     const marchFirst = new Date('2026-03-01T00:00:00Z');
     expect(updateStreak(prev, marchFirst)).toEqual({ lastDate: '2026-03-01', streak: 4 });
   });
+
+  it('does not double-increment across a UTC day boundary within the same local day (KST)', () => {
+    const morning = new Date(2026, 0, 10, 8, 0); // local 08:00
+    const night = new Date(2026, 0, 10, 22, 0); // local 22:00, same local day
+    const first = updateStreak(undefined, morning);
+    expect(first).toEqual({ lastDate: '2026-01-10', streak: 1 });
+    const second = updateStreak(first, night);
+    expect(second).toEqual({ lastDate: '2026-01-10', streak: 1 });
+  });
 });

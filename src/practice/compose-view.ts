@@ -146,7 +146,7 @@ export function renderComposePractice(rng: () => number = Math.random): HTMLElem
     correctAnswer.classList.remove('hidden');
     nextBtn.classList.remove('hidden');
     submitBtn.disabled = true;
-    setHighlight(null);
+    clearHint();
 
     const store = loadSentenceSrsStore();
     const grade: SrsGrade = isCorrect ? (hintUsed ? 'confusing' : 'known') : 'unknown';

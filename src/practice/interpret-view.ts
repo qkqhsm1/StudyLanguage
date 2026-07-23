@@ -22,13 +22,18 @@ export function renderInterpretPractice(rng: () => number = Math.random): HTMLEl
   const current = queue[Math.floor(rng() * queue.length)];
   container.dataset.currentId = current.id;
 
+  const questionCard = document.createElement('div');
+  questionCard.className = 'card';
+
   const question = document.createElement('div');
-  question.className = 'interpret-question';
+  question.className = 'interpret-question compose-question';
   question.textContent = current.japanese;
-  container.appendChild(question);
+  questionCard.appendChild(question);
+
+  container.appendChild(questionCard);
 
   const revealBtn = document.createElement('button');
-  revealBtn.className = 'interpret-reveal';
+  revealBtn.className = 'interpret-reveal btn btn-secondary';
   revealBtn.textContent = '정답 보기';
   container.appendChild(revealBtn);
 
@@ -38,11 +43,11 @@ export function renderInterpretPractice(rng: () => number = Math.random): HTMLEl
   container.appendChild(answer);
 
   const gradeWrap = document.createElement('div');
-  gradeWrap.className = 'interpret-grades hidden';
+  gradeWrap.className = 'interpret-grades srs-grades hidden';
   const gradeLabels: Record<SrsGrade, string> = { unknown: '몰랐음', confusing: '헷갈렸음', known: '맞았음' };
   (Object.keys(gradeLabels) as SrsGrade[]).forEach((grade) => {
     const btn = document.createElement('button');
-    btn.className = `interpret-grade interpret-grade-${grade}`;
+    btn.className = `interpret-grade interpret-grade-${grade} btn ${grade === 'known' ? 'btn-primary' : 'btn-secondary'}`;
     btn.textContent = gradeLabels[grade];
     btn.addEventListener('click', () => {
       const store = loadSentenceSrsStore();
