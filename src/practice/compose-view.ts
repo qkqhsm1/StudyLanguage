@@ -2,7 +2,7 @@ import { SENTENCES } from '../data/sentences-data';
 import { reviewEntry } from '../srs';
 import { loadSentenceSrsStore, saveSentenceSrsStore } from '../sentence-book/sentence-view';
 import { renderKanaKeyboard } from './keyboard';
-import { nextHintChar } from './hint';
+import { nextHintChar, nextHintCombo } from './hint';
 import { NAV_HTML } from '../nav';
 import type { SentenceEntry, SrsGrade } from '../types';
 
@@ -23,7 +23,7 @@ export function renderComposePractice(rng: () => number = Math.random): HTMLElem
   container.dataset.currentId = current.id;
 
   const questionCard = document.createElement('div');
-  questionCard.className = 'compose-question-card card';
+  questionCard.className = 'card';
 
   const label = document.createElement('div');
   label.className = 'compose-label';
@@ -57,11 +57,17 @@ export function renderComposePractice(rng: () => number = Math.random): HTMLElem
 
   let typed = '';
   let hintUsed = false;
+  // renderTyped needs to clear any pulsing hint key/message on every keystroke, but the
+  // keyboard (which owns setHighlight) isn't created until after the first renderTyped()
+  // call below — so route through a mutable reference instead of reordering everything.
+  let highlightSetter: ((char: string | null) => void) | null = null;
 
   function renderTyped(): void {
     answerField.textContent = typed;
-    const isValidPrefix = current.reading.startsWith(typed);
+    const isValidPrefix = normalize(current.reading).startsWith(normalize(typed));
     answerField.classList.toggle('compose-answer-field-error', !isValidPrefix);
+    highlightSetter?.(null);
+    hintMessage.classList.add('hidden');
   }
   renderTyped();
 
@@ -79,9 +85,19 @@ export function renderComposePractice(rng: () => number = Math.random): HTMLElem
       renderTyped();
     },
   });
+  highlightSetter = setHighlight;
   container.appendChild(keyboard);
 
   hintBtn.addEventListener('click', () => {
+    const combo = nextHintCombo(current.reading, typed);
+    if (combo) {
+      hintUsed = true;
+      hintMessage.textContent = `💡 ${combo}는 한 키로 입력해요 — ⌫로 앞 글자를 지우고 반짝이는 ${combo} 키를 눌러주세요`;
+      hintMessage.classList.remove('hidden');
+      setHighlight(combo);
+      return;
+    }
+
     const hintChar = nextHintChar(current.reading, typed);
     if (!hintChar) return;
     hintUsed = true;

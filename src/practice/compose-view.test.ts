@@ -112,4 +112,72 @@ describe('renderComposePractice', () => {
     wrongKey.click(); // "greetings-1" reading starts with お, so ん is an immediate mismatch
     expect(field.classList.contains('compose-answer-field-error')).toBe(true);
   });
+
+  it('does not error the field for a whitespace-only divergence, since grading normalizes whitespace', () => {
+    // rng -> 0 picks "greetings-1": おはようございます。
+    const view = renderComposePractice(() => 0);
+    const field = view.querySelector<HTMLElement>('.compose-answer-field')!;
+
+    clickKey(view, 'お');
+    expect(field.classList.contains('compose-answer-field-error')).toBe(false);
+
+    view.querySelector<HTMLButtonElement>('.keyboard-space')!.click(); // emits the ideographic space
+    expect(field.classList.contains('compose-answer-field-error')).toBe(false);
+  });
+
+  it('clears the highlighted key and hides the hint message as soon as the user types, but keeps hintUsed', () => {
+    // rng -> 0 picks "greetings-1": おはようございます。
+    const view = renderComposePractice(() => 0);
+    view.querySelector<HTMLButtonElement>('.compose-hint')!.click();
+    expect(view.querySelector('.keyboard-key.hint-highlight')).not.toBeNull();
+    expect(view.querySelector('.compose-hint-message')!.classList.contains('hidden')).toBe(false);
+
+    clickKey(view, 'お'); // press the hinted key itself
+    expect(view.querySelector('.keyboard-key.hint-highlight')).toBeNull();
+    expect(view.querySelector('.compose-hint-message')!.classList.contains('hidden')).toBe(true);
+
+    // hintUsed must still apply the SRS downgrade even though the highlight is gone
+    const currentId = view.dataset.currentId!;
+    const current = SENTENCES.entries.find((e) => e.id === currentId)!;
+    for (const char of current.japanese.replace('。', '').slice(1)) {
+      clickKey(view, char);
+    }
+    view.querySelector<HTMLButtonElement>('.keyboard-period')!.click();
+    view.querySelector<HTMLButtonElement>('.compose-submit')!.click();
+
+    const stored = JSON.parse(localStorage.getItem('srs-store-sentences') ?? '{}');
+    expect(stored[currentId].grade).toBe('confusing');
+  });
+
+  it('highlights the combo key and explains deleting the last char when the hint is a small youon kana', () => {
+    // Find a sentence whose reading has a youon (small ゃゅょ) combo somewhere after its first char.
+    const smallKana = ['ゃ', 'ゅ', 'ょ', 'ャ', 'ュ', 'ョ'];
+    const entryIndex = SENTENCES.entries.findIndex((e) =>
+      smallKana.some((k) => {
+        const i = e.reading.indexOf(k);
+        return i > 0;
+      }),
+    );
+    expect(entryIndex).toBeGreaterThanOrEqual(0);
+    const rng = () => entryIndex / SENTENCES.entries.length;
+    const view = renderComposePractice(rng);
+    const currentId = view.dataset.currentId!;
+    const current = SENTENCES.entries.find((e) => e.id === currentId)!;
+
+    const smallIndex = current.reading
+      .split('')
+      .findIndex((ch, i) => i > 0 && smallKana.includes(ch));
+    const combo = current.reading[smallIndex - 1] + current.reading[smallIndex];
+
+    // Type up through the base character right before the combo.
+    for (const char of current.reading.slice(0, smallIndex)) {
+      clickKey(view, char);
+    }
+
+    view.querySelector<HTMLButtonElement>('.compose-hint')!.click();
+
+    expect(view.querySelector('.compose-hint-message')?.textContent).toContain(combo);
+    expect(view.querySelector('.compose-hint-message')?.textContent).toContain('⌫');
+    expect(view.querySelector('.keyboard-key.hint-highlight')?.textContent).toBe(combo);
+  });
 });

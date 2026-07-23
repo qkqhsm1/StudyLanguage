@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { nextHintChar } from './hint';
+import { nextHintChar, nextHintCombo } from './hint';
 
 describe('nextHintChar', () => {
   it('returns the first character when nothing has been typed yet', () => {
@@ -22,5 +22,25 @@ describe('nextHintChar', () => {
 
   it('returns null when typed text is already longer than the reading', () => {
     expect(nextHintChar('こんにちは。', 'こんにちは。おはよう')).toBeNull();
+  });
+});
+
+describe('nextHintCombo', () => {
+  it('returns null for a normal (non-combo) next character', () => {
+    expect(nextHintCombo('こーひーをください', 'こ')).toBeNull();
+  });
+
+  it('returns the two-character combo when the next character is a small kana following its base character', () => {
+    // "しゃしんをとってもいいですか。" typed up to "し" -> next char is small "ゃ", which combos with "し"
+    expect(nextHintCombo('しゃしんをとってもいいですか。', 'し')).toBe('しゃ');
+  });
+
+  it('returns the katakana combo the same way', () => {
+    // "きょうです。" typed up to "き" -> next char is small katakana "ョ", combos with "キ"
+    expect(nextHintCombo('キョウです。', 'キ')).toBe('キョ');
+  });
+
+  it('returns null when the small kana has no preceding character (start of reading)', () => {
+    expect(nextHintCombo('ゃだめ', '')).toBeNull();
   });
 });
