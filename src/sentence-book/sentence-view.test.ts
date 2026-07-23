@@ -11,6 +11,15 @@ const ENTRY: SentenceEntry = {
   category: 'Greetings',
 };
 
+const KANJI_ENTRY: SentenceEntry = {
+  id: 'directions-1',
+  japanese: '駅はどこですか。',
+  reading: 'えきはどこですか。',
+  korean: '역은 어디예요?',
+  english: 'Where is the station?',
+  category: 'Directions',
+};
+
 describe('renderSentenceCard', () => {
   it('hides the translation until the reveal button is clicked', () => {
     const card = renderSentenceCard(ENTRY, undefined);
@@ -20,6 +29,22 @@ describe('renderSentenceCard', () => {
     card.querySelector<HTMLButtonElement>('.sentence-reveal')!.click();
     expect(translation.classList.contains('hidden')).toBe(false);
     expect(translation.textContent).toContain('Good morning.');
+  });
+
+  it('reveals furigana over the kanji when 읽기 보기 is clicked', () => {
+    const card = renderSentenceCard(KANJI_ENTRY, undefined);
+    const jp = card.querySelector('.sentence-japanese')!;
+    expect(jp.querySelector('rt')).toBeNull(); // no furigana until revealed
+
+    card.querySelector<HTMLButtonElement>('.sentence-reading-reveal')!.click();
+    expect(Array.from(jp.querySelectorAll('rt')).map((rt) => rt.textContent)).toEqual(['えき']);
+    expect(jp.textContent).toContain('駅');
+    expect(jp.textContent).toContain('はどこですか。');
+  });
+
+  it('offers no reading reveal for a kana-only sentence', () => {
+    const card = renderSentenceCard(ENTRY, undefined);
+    expect(card.querySelector('.sentence-reading-reveal')).toBeNull();
   });
 
   it('shows a category badge with the mapped icon', () => {

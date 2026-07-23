@@ -542,9 +542,10 @@ nav a {
   min-width: 0;
 }
 
-/* 문제 카드 안의 작은 "읽기 보기" — 정답 보기(풀폭 버튼)와 달리 문장 바로
-   아래 붙는 조용한 링크형 버튼이다. */
-.interpret-reading-reveal {
+/* 작은 "읽기 보기" — 해석 연습 문제 카드와 문어장 문장 카드가 공유. 조용한
+   링크형 버튼이다. */
+.interpret-reading-reveal,
+.sentence-reading-reveal {
   margin-top: 10px;
   background: none;
   border: none;
@@ -563,18 +564,18 @@ nav a {
 }
 
 /* 후리가나가 붙은 문장: rt(읽기)가 한자 위에 얹힐 세로 공간을 확보한다. */
-.interpret-question-furigana {
+.has-furigana {
   line-height: 2.1;
 }
 
 /* 읽기(しょうしょう)가 한자(少々)보다 넓으면 브라우저 기본값(space-around)은
    밑의 한자를 벌려 폭을 맞춘다 — 少 々 처럼 틈이 벌어져 이상하게 보인다.
    center로 두면 한자를 붙인 채 읽기만 가운데 정렬한다. */
-.interpret-question-furigana ruby {
+.has-furigana ruby {
   ruby-align: center;
 }
 
-.interpret-question-furigana rt {
+.has-furigana rt {
   font-size: 0.45em;
   font-weight: 600;
   color: var(--accent);

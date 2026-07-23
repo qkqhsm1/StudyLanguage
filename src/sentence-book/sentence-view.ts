@@ -2,6 +2,7 @@ import { allCategories, allSentences } from '../data/all-sentences';
 import { loadJSON, saveJSON } from '../storage';
 import { buildTodayQueue, describeReviewStatus, reviewEntry, toggleBookmark } from '../srs';
 import { categoryIcon, renderIconLinkList } from '../data/category-icons';
+import { buildFurigana, renderFurigana } from '../practice/furigana';
 import { NAV_HTML } from '../nav';
 import type { SentenceEntry, SrsGrade, SrsState, SrsStore } from '../types';
 
@@ -47,11 +48,29 @@ export function renderSentenceCard(entry: SentenceEntry, srsState: SrsState | un
   jp.textContent = entry.japanese;
   card.appendChild(jp);
 
+  // 한자가 있으면 "읽기 보기"로 한자 위에 후리가나를 띄운다(해석 연습과 동일).
   if (entry.reading && entry.reading !== entry.japanese) {
-    const reading = document.createElement('div');
-    reading.className = 'sentence-reading';
-    reading.textContent = entry.reading;
-    card.appendChild(reading);
+    const readingReveal = document.createElement('button');
+    readingReveal.type = 'button';
+    readingReveal.className = 'sentence-reading-reveal';
+    readingReveal.textContent = '읽기 보기';
+    card.appendChild(readingReveal);
+
+    const segments = buildFurigana(entry.japanese, entry.reading);
+
+    readingReveal.addEventListener('click', () => {
+      readingReveal.classList.add('hidden');
+      if (segments) {
+        jp.classList.add('has-furigana');
+        jp.textContent = '';
+        jp.appendChild(renderFurigana(segments));
+      } else {
+        const line = document.createElement('div');
+        line.className = 'sentence-reading';
+        line.textContent = entry.reading;
+        jp.insertAdjacentElement('afterend', line);
+      }
+    });
   }
 
   const translation = document.createElement('div');

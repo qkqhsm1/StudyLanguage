@@ -67,3 +67,22 @@ export function buildFurigana(japanese: string, reading: string): FuriganaSegmen
   if (pos !== reading.length) return null; // 읽기가 남으면 어긋난 것
   return segments;
 }
+
+/** 세그먼트 목록을 ruby DOM으로. 한자 구간은 <ruby>한자<rt>읽기</rt></ruby>,
+ *  가나 구간은 그냥 텍스트로 붙인다. 해석 연습과 문어장 카드가 공유한다. */
+export function renderFurigana(segments: FuriganaSegment[]): DocumentFragment {
+  const frag = document.createDocumentFragment();
+  for (const seg of segments) {
+    if (seg.ruby === null) {
+      frag.appendChild(document.createTextNode(seg.base));
+    } else {
+      const ruby = document.createElement('ruby');
+      ruby.appendChild(document.createTextNode(seg.base));
+      const rt = document.createElement('rt');
+      rt.textContent = seg.ruby;
+      ruby.appendChild(rt);
+      frag.appendChild(ruby);
+    }
+  }
+  return frag;
+}
