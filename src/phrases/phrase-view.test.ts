@@ -1,0 +1,108 @@
+import { beforeEach, describe, expect, it } from 'vitest';
+import { renderPhraseView } from './phrase-view';
+import { addPhrase, loadPhrases, savePhrases } from './phrase-store';
+import type { CapturedPhrase } from '../types';
+
+const NOW = new Date(2026, 0, 10, 9, 30);
+
+const COMPLETE: CapturedPhrase = {
+  id: 'my-complete', korean: '집에 가고 싶어요', japanese: '家に帰りたいです', reading: 'いえにかえりたいです', createdAt: '2026-01-10',
+};
+const NO_READING: CapturedPhrase = {
+  id: 'my-noreading', korean: '지금 몇 시예요?', japanese: '今何時ですか', reading: '', createdAt: '2026-01-10',
+};
+const UNFILLED: CapturedPhrase = {
+  id: 'my-unfilled', korean: '아직 안 채운 문장', japanese: '', reading: '', createdAt: '2026-01-10',
+};
+
+describe('renderPhraseView', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  it('shows an empty-state message when nothing has been captured', () => {
+    const view = renderPhraseView();
+    expect(view.querySelector('.phrase-empty')).not.toBeNull();
+  });
+
+  it('captures a new phrase from the input and clears the field', () => {
+    const view = renderPhraseView();
+    const input = view.querySelector<HTMLInputElement>('.phrase-capture-input')!;
+    input.value = '물 좀 주세요';
+    view.querySelector<HTMLButtonElement>('.phrase-capture-submit')!.click();
+
+    expect(loadPhrases().map((p) => p.korean)).toEqual(['물 좀 주세요']);
+    expect(input.value).toBe('');
+  });
+
+  it('does not capture an empty or whitespace-only phrase', () => {
+    const view = renderPhraseView();
+    const input = view.querySelector<HTMLInputElement>('.phrase-capture-input')!;
+    input.value = '   ';
+    view.querySelector<HTMLButtonElement>('.phrase-capture-submit')!.click();
+
+    expect(loadPhrases()).toEqual([]);
+  });
+
+  it('renders unfilled phrases with editable japanese and reading fields', () => {
+    savePhrases([UNFILLED]);
+    const view = renderPhraseView();
+
+    const row = view.querySelector<HTMLElement>('.phrase-pending')!;
+    expect(row.textContent).toContain('아직 안 채운 문장');
+    expect(row.querySelector('.phrase-japanese-input')).not.toBeNull();
+    expect(row.querySelector('.phrase-reading-input')).not.toBeNull();
+  });
+
+  it('saves the japanese and reading typed into a pending phrase', () => {
+    savePhrases([UNFILLED]);
+    const view = renderPhraseView();
+
+    view.querySelector<HTMLInputElement>('.phrase-japanese-input')!.value = '家に帰りたいです';
+    view.querySelector<HTMLInputElement>('.phrase-reading-input')!.value = 'いえにかえりたいです';
+    view.querySelector<HTMLButtonElement>('.phrase-save')!.click();
+
+    const stored = loadPhrases()[0];
+    expect(stored.japanese).toBe('家に帰りたいです');
+    expect(stored.reading).toBe('いえにかえりたいです');
+  });
+
+  it('renders a completed phrase as a sentence card', () => {
+    savePhrases([COMPLETE]);
+    const view = renderPhraseView();
+
+    expect(view.querySelector('.phrase-pending')).toBeNull();
+    expect(view.querySelector('.sentence-card')).not.toBeNull();
+    expect(view.querySelector('.sentence-japanese')?.textContent).toBe('家に帰りたいです');
+  });
+
+  it('marks a completed phrase with no reading as interpretation-only', () => {
+    savePhrases([NO_READING]);
+    const view = renderPhraseView();
+    expect(view.querySelector('.phrase-interpret-only')).not.toBeNull();
+  });
+
+  it('does not mark a completed phrase that has a reading', () => {
+    savePhrases([COMPLETE]);
+    const view = renderPhraseView();
+    expect(view.querySelector('.phrase-interpret-only')).toBeNull();
+  });
+
+  it('deletes a phrase when its delete button is clicked', () => {
+    const phrase = addPhrase('삭제될 문장', NOW);
+    const view = renderPhraseView();
+
+    const deleteBtn = view.querySelector<HTMLButtonElement>(`.phrase-delete[data-phrase-id="${phrase.id}"]`)!;
+    deleteBtn.click();
+
+    expect(loadPhrases()).toEqual([]);
+  });
+
+  it('lists pending phrases before completed ones', () => {
+    savePhrases([COMPLETE, UNFILLED]);
+    const view = renderPhraseView();
+
+    const sections = Array.from(view.querySelectorAll('.phrase-section-title')).map((el) => el.textContent);
+    expect(sections[0]).toContain('채우기 대기');
+  });
+});

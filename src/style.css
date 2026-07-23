@@ -557,3 +557,79 @@ nav a {
   display: block;
   margin-top: 8px;
 }
+
+.phrase-capture {
+  margin-bottom: 20px;
+}
+
+.phrase-capture-label {
+  font-size: 17px;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.phrase-capture-input,
+.phrase-japanese-input,
+.phrase-reading-input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1.5px solid #d2d2d7;
+  border-radius: 12px;
+  padding: 14px 16px;
+  font-size: 18px;
+  font-family: inherit;
+  outline: none;
+  margin-top: 10px;
+}
+
+.phrase-capture-input:focus,
+.phrase-japanese-input:focus,
+.phrase-reading-input:focus {
+  border-color: var(--accent);
+}
+
+.phrase-capture-submit {
+  width: 100%;
+  margin-top: 10px;
+  font-size: 17px;
+}
+
+.phrase-section {
+  margin-top: 24px;
+}
+
+.phrase-section-title {
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 10px;
+}
+
+.phrase-korean {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.phrase-reading-hint {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-top: 8px;
+}
+
+.phrase-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.phrase-actions .btn {
+  padding: 10px 20px;
+}
+
+.phrase-empty {
+  font-size: 17px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}

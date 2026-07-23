@@ -4,6 +4,7 @@ import { renderSentenceBookHome } from './sentence-book/sentence-view';
 import { renderInterpretPractice } from './practice/interpret-view';
 import { renderComposePractice } from './practice/compose-view';
 import { renderHomeView } from './home/home-view';
+import { renderPhraseView } from './phrases/phrase-view';
 import { NAV_HTML } from './nav';
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
@@ -56,6 +57,8 @@ function route(): void {
   let view: HTMLElement;
   if (hash === '#/home') {
     view = renderHomeView();
+  } else if (hash === '#/phrases') {
+    view = renderPhraseView();
   } else if (hash.startsWith('#/kana')) {
     view = renderKanaQuizView();
   } else if (hash === '#/practice') {
@@ -72,6 +75,7 @@ function route(): void {
 
   view.addEventListener('vocab:refresh', route);
   view.addEventListener('sentence:refresh', route);
+  view.addEventListener('phrase:refresh', route);
   app.appendChild(view);
 }
 
