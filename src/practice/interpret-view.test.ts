@@ -88,4 +88,23 @@ describe('renderInterpretPractice', () => {
     expect(current.japanese).toBe(current.reading);
     expect(view.querySelector('.interpret-reading-reveal')).toBeNull();
   });
+
+  it('bookmarks the current sentence in place, without moving to a new question', () => {
+    const view = renderInterpretPractice(() => 0);
+    const currentId = view.dataset.currentId!;
+
+    const bookmark = view.querySelector<HTMLButtonElement>('.bookmark-toggle')!;
+    expect(bookmark.textContent).toBe('📑');
+
+    bookmark.click();
+    expect(bookmark.textContent).toBe('🔖');
+    expect(view.dataset.currentId).toBe(currentId); // did not advance
+
+    const store = JSON.parse(localStorage.getItem('srs-store-sentences') ?? '{}');
+    expect(store[currentId].bookmarked).toBe(true);
+
+    bookmark.click();
+    expect(bookmark.textContent).toBe('📑');
+    expect(JSON.parse(localStorage.getItem('srs-store-sentences')!)[currentId].bookmarked).toBe(false);
+  });
 });

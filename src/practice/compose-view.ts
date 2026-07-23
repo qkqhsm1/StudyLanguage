@@ -1,6 +1,10 @@
 import { composableSentences } from '../data/all-sentences';
 import { reviewEntry } from '../srs';
-import { loadSentenceSrsStore, saveSentenceSrsStore } from '../sentence-book/sentence-view';
+import {
+  loadSentenceSrsStore,
+  renderSentenceBookmarkToggle,
+  saveSentenceSrsStore,
+} from '../sentence-book/sentence-view';
 import { renderKanaKeyboard } from './keyboard';
 import { nextHintChar, nextHintCombo } from './hint';
 import { NAV_HTML } from '../nav';
@@ -30,10 +34,16 @@ export function renderComposePractice(rng: () => number = Math.random): HTMLElem
   label.textContent = '다음 문장을 일본어로 써보세요';
   questionCard.appendChild(label);
 
+  // 문제 + 북마크를 한 줄에: 연습 중 바로 담아 문장 오늘 복습 큐에 넣을 수 있게.
+  const questionRow = document.createElement('div');
+  questionRow.className = 'practice-question-row';
+
   const question = document.createElement('div');
   question.className = 'compose-question';
   question.textContent = current.korean;
-  questionCard.appendChild(question);
+  questionRow.appendChild(question);
+  questionRow.appendChild(renderSentenceBookmarkToggle(current.id));
+  questionCard.appendChild(questionRow);
 
   container.appendChild(questionCard);
 

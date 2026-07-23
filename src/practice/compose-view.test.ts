@@ -269,4 +269,19 @@ describe('renderComposePractice', () => {
     const view = renderComposePractice(() => 0.999999);
     expect(view.dataset.currentId).toBe('my-with-reading');
   });
+
+  it('bookmarks the current sentence in place, without moving to a new question', () => {
+    const view = renderComposePractice(() => 0);
+    const currentId = view.dataset.currentId!;
+
+    const bookmark = view.querySelector<HTMLButtonElement>('.bookmark-toggle')!;
+    expect(bookmark.textContent).toBe('📑');
+
+    bookmark.click();
+    expect(bookmark.textContent).toBe('🔖');
+    expect(view.dataset.currentId).toBe(currentId); // did not advance
+
+    const store = JSON.parse(localStorage.getItem('srs-store-sentences') ?? '{}');
+    expect(store[currentId].bookmarked).toBe(true);
+  });
 });

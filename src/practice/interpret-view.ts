@@ -1,6 +1,10 @@
 import { allSentences } from '../data/all-sentences';
 import { buildTodayQueue, reviewEntry } from '../srs';
-import { loadSentenceSrsStore, saveSentenceSrsStore } from '../sentence-book/sentence-view';
+import {
+  loadSentenceSrsStore,
+  renderSentenceBookmarkToggle,
+  saveSentenceSrsStore,
+} from '../sentence-book/sentence-view';
 import { NAV_HTML } from '../nav';
 import type { SentenceEntry, SrsGrade } from '../types';
 
@@ -26,10 +30,17 @@ export function renderInterpretPractice(rng: () => number = Math.random): HTMLEl
   const questionCard = document.createElement('div');
   questionCard.className = 'card';
 
+  // 문제 + 북마크를 한 줄에: 연습 중 "이건 나중에 복습하자" 싶으면 바로 담아
+  // 문장 오늘 복습 큐에 넣을 수 있게 한다.
+  const questionRow = document.createElement('div');
+  questionRow.className = 'practice-question-row';
+
   const question = document.createElement('div');
   question.className = 'interpret-question compose-question';
   question.textContent = current.japanese;
-  questionCard.appendChild(question);
+  questionRow.appendChild(question);
+  questionRow.appendChild(renderSentenceBookmarkToggle(current.id));
+  questionCard.appendChild(questionRow);
 
   // 한자가 있어 표기와 읽기가 다를 때만 "읽기 보기"를 준다. 한자를 못 읽어 막히는
   // 경우의 대비책 — 뜻(정답)과는 별개라 여기서 읽기를 봐도 채점에는 영향이 없다.

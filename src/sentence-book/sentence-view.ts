@@ -15,6 +15,29 @@ export function saveSentenceSrsStore(store: SrsStore): void {
   saveJSON(SENTENCE_SRS_KEY, store);
 }
 
+/** 문장 하나짜리 북마크 토글. 문장 연습(해석·작문)처럼 카드 목록이 아니라 문장
+ *  한 개만 보이는 화면에서 쓴다. 카드 목록의 위임 리스너와 달리, 여기서는 화면을
+ *  다시 그리지 않고(그러면 다음 문제로 넘어가 버린다) 버튼 표시만 그 자리에서 바꾼다. */
+export function renderSentenceBookmarkToggle(entryId: string): HTMLButtonElement {
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'bookmark-toggle';
+
+  function paint(): void {
+    btn.textContent = loadSentenceSrsStore()[entryId]?.bookmarked ? '🔖' : '📑';
+  }
+  paint();
+
+  btn.addEventListener('click', () => {
+    const store = loadSentenceSrsStore();
+    store[entryId] = toggleBookmark(store[entryId]);
+    saveSentenceSrsStore(store);
+    paint();
+  });
+
+  return btn;
+}
+
 export function renderSentenceCard(entry: SentenceEntry, srsState: SrsState | undefined, today: Date = new Date()): HTMLElement {
   const card = document.createElement('div');
   card.className = 'sentence-card card';
