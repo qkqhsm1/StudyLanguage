@@ -567,6 +567,13 @@ nav a {
   line-height: 2.1;
 }
 
+/* 읽기(しょうしょう)가 한자(少々)보다 넓으면 브라우저 기본값(space-around)은
+   밑의 한자를 벌려 폭을 맞춘다 — 少 々 처럼 틈이 벌어져 이상하게 보인다.
+   center로 두면 한자를 붙인 채 읽기만 가운데 정렬한다. */
+.interpret-question-furigana ruby {
+  ruby-align: center;
+}
+
 .interpret-question-furigana rt {
   font-size: 0.45em;
   font-weight: 600;
