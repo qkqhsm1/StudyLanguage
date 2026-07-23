@@ -658,16 +658,20 @@ nav a {
   gap: 12px;
 }
 
-.practice-question-row .compose-question {
+.practice-question-row .practice-sentence-group {
   flex: 1;
   min-width: 0;
 }
 
-/* 작은 "읽기 보기" — 해석 연습 문제 카드와 문어장 문장 카드가 공유. 조용한
-   링크형 버튼이다. */
-.interpret-reading-reveal,
-.sentence-reading-reveal {
+/* 읽기·발음 토글 — 해석 연습 문제 카드와 문어장 문장 카드가 공유하는
+   조용한 링크형 버튼. 켜면 색이 진해진다. */
+.reading-toggles {
+  display: flex;
+  gap: 14px;
   margin-top: 10px;
+}
+
+.reading-toggle {
   background: none;
   border: none;
   padding: 0;
@@ -676,6 +680,19 @@ nav a {
   font-weight: 600;
   font-family: inherit;
   cursor: pointer;
+}
+
+.reading-toggle.active {
+  text-decoration: underline;
+}
+
+/* 문장 + 발음을 한 줄에: 발음은 문장 오른쪽에 붙되, 좁으면 아래로 감싼다. */
+.practice-sentence-group {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  flex-wrap: wrap;
+  min-width: 0;
 }
 
 .interpret-reading,

@@ -2,7 +2,7 @@ import { allCategories, allSentences } from '../data/all-sentences';
 import { loadJSON, saveJSON } from '../storage';
 import { buildTodayQueue, describeReviewStatus, reviewEntry, toggleBookmark } from '../srs';
 import { categoryIcon, renderIconLinkList } from '../data/category-icons';
-import { revealReading } from '../practice/furigana';
+import { createReadingToggles } from '../practice/furigana';
 import { NAV_HTML } from '../nav';
 import type { SentenceEntry, SrsGrade, SrsState, SrsStore } from '../types';
 
@@ -43,23 +43,19 @@ export function renderSentenceCard(entry: SentenceEntry, srsState: SrsState | un
   const card = document.createElement('div');
   card.className = 'sentence-card card';
 
+  // 문장과 발음을 한 줄에 — 발음은 문장 오른쪽에 붙는다.
+  const sentenceGroup = document.createElement('div');
+  sentenceGroup.className = 'practice-sentence-group';
+
   const jp = document.createElement('div');
   jp.className = 'sentence-japanese';
   jp.textContent = entry.japanese;
-  card.appendChild(jp);
+  sentenceGroup.appendChild(jp);
+  card.appendChild(sentenceGroup);
 
-  // "읽기 보기": 한자 위 후리가나 + 한글 발음·로마자 (해석 연습과 동일한 동작).
+  // 후리가나·발음 토글 (해석 연습과 동일한 동작).
   if (entry.reading) {
-    const readingReveal = document.createElement('button');
-    readingReveal.type = 'button';
-    readingReveal.className = 'sentence-reading-reveal';
-    readingReveal.textContent = '읽기 보기';
-    card.appendChild(readingReveal);
-
-    readingReveal.addEventListener('click', () => {
-      readingReveal.classList.add('hidden');
-      revealReading(jp, entry.japanese, entry.reading);
-    });
+    card.appendChild(createReadingToggles(jp, sentenceGroup, entry.japanese, entry.reading));
   }
 
   const translation = document.createElement('div');

@@ -31,23 +31,51 @@ describe('renderSentenceCard', () => {
     expect(translation.textContent).toContain('Good morning.');
   });
 
-  it('reveals furigana over the kanji plus a hangul/romaji pronunciation', () => {
+  it('toggles furigana over the kanji on and back off', () => {
     const card = renderSentenceCard(KANJI_ENTRY, undefined);
     const jp = card.querySelector('.sentence-japanese')!;
-    expect(jp.querySelector('rt')).toBeNull(); // no furigana until revealed
-    expect(card.querySelector('.reading-pronunciation')).toBeNull();
+    const btn = card.querySelector<HTMLButtonElement>('.reading-toggle-furigana')!;
+    expect(jp.querySelector('rt')).toBeNull();
 
-    card.querySelector<HTMLButtonElement>('.sentence-reading-reveal')!.click();
+    btn.click();
     expect(Array.from(jp.querySelectorAll('rt')).map((rt) => rt.textContent)).toEqual(['えき']);
     expect(jp.textContent).toContain('駅');
-    expect(jp.textContent).toContain('はどこですか。');
-    // Furigana alone doesn't help if you can't read kana yet — the sound must be spelled out.
-    expect(card.querySelector('.reading-pronunciation')?.textContent).toBe('에키하도코데스카。 · ekihadokodesuka。');
+
+    // Pressing again must restore the plain sentence — it used to be one-way.
+    btn.click();
+    expect(jp.querySelector('rt')).toBeNull();
+    expect(jp.textContent).toBe('駅はどこですか。');
   });
 
-  it('still offers the reading for a kana-only sentence, for the pronunciation', () => {
+  it('toggles the hangul/romaji pronunciation independently of the furigana', () => {
+    const card = renderSentenceCard(KANJI_ENTRY, undefined);
+    const pron = card.querySelector('.reading-pronunciation')!;
+    const btn = card.querySelector<HTMLButtonElement>('.reading-toggle-pronunciation')!;
+    expect(pron.classList.contains('hidden')).toBe(true);
+
+    btn.click();
+    expect(pron.classList.contains('hidden')).toBe(false);
+    expect(pron.textContent).toBe('에키하도코데스카。 · ekihadokodesuka。');
+    // The furigana is untouched by the pronunciation toggle.
+    expect(card.querySelector('.sentence-japanese rt')).toBeNull();
+
+    btn.click();
+    expect(pron.classList.contains('hidden')).toBe(true);
+  });
+
+  it('places the pronunciation beside the sentence, not after the bookmark', () => {
+    const card = renderSentenceCard(KANJI_ENTRY, undefined);
+    const group = card.querySelector('.practice-sentence-group')!;
+    expect(group.querySelector('.sentence-japanese')).not.toBeNull();
+    expect(group.querySelector('.reading-pronunciation')).not.toBeNull();
+  });
+
+  it('offers only the pronunciation toggle for a kana-only sentence', () => {
     const card = renderSentenceCard(ENTRY, undefined);
-    card.querySelector<HTMLButtonElement>('.sentence-reading-reveal')!.click();
+    // Nothing to annotate when the display form already is the reading.
+    expect(card.querySelector('.reading-toggle-furigana')).toBeNull();
+
+    card.querySelector<HTMLButtonElement>('.reading-toggle-pronunciation')!.click();
     expect(card.querySelector('.reading-pronunciation')?.textContent).toContain('오하요');
   });
 

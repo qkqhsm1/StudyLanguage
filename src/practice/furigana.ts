@@ -71,33 +71,84 @@ export function buildFurigana(japanese: string, reading: string): FuriganaSegmen
 }
 
 /**
- * "읽기 보기"를 눌렀을 때의 공통 동작. 해석 연습과 문어장 카드가 함께 쓴다.
+ * 문장 옆에 "읽기 보기"(후리가나)와 "발음 보기"(한글·로마자) 토글 두 개를 만들어
+ * 돌려준다. 해석 연습과 문어장 카드가 함께 쓴다.
  *
- * 1) 한자 위에 후리가나를 얹고(정렬 실패 시 전체 가나 읽기를 한 줄로),
- * 2) 그 아래에 한글 발음 · 로마자를 덧붙인다 — 가나를 아직 못 읽어도
- *    소리를 알 수 있어야 공부가 된다.
+ * 둘 다 **토글**이다 — 다시 누르면 원래 상태로 돌아온다. 후리가나는 문장을 그 자리에서
+ * ruby 버전으로 바꾸고, 발음은 문장 오른쪽에 붙는다.
  *
- * `sentenceEl`은 일본어 문장이 들어 있는 요소로, 그 자리에서 ruby 버전으로 바뀐다.
+ * `sentenceRow`는 문장 요소를 담고 있는 가로 줄로, 발음이 그 안 오른쪽에 들어간다.
  */
-export function revealReading(sentenceEl: HTMLElement, japanese: string, reading: string): void {
+export function createReadingToggles(
+  sentenceEl: HTMLElement,
+  sentenceRow: HTMLElement,
+  japanese: string,
+  reading: string,
+): HTMLElement {
+  const wrap = document.createElement('div');
+  wrap.className = 'reading-toggles';
+
   const segments = buildFurigana(japanese, reading);
-  if (segments) {
-    sentenceEl.classList.add('has-furigana');
-    sentenceEl.textContent = '';
-    sentenceEl.appendChild(renderFurigana(segments));
-  } else {
-    const kana = document.createElement('div');
-    kana.className = 'reading-kana';
-    kana.textContent = reading;
-    sentenceEl.insertAdjacentElement('afterend', kana);
+
+  // 후리가나 토글: 한자가 있어 표기와 읽기가 다를 때만 의미가 있다.
+  if (reading !== japanese) {
+    const furiganaBtn = document.createElement('button');
+    furiganaBtn.type = 'button';
+    furiganaBtn.className = 'reading-toggle reading-toggle-furigana';
+    furiganaBtn.textContent = '읽기 보기';
+
+    let kanaLine: HTMLElement | null = null;
+    let shown = false;
+
+    furiganaBtn.addEventListener('click', () => {
+      shown = !shown;
+      furiganaBtn.classList.toggle('active', shown);
+      furiganaBtn.textContent = shown ? '읽기 숨기기' : '읽기 보기';
+
+      if (shown) {
+        if (segments) {
+          sentenceEl.classList.add('has-furigana');
+          sentenceEl.textContent = '';
+          sentenceEl.appendChild(renderFurigana(segments));
+        } else {
+          // 정렬 실패(드묾): 전체 가나 읽기를 한 줄로 대신 보여준다.
+          kanaLine = document.createElement('div');
+          kanaLine.className = 'reading-kana';
+          kanaLine.textContent = reading;
+          sentenceRow.insertAdjacentElement('afterend', kanaLine);
+        }
+      } else if (segments) {
+        sentenceEl.classList.remove('has-furigana');
+        sentenceEl.textContent = japanese;
+      } else {
+        kanaLine?.remove();
+        kanaLine = null;
+      }
+    });
+
+    wrap.appendChild(furiganaBtn);
   }
+
+  // 발음 토글: 가나를 아직 못 읽어도 소리를 알 수 있게. 가나뿐인 문장에도 유용하다.
+  const pronunciationBtn = document.createElement('button');
+  pronunciationBtn.type = 'button';
+  pronunciationBtn.className = 'reading-toggle reading-toggle-pronunciation';
+  pronunciationBtn.textContent = '발음 보기';
 
   const { romaji, hangul } = romanizeKana(reading);
   const pronunciation = document.createElement('div');
-  pronunciation.className = 'reading-pronunciation';
+  pronunciation.className = 'reading-pronunciation hidden';
   pronunciation.textContent = `${hangul} · ${romaji}`;
-  // 후리가나 실패 시 끼워 넣은 가나 줄 뒤에 오도록 문장 요소 기준으로 붙인다.
-  (sentenceEl.nextElementSibling ?? sentenceEl).insertAdjacentElement('afterend', pronunciation);
+  sentenceRow.appendChild(pronunciation);
+
+  pronunciationBtn.addEventListener('click', () => {
+    const shown = pronunciation.classList.toggle('hidden') === false;
+    pronunciationBtn.classList.toggle('active', shown);
+    pronunciationBtn.textContent = shown ? '발음 숨기기' : '발음 보기';
+  });
+
+  wrap.appendChild(pronunciationBtn);
+  return wrap;
 }
 
 /** 세그먼트 목록을 ruby DOM으로. 한자 구간은 <ruby>한자<rt>읽기</rt></ruby>,

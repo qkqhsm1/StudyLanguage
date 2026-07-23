@@ -70,7 +70,7 @@ describe('renderInterpretPractice', () => {
     expect(answer.textContent).toBe(captured.korean);
   });
 
-  it('puts furigana over the kanji and spells out the pronunciation', () => {
+  it('toggles furigana over the kanji, and back off again', () => {
     const captured: CapturedPhrase = {
       id: 'my-kanji',
       korean: '집에 가고 싶어요',
@@ -82,31 +82,53 @@ describe('renderInterpretPractice', () => {
     const view = renderInterpretPractice(() => 0.999999);
     expect(view.dataset.currentId).toBe('my-kanji');
 
-    const reveal = view.querySelector<HTMLButtonElement>('.interpret-reading-reveal')!;
+    const btn = view.querySelector<HTMLButtonElement>('.reading-toggle-furigana')!;
     const question = view.querySelector('.interpret-question')!;
     expect(question.querySelector('rt')).toBeNull(); // no furigana until revealed
 
-    reveal.click();
+    btn.click();
 
     // Reading sits only over the kanji runs, not over the kana.
-    const rubies = Array.from(question.querySelectorAll('rt')).map((rt) => rt.textContent);
-    expect(rubies).toEqual(['いえ', 'かえ']);
-    // The sentence's own text is preserved (kanji + kana intact).
+    expect(Array.from(question.querySelectorAll('rt')).map((rt) => rt.textContent)).toEqual(['いえ', 'かえ']);
     expect(question.textContent).toContain('家');
-    expect(question.textContent).toContain('帰');
     expect(question.textContent).toContain('りたいです');
-    expect(reveal.classList.contains('hidden')).toBe(true);
-    expect(view.querySelector('.reading-pronunciation')?.textContent).toBe('이에니카에리타이데스 · ienikaeritaidesu');
+
+    // Pressing again restores the plain sentence — it used to be a one-way reveal.
+    btn.click();
+    expect(question.querySelector('rt')).toBeNull();
+    expect(question.textContent).toBe('家に帰りたいです');
   });
 
-  it('still offers the reading for a kana-only sentence, for the pronunciation', () => {
-    // rng 0 -> entries[0], greetings-1 (おはようございます。): no kanji, so no furigana,
-    // but the hangul/romaji sound is still worth showing.
+  it('toggles the pronunciation separately, beside the sentence', () => {
+    savePhrases([{
+      id: 'my-kanji', korean: '집에 가고 싶어요', japanese: '家に帰りたいです',
+      reading: 'いえにかえりたいです', createdAt: '2026-01-10',
+    }]);
+    const view = renderInterpretPractice(() => 0.999999);
+
+    const pron = view.querySelector('.reading-pronunciation')!;
+    expect(pron.classList.contains('hidden')).toBe(true);
+    // It lives next to the sentence, not tacked on after the bookmark.
+    expect(view.querySelector('.practice-sentence-group .reading-pronunciation')).not.toBeNull();
+
+    const btn = view.querySelector<HTMLButtonElement>('.reading-toggle-pronunciation')!;
+    btn.click();
+    expect(pron.classList.contains('hidden')).toBe(false);
+    expect(pron.textContent).toBe('이에니카에리타이데스 · ienikaeritaidesu');
+    expect(view.querySelector('.interpret-question rt')).toBeNull(); // furigana untouched
+
+    btn.click();
+    expect(pron.classList.contains('hidden')).toBe(true);
+  });
+
+  it('offers only the pronunciation toggle for a kana-only sentence', () => {
+    // rng 0 -> entries[0], greetings-1 (おはようございます。): nothing to annotate.
     const view = renderInterpretPractice(() => 0);
     const current = SENTENCES.entries.find((e) => e.id === view.dataset.currentId)!;
     expect(current.japanese).toBe(current.reading);
+    expect(view.querySelector('.reading-toggle-furigana')).toBeNull();
 
-    view.querySelector<HTMLButtonElement>('.interpret-reading-reveal')!.click();
+    view.querySelector<HTMLButtonElement>('.reading-toggle-pronunciation')!.click();
     expect(view.querySelector('.reading-pronunciation')?.textContent).toContain('오하요');
   });
 

@@ -5,7 +5,7 @@ import {
   renderSentenceBookmarkToggle,
   saveSentenceSrsStore,
 } from '../sentence-book/sentence-view';
-import { revealReading } from './furigana';
+import { createReadingToggles } from './furigana';
 import { NAV_HTML } from '../nav';
 import type { SentenceEntry, SrsGrade } from '../types';
 
@@ -36,27 +36,25 @@ export function renderInterpretPractice(rng: () => number = Math.random): HTMLEl
   const questionRow = document.createElement('div');
   questionRow.className = 'practice-question-row';
 
+  // 문장과 발음을 한 그룹으로 묶어서, 발음이 문장 오른쪽에 붙고 북마크는 맨 끝에 오게.
+  const sentenceGroup = document.createElement('div');
+  sentenceGroup.className = 'practice-sentence-group';
+
   const question = document.createElement('div');
   question.className = 'interpret-question compose-question';
   question.textContent = current.japanese;
-  questionRow.appendChild(question);
+  sentenceGroup.appendChild(question);
+
+  questionRow.appendChild(sentenceGroup);
   questionRow.appendChild(renderSentenceBookmarkToggle(current.id));
   questionCard.appendChild(questionRow);
 
-  // 읽는 법을 모를 때의 대비책: 한자 위 후리가나 + 한글 발음·로마자. 가나뿐인
-  // 문장도 발음은 도움이 되므로 읽기만 있으면 준다. 뜻(정답)과는 별개라 채점에
+  // 읽는 법을 모를 때의 대비책: 후리가나·발음 토글. 뜻(정답)과는 별개라 채점에
   // 영향이 없다.
   if (current.reading) {
-    const readingReveal = document.createElement('button');
-    readingReveal.type = 'button';
-    readingReveal.className = 'interpret-reading-reveal';
-    readingReveal.textContent = '읽기 보기';
-    questionCard.appendChild(readingReveal);
-
-    readingReveal.addEventListener('click', () => {
-      readingReveal.classList.add('hidden');
-      revealReading(question, current.japanese, current.reading);
-    });
+    questionCard.appendChild(
+      createReadingToggles(question, sentenceGroup, current.japanese, current.reading),
+    );
   }
 
   container.appendChild(questionCard);
