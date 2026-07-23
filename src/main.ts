@@ -3,6 +3,7 @@ import { renderKanaQuizView } from './kana-quiz/kana-quiz-view';
 import { renderSentenceBookHome } from './sentence-book/sentence-view';
 import { renderInterpretPractice } from './practice/interpret-view';
 import { renderComposePractice } from './practice/compose-view';
+import { renderHomeView } from './home/home-view';
 import { NAV_HTML } from './nav';
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
@@ -33,11 +34,13 @@ function renderPracticePicker(): HTMLElement {
 }
 
 function route(): void {
-  const hash = window.location.hash || '#/vocab';
+  const hash = window.location.hash || '#/home';
   app.innerHTML = '';
 
   let view: HTMLElement;
-  if (hash.startsWith('#/kana')) {
+  if (hash === '#/home') {
+    view = renderHomeView();
+  } else if (hash.startsWith('#/kana')) {
     view = renderKanaQuizView();
   } else if (hash === '#/practice') {
     view = renderPracticePicker();
