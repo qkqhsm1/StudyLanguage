@@ -322,7 +322,7 @@ nav a {
 
 .keyboard-controls {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr 1fr 1.3fr;
+  grid-template-columns: repeat(4, 1fr) 1.3fr 1.6fr;
   gap: 5px;
   margin-top: 5px;
 }
@@ -331,23 +331,23 @@ nav a {
   background: var(--bg);
   border: none;
   border-radius: 9px;
-  padding: 11px 0;
+  padding: 11px 6px;
   font-size: 17px;
   font-weight: 600;
   color: var(--text);
   cursor: pointer;
 }
 
-.keyboard-space {
-  font-size: 13px !important;
+.keyboard-controls .keyboard-space {
+  font-size: 13px;
 }
 
-.keyboard-backspace {
-  background: var(--danger-bg) !important;
-  color: var(--danger-text) !important;
-  font-size: 13px !important;
+.keyboard-controls .keyboard-backspace {
+  background: var(--danger-bg);
+  color: var(--danger-text);
+  font-size: 13px;
 }
 
-.keyboard-clear {
-  font-size: 13px !important;
+.keyboard-controls .keyboard-clear {
+  font-size: 13px;
 }
