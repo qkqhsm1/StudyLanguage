@@ -1,4 +1,4 @@
-import { SENTENCES } from '../data/sentences-data';
+import { composableSentences } from '../data/all-sentences';
 import { reviewEntry } from '../srs';
 import { loadSentenceSrsStore, saveSentenceSrsStore } from '../sentence-book/sentence-view';
 import { renderKanaKeyboard } from './keyboard';
@@ -18,7 +18,7 @@ export function renderComposePractice(rng: () => number = Math.random): HTMLElem
   nav.innerHTML = NAV_HTML;
   container.appendChild(nav);
 
-  const entries: SentenceEntry[] = SENTENCES.entries;
+  const entries: SentenceEntry[] = composableSentences();
   const current = entries[Math.floor(rng() * entries.length)];
   container.dataset.currentId = current.id;
 

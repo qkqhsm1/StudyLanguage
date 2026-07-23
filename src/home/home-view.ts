@@ -1,5 +1,5 @@
 import vocabData from '../data/vocabulary.json';
-import { SENTENCES } from '../data/sentences-data';
+import { allSentences } from '../data/all-sentences';
 import { loadJSON, saveJSON } from '../storage';
 import { buildTodayQueue } from '../srs';
 import { updateStreak, type StreakState } from '../streak';
@@ -23,7 +23,7 @@ export function renderHomeView(today: Date = new Date()): HTMLElement {
   const vocabSrsStore = loadJSON<SrsStore>(VOCAB_SRS_KEY, {});
   const sentenceSrsStore = loadJSON<SrsStore>(SENTENCE_SRS_KEY, {});
   const vocabDueCount = buildTodayQueue(TYPED_VOCAB_DATA.entries, vocabSrsStore, today).length;
-  const sentenceDueCount = buildTodayQueue(SENTENCES.entries, sentenceSrsStore, today).length;
+  const sentenceDueCount = buildTodayQueue(allSentences(), sentenceSrsStore, today).length;
 
   const prevStreak = loadJSON<StreakState>(STREAK_KEY, EMPTY_STREAK);
   const streak = updateStreak(prevStreak.lastDate ? prevStreak : undefined, today);

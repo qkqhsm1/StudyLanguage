@@ -1,4 +1,4 @@
-import { SENTENCES } from '../data/sentences-data';
+import { allCategories, allSentences } from '../data/all-sentences';
 import { loadJSON, saveJSON } from '../storage';
 import { buildTodayQueue, describeReviewStatus, reviewEntry, toggleBookmark } from '../srs';
 import { categoryIcon, renderIconLinkList } from '../data/category-icons';
@@ -135,20 +135,20 @@ export function renderSentenceBookHome(hash: string): HTMLElement {
   const srsStore = loadSentenceSrsStore();
 
   if (hash === '#/sentences/today') {
-    const queue = buildTodayQueue(SENTENCES.entries, srsStore);
+    const queue = buildTodayQueue(allSentences(), srsStore);
     const heading = document.createElement('h2');
     heading.textContent = `오늘 복습할 문장 (${queue.length})`;
     container.appendChild(heading);
     container.appendChild(renderSentenceList(queue, srsStore, container));
   } else if (hash.startsWith('#/sentences/category/')) {
     const categoryName = decodeURIComponent(hash.replace('#/sentences/category/', ''));
-    const entries = SENTENCES.entries.filter((e) => e.category === categoryName);
+    const entries = allSentences().filter((e) => e.category === categoryName);
     const heading = document.createElement('h2');
     heading.textContent = categoryName;
     container.appendChild(heading);
     container.appendChild(renderSentenceList(entries, srsStore, container));
   } else {
-    container.appendChild(renderCategoryList(SENTENCES.categories));
+    container.appendChild(renderCategoryList(allCategories()));
   }
 
   return container;
