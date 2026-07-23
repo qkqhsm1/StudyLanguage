@@ -236,3 +236,48 @@ nav a {
   align-items: center;
   margin-top: 14px;
 }
+
+.sentence-actions .btn {
+  padding: 10px 18px;
+}
+
+.kana-question-area {
+  text-align: center;
+  padding: 28px;
+}
+
+.kana-question {
+  font-size: 64px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 18px 0;
+}
+
+.kana-answer-input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1.5px solid #d2d2d7;
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 15px;
+  text-align: center;
+  outline: none;
+}
+
+.kana-answer-input:focus {
+  border-color: var(--accent);
+}
+
+.kana-question-area form {
+  margin-top: 12px;
+}
+
+.kana-question-area .btn {
+  width: 100%;
+  margin-top: 12px;
+}
+
+.kana-feedback {
+  margin-top: 10px;
+  font-weight: 600;
+}
