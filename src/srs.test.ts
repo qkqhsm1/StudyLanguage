@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildTodayQueue, reviewEntry, toggleBookmark } from './srs';
+import { buildTodayQueue, describeReviewStatus, reviewEntry, toggleBookmark } from './srs';
 import type { SrsStore, VocabEntry } from './types';
 
 const TODAY = new Date('2026-01-01T00:00:00Z');
@@ -68,5 +68,28 @@ describe('buildTodayQueue', () => {
     };
     const queue = buildTodayQueue(entries, store, TODAY);
     expect(queue.map((e) => e.id)).toEqual(['a', 'b']);
+  });
+});
+
+describe('describeReviewStatus', () => {
+  const TODAY = new Date('2026-01-10T00:00:00Z');
+
+  it('returns null when there is no SRS state yet', () => {
+    expect(describeReviewStatus(undefined, TODAY)).toBeNull();
+  });
+
+  it('returns an urgent badge when due today', () => {
+    const state = { grade: 'unknown', intervalDays: 1, easeFactor: 2.3, dueDate: '2026-01-10', bookmarked: false } as const;
+    expect(describeReviewStatus(state, TODAY)).toEqual({ label: '오늘 복습', urgent: true });
+  });
+
+  it('returns an urgent badge when overdue', () => {
+    const state = { grade: 'unknown', intervalDays: 1, easeFactor: 2.3, dueDate: '2026-01-05', bookmarked: false } as const;
+    expect(describeReviewStatus(state, TODAY)).toEqual({ label: '오늘 복습', urgent: true });
+  });
+
+  it('returns a day-count badge when due in the future', () => {
+    const state = { grade: 'known', intervalDays: 3, easeFactor: 2.6, dueDate: '2026-01-13', bookmarked: false } as const;
+    expect(describeReviewStatus(state, TODAY)).toEqual({ label: '복습까지 3일', urgent: false });
   });
 });

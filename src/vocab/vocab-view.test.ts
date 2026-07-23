@@ -51,15 +51,45 @@ describe('renderWordCard', () => {
     const card = renderWordCard(KANA_ONLY_ENTRY, undefined);
     expect(card.querySelector('.audio-play')).toBeNull();
   });
+
+  it('combines romaji and korean meaning into one meta line', () => {
+    const card = renderWordCard(KANJI_ENTRY, undefined);
+    expect(card.querySelector('.word-meta')?.textContent).toBe('mise · 가게');
+  });
+
+  it('shows a category badge with the mapped icon', () => {
+    const card = renderWordCard(KANJI_ENTRY, undefined);
+    expect(card.querySelector('.badge-category')?.textContent).toBe('☕ Cafe');
+  });
+
+  it('shows an urgent review badge when due today, and an ok badge when due later', () => {
+    const today = new Date('2026-01-10T00:00:00Z');
+    const dueToday = renderWordCard(KANJI_ENTRY, {
+      grade: 'unknown', intervalDays: 1, easeFactor: 2.3, dueDate: '2026-01-10', bookmarked: false,
+    }, today);
+    expect(dueToday.querySelector('.badge-urgent')?.textContent).toBe('오늘 복습');
+
+    const dueLater = renderWordCard(KANJI_ENTRY, {
+      grade: 'known', intervalDays: 3, easeFactor: 2.6, dueDate: '2026-01-13', bookmarked: false,
+    }, today);
+    expect(dueLater.querySelector('.badge-ok')?.textContent).toBe('복습까지 3일');
+  });
+
+  it('omits any review badge when there is no SRS state yet', () => {
+    const card = renderWordCard(KANJI_ENTRY, undefined);
+    expect(card.querySelector('.badge-urgent')).toBeNull();
+    expect(card.querySelector('.badge-ok')).toBeNull();
+  });
 });
 
 describe('renderSkillList', () => {
-  it('renders one link per skill pointing at the skill detail route', () => {
+  it('renders one item per skill with an icon, name, and link to the skill detail route', () => {
     const list = renderSkillList(['Basics', 'Cafe']);
-    const links = list.querySelectorAll('a');
+    const links = list.querySelectorAll('a.skill-list-item');
     expect(links).toHaveLength(2);
     expect(links[1].getAttribute('href')).toBe('#/vocab/skill/Cafe');
-    expect(links[1].textContent).toBe('Cafe');
+    expect(links[1].querySelector('.skill-list-icon')?.textContent).toBe('☕');
+    expect(links[1].querySelector('.skill-list-name')?.textContent).toBe('Cafe');
   });
 });
 

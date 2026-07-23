@@ -13,23 +13,23 @@ function findKey(root: HTMLElement, text: string): HTMLButtonElement {
 describe('renderKanaKeyboard', () => {
   it('calls onChar with the clicked hiragana character by default', () => {
     const onChar = vi.fn();
-    const el = renderKanaKeyboard({ onChar, onBackspace: vi.fn(), onClear: vi.fn() });
-    findKey(el, 'あ').click();
+    const { element } = renderKanaKeyboard({ onChar, onBackspace: vi.fn(), onClear: vi.fn() });
+    findKey(element, 'あ').click();
     expect(onChar).toHaveBeenCalledWith('あ');
   });
 
   it('switches to katakana after clicking the toggle button', () => {
     const onChar = vi.fn();
-    const el = renderKanaKeyboard({ onChar, onBackspace: vi.fn(), onClear: vi.fn() });
-    el.querySelector<HTMLButtonElement>('.keyboard-toggle')!.click();
-    findKey(el, 'ア').click();
+    const { element } = renderKanaKeyboard({ onChar, onBackspace: vi.fn(), onClear: vi.fn() });
+    element.querySelector<HTMLButtonElement>('.keyboard-toggle')!.click();
+    findKey(element, 'ア').click();
     expect(onChar).toHaveBeenCalledWith('ア');
   });
 
   it('includes dakuten characters (needed to type most real sentences)', () => {
     const onChar = vi.fn();
-    const el = renderKanaKeyboard({ onChar, onBackspace: vi.fn(), onClear: vi.fn() });
-    findKey(el, 'ご').click();
+    const { element } = renderKanaKeyboard({ onChar, onBackspace: vi.fn(), onClear: vi.fn() });
+    findKey(element, 'ご').click();
     expect(onChar).toHaveBeenCalledWith('ご');
   });
 
@@ -37,46 +37,39 @@ describe('renderKanaKeyboard', () => {
     const onChar = vi.fn();
     const onBackspace = vi.fn();
     const onClear = vi.fn();
-    const el = renderKanaKeyboard({ onChar, onBackspace, onClear });
+    const { element } = renderKanaKeyboard({ onChar, onBackspace, onClear });
 
-    el.querySelector<HTMLButtonElement>('.keyboard-backspace')!.click();
+    element.querySelector<HTMLButtonElement>('.keyboard-backspace')!.click();
     expect(onBackspace).toHaveBeenCalledTimes(1);
 
-    el.querySelector<HTMLButtonElement>('.keyboard-clear')!.click();
+    element.querySelector<HTMLButtonElement>('.keyboard-clear')!.click();
     expect(onClear).toHaveBeenCalledTimes(1);
 
-    el.querySelector<HTMLButtonElement>('.keyboard-space')!.click();
+    element.querySelector<HTMLButtonElement>('.keyboard-space')!.click();
     expect(onChar).toHaveBeenCalledWith('　');
 
-    el.querySelector<HTMLButtonElement>('.keyboard-period')!.click();
+    element.querySelector<HTMLButtonElement>('.keyboard-period')!.click();
     expect(onChar).toHaveBeenCalledWith('。');
   });
 
   it('has dedicated keys for sokuon and choonpu', () => {
     const onChar = vi.fn();
-    const el = renderKanaKeyboard({ onChar, onBackspace: vi.fn(), onClear: vi.fn() });
+    const { element } = renderKanaKeyboard({ onChar, onBackspace: vi.fn(), onClear: vi.fn() });
 
-    el.querySelector<HTMLButtonElement>('.keyboard-sokuon')!.click();
+    element.querySelector<HTMLButtonElement>('.keyboard-sokuon')!.click();
     expect(onChar).toHaveBeenCalledWith('っ');
 
-    el.querySelector<HTMLButtonElement>('.keyboard-choonpu')!.click();
+    element.querySelector<HTMLButtonElement>('.keyboard-choonpu')!.click();
     expect(onChar).toHaveBeenCalledWith('ー');
   });
 
   it('covers every character needed to type all sentence readings (hiragana)', () => {
-    // Regression test: every character appearing in SENTENCES.entries[].reading must be
-    // producible on the hiragana keyboard, either as an exact .keyboard-key (basic/dakuten/
-    // handakuten/youon kana) or as one of the actual extra keys rendered on the keyboard
-    // (space, period, sokuon, choonpu — verified by class+char, not assumed). Youon keys emit
-    // two characters per click (e.g. "きゃ"), so a reading character that is only ever part of
-    // such a combo (e.g. small "ゃ") is still coverable without needing its own key — hence the
-    // "included in some key's text" check below.
-    const el = renderKanaKeyboard({ onChar: vi.fn(), onBackspace: vi.fn(), onClear: vi.fn() });
-    const keyTexts = Array.from(el.querySelectorAll<HTMLButtonElement>('.keyboard-key')).map(
+    const { element } = renderKanaKeyboard({ onChar: vi.fn(), onBackspace: vi.fn(), onClear: vi.fn() });
+    const keyTexts = Array.from(element.querySelectorAll<HTMLButtonElement>('.keyboard-key')).map(
       (b) => b.textContent ?? '',
     );
-    const sokuonChar = el.querySelector<HTMLButtonElement>('.keyboard-sokuon')!.textContent;
-    const choonpuChar = el.querySelector<HTMLButtonElement>('.keyboard-choonpu')!.textContent;
+    const sokuonChar = element.querySelector<HTMLButtonElement>('.keyboard-sokuon')!.textContent;
+    const choonpuChar = element.querySelector<HTMLButtonElement>('.keyboard-choonpu')!.textContent;
     const extraKeyChars = ['　', '。', sokuonChar, choonpuChar];
 
     const readingChars = new Set<string>();
@@ -89,5 +82,15 @@ describe('renderKanaKeyboard', () => {
     );
 
     expect(uncovered).toEqual([]);
+  });
+
+  it('highlights the key matching the given character, and clears it when passed null', () => {
+    const { element, setHighlight } = renderKanaKeyboard({ onChar: vi.fn(), onBackspace: vi.fn(), onClear: vi.fn() });
+
+    setHighlight('ー');
+    expect(element.querySelector('.keyboard-choonpu')?.classList.contains('hint-highlight')).toBe(true);
+
+    setHighlight(null);
+    expect(element.querySelector('.hint-highlight')).toBeNull();
   });
 });

@@ -3,6 +3,7 @@ import { renderKanaQuizView } from './kana-quiz/kana-quiz-view';
 import { renderSentenceBookHome } from './sentence-book/sentence-view';
 import { renderInterpretPractice } from './practice/interpret-view';
 import { renderComposePractice } from './practice/compose-view';
+import { renderHomeView } from './home/home-view';
 import { NAV_HTML } from './nav';
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
@@ -13,31 +14,49 @@ function renderPracticePicker(): HTMLElement {
   nav.innerHTML = NAV_HTML;
   container.appendChild(nav);
 
-  const list = document.createElement('ul');
-  const interpretItem = document.createElement('li');
-  const interpretLink = document.createElement('a');
-  interpretLink.href = '#/practice/interpret';
-  interpretLink.textContent = '일본어 → 한국어 해석 연습';
-  interpretItem.appendChild(interpretLink);
-  list.appendChild(interpretItem);
+  const list = document.createElement('div');
+  list.className = 'skill-list';
 
-  const composeItem = document.createElement('li');
-  const composeLink = document.createElement('a');
-  composeLink.href = '#/practice/compose';
-  composeLink.textContent = '한국어 → 일본어 작문 연습';
-  composeItem.appendChild(composeLink);
-  list.appendChild(composeItem);
+  const items: Array<{ href: string; icon: string; name: string }> = [
+    { href: '#/practice/interpret', icon: '📖', name: '일본어 → 한국어 해석 연습' },
+    { href: '#/practice/compose', icon: '✍️', name: '한국어 → 일본어 작문 연습' },
+  ];
+
+  for (const item of items) {
+    const link = document.createElement('a');
+    link.className = 'skill-list-item';
+    link.href = item.href;
+
+    const icon = document.createElement('span');
+    icon.className = 'skill-list-icon';
+    icon.textContent = item.icon;
+    link.appendChild(icon);
+
+    const name = document.createElement('span');
+    name.className = 'skill-list-name';
+    name.textContent = item.name;
+    link.appendChild(name);
+
+    const chevron = document.createElement('span');
+    chevron.className = 'skill-list-chevron';
+    chevron.textContent = '›';
+    link.appendChild(chevron);
+
+    list.appendChild(link);
+  }
 
   container.appendChild(list);
   return container;
 }
 
 function route(): void {
-  const hash = window.location.hash || '#/vocab';
+  const hash = window.location.hash || '#/home';
   app.innerHTML = '';
 
   let view: HTMLElement;
-  if (hash.startsWith('#/kana')) {
+  if (hash === '#/home') {
+    view = renderHomeView();
+  } else if (hash.startsWith('#/kana')) {
     view = renderKanaQuizView();
   } else if (hash === '#/practice') {
     view = renderPracticePicker();

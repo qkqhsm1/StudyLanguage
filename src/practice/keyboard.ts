@@ -7,9 +7,14 @@ export interface KeyboardHandlers {
   onClear: () => void;
 }
 
+export interface KanaKeyboardHandle {
+  element: HTMLElement;
+  setHighlight: (char: string | null) => void;
+}
+
 const TABLE = buildKanaTable();
 
-export function renderKanaKeyboard(handlers: KeyboardHandlers): HTMLElement {
+export function renderKanaKeyboard(handlers: KeyboardHandlers): KanaKeyboardHandle {
   const wrap = document.createElement('div');
   wrap.className = 'kana-keyboard';
 
@@ -99,5 +104,21 @@ export function renderKanaKeyboard(handlers: KeyboardHandlers): HTMLElement {
   wrap.appendChild(grid);
   wrap.appendChild(controls);
 
-  return wrap;
+  function setHighlight(char: string | null): void {
+    wrap.querySelectorAll('.hint-highlight').forEach((el) => el.classList.remove('hint-highlight'));
+    if (!char) return;
+
+    const gridMatch = Array.from(grid.querySelectorAll<HTMLButtonElement>('.keyboard-key')).find(
+      (key) => key.textContent === char || key.textContent?.includes(char),
+    );
+    if (gridMatch) {
+      gridMatch.classList.add('hint-highlight');
+      return;
+    }
+
+    const controlMatch = [sokuonBtn, choonpuBtn, periodBtn].find((btn) => btn.textContent === char);
+    controlMatch?.classList.add('hint-highlight');
+  }
+
+  return { element: wrap, setHighlight };
 }

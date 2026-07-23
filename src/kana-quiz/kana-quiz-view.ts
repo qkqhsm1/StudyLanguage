@@ -23,7 +23,7 @@ export function renderKanaQuizView(rng: () => number = Math.random): HTMLElement
   container.appendChild(nav);
 
   const questionArea = document.createElement('div');
-  questionArea.className = 'kana-question-area';
+  questionArea.className = 'kana-question-area card';
   container.appendChild(questionArea);
 
   const pool = filterKana(TABLE, DEFAULT_FILTER);
@@ -48,6 +48,7 @@ export function renderKanaQuizView(rng: () => number = Math.random): HTMLElement
 
     const submit = document.createElement('button');
     submit.type = 'submit';
+    submit.className = 'btn btn-primary';
     submit.textContent = '확인';
     form.appendChild(submit);
 
@@ -56,7 +57,7 @@ export function renderKanaQuizView(rng: () => number = Math.random): HTMLElement
 
     const nextBtn = document.createElement('button');
     nextBtn.type = 'button';
-    nextBtn.className = 'kana-next';
+    nextBtn.className = 'kana-next btn btn-secondary';
     nextBtn.textContent = '다음 문제';
     nextBtn.addEventListener('click', renderQuestion);
 

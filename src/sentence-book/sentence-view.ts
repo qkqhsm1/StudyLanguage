@@ -1,6 +1,7 @@
 import { SENTENCES } from '../data/sentences-data';
 import { loadJSON, saveJSON } from '../storage';
-import { buildTodayQueue, reviewEntry, toggleBookmark } from '../srs';
+import { buildTodayQueue, describeReviewStatus, reviewEntry, toggleBookmark } from '../srs';
+import { categoryIcon, renderIconLinkList } from '../data/category-icons';
 import { NAV_HTML } from '../nav';
 import type { SentenceEntry, SrsGrade, SrsState, SrsStore } from '../types';
 
@@ -14,9 +15,9 @@ export function saveSentenceSrsStore(store: SrsStore): void {
   saveJSON(SENTENCE_SRS_KEY, store);
 }
 
-export function renderSentenceCard(entry: SentenceEntry, srsState: SrsState | undefined): HTMLElement {
+export function renderSentenceCard(entry: SentenceEntry, srsState: SrsState | undefined, today: Date = new Date()): HTMLElement {
   const card = document.createElement('div');
-  card.className = 'sentence-card';
+  card.className = 'sentence-card card';
 
   const jp = document.createElement('div');
   jp.className = 'sentence-japanese';
@@ -35,26 +36,48 @@ export function renderSentenceCard(entry: SentenceEntry, srsState: SrsState | un
   translation.textContent = `${entry.korean} / ${entry.english}`;
   card.appendChild(translation);
 
+  const badges = document.createElement('div');
+  badges.className = 'word-badges';
+
+  const categoryBadge = document.createElement('span');
+  categoryBadge.className = 'badge badge-category';
+  categoryBadge.textContent = `${categoryIcon(entry.category)} ${entry.category}`;
+  badges.appendChild(categoryBadge);
+
+  const reviewBadge = describeReviewStatus(srsState, today);
+  if (reviewBadge) {
+    const badge = document.createElement('span');
+    badge.className = `badge ${reviewBadge.urgent ? 'badge-urgent' : 'badge-ok'}`;
+    badge.textContent = reviewBadge.label;
+    badges.appendChild(badge);
+  }
+  card.appendChild(badges);
+
+  const actions = document.createElement('div');
+  actions.className = 'sentence-actions';
+
   const revealBtn = document.createElement('button');
-  revealBtn.className = 'sentence-reveal';
+  revealBtn.className = 'sentence-reveal btn btn-secondary';
   revealBtn.textContent = '뜻 보기';
   revealBtn.addEventListener('click', () => {
     translation.classList.toggle('hidden');
   });
-  card.appendChild(revealBtn);
+  actions.appendChild(revealBtn);
 
   const bookmarkBtn = document.createElement('button');
   bookmarkBtn.className = 'bookmark-toggle';
   bookmarkBtn.textContent = srsState?.bookmarked ? '🔖' : '📑';
   bookmarkBtn.dataset.entryId = entry.id;
-  card.appendChild(bookmarkBtn);
+  actions.appendChild(bookmarkBtn);
+
+  card.appendChild(actions);
 
   const gradeWrap = document.createElement('div');
   gradeWrap.className = 'srs-grades';
   const gradeLabels: Record<SrsGrade, string> = { unknown: '모름', confusing: '헷갈림', known: '암기됨' };
   (Object.keys(gradeLabels) as SrsGrade[]).forEach((grade) => {
     const btn = document.createElement('button');
-    btn.className = `srs-grade srs-grade-${grade}`;
+    btn.className = `srs-grade srs-grade-${grade} btn ${grade === 'known' ? 'btn-primary' : 'btn-secondary'}`;
     btn.textContent = gradeLabels[grade];
     btn.dataset.entryId = entry.id;
     btn.dataset.grade = grade;
@@ -66,22 +89,12 @@ export function renderSentenceCard(entry: SentenceEntry, srsState: SrsState | un
 }
 
 export function renderCategoryList(categories: string[]): HTMLElement {
-  const list = document.createElement('ul');
-  list.className = 'category-list';
-  for (const category of categories) {
-    const item = document.createElement('li');
-    const link = document.createElement('a');
-    link.href = `#/sentences/category/${category}`;
-    link.textContent = category;
-    item.appendChild(link);
-    list.appendChild(item);
-  }
-  return list;
+  return renderIconLinkList(categories, '#/sentences/category/');
 }
 
 function renderSentenceList(entries: SentenceEntry[], srsStore: SrsStore, container: HTMLElement): HTMLElement {
   const list = document.createElement('div');
-  list.className = 'sentence-list';
+  list.className = 'sentence-list card-list';
   for (const entry of entries) {
     list.appendChild(renderSentenceCard(entry, srsStore[entry.id]));
   }

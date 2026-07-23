@@ -52,3 +52,20 @@ export function buildTodayQueue<T extends { id: string }>(
     return state.bookmarked || state.dueDate <= todayStr;
   });
 }
+
+export interface ReviewBadge {
+  label: string;
+  urgent: boolean;
+}
+
+export function describeReviewStatus(state: SrsState | undefined, today: Date = new Date()): ReviewBadge | null {
+  if (!state) return null;
+  const todayStr = addDays(today, 0);
+  if (state.dueDate <= todayStr) {
+    return { label: '오늘 복습', urgent: true };
+  }
+  const daysUntilDue = Math.round(
+    (new Date(`${state.dueDate}T00:00:00Z`).getTime() - new Date(`${todayStr}T00:00:00Z`).getTime()) / 86_400_000,
+  );
+  return { label: `복습까지 ${daysUntilDue}일`, urgent: false };
+}

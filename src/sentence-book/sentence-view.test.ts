@@ -21,14 +21,20 @@ describe('renderSentenceCard', () => {
     expect(translation.classList.contains('hidden')).toBe(false);
     expect(translation.textContent).toContain('Good morning.');
   });
+
+  it('shows a category badge with the mapped icon', () => {
+    const card = renderSentenceCard(ENTRY, undefined);
+    expect(card.querySelector('.badge-category')?.textContent).toBe('👋 Greetings');
+  });
 });
 
 describe('renderCategoryList', () => {
-  it('renders one link per category pointing at the category route', () => {
+  it('renders one item per category with an icon and link to the category route', () => {
     const list = renderCategoryList(['Greetings', 'Cafe']);
-    const links = list.querySelectorAll('a');
+    const links = list.querySelectorAll('a.skill-list-item');
     expect(links).toHaveLength(2);
     expect(links[1].getAttribute('href')).toBe('#/sentences/category/Cafe');
+    expect(links[1].querySelector('.skill-list-icon')?.textContent).toBe('☕');
   });
 });
 
