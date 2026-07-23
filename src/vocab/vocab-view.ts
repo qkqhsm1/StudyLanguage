@@ -1,7 +1,7 @@
 import vocabData from '../data/vocabulary.json';
 import { loadJSON, saveJSON } from '../storage';
 import { buildTodayQueue, describeReviewStatus, reviewEntry, toggleBookmark } from '../srs';
-import { categoryIcon } from '../data/category-icons';
+import { categoryIcon, renderIconLinkList } from '../data/category-icons';
 import { NAV_HTML } from '../nav';
 import type { SrsGrade, SrsState, SrsStore, VocabData, VocabEntry } from '../types';
 
@@ -103,17 +103,7 @@ export function renderWordCard(entry: VocabEntry, srsState: SrsState | undefined
 }
 
 export function renderSkillList(skills: string[]): HTMLElement {
-  const list = document.createElement('ul');
-  list.className = 'skill-list';
-  for (const skill of skills) {
-    const item = document.createElement('li');
-    const link = document.createElement('a');
-    link.href = `#/vocab/skill/${skill}`;
-    link.textContent = skill;
-    item.appendChild(link);
-    list.appendChild(item);
-  }
-  return list;
+  return renderIconLinkList(skills, '#/vocab/skill/');
 }
 
 function renderCardList(entries: VocabEntry[], srsStore: SrsStore, container: HTMLElement): HTMLElement {

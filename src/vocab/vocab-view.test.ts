@@ -83,12 +83,13 @@ describe('renderWordCard', () => {
 });
 
 describe('renderSkillList', () => {
-  it('renders one link per skill pointing at the skill detail route', () => {
+  it('renders one item per skill with an icon, name, and link to the skill detail route', () => {
     const list = renderSkillList(['Basics', 'Cafe']);
-    const links = list.querySelectorAll('a');
+    const links = list.querySelectorAll('a.skill-list-item');
     expect(links).toHaveLength(2);
     expect(links[1].getAttribute('href')).toBe('#/vocab/skill/Cafe');
-    expect(links[1].textContent).toBe('Cafe');
+    expect(links[1].querySelector('.skill-list-icon')?.textContent).toBe('☕');
+    expect(links[1].querySelector('.skill-list-name')?.textContent).toBe('Cafe');
   });
 });
 
