@@ -33,7 +33,7 @@ export function renderSentenceCard(entry: SentenceEntry, srsState: SrsState | un
 
   const translation = document.createElement('div');
   translation.className = 'sentence-translation hidden';
-  translation.textContent = `${entry.korean} / ${entry.english}`;
+  translation.textContent = [entry.korean, entry.english].filter(Boolean).join(' / ');
   card.appendChild(translation);
 
   const badges = document.createElement('div');

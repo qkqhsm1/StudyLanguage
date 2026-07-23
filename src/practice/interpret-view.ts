@@ -40,7 +40,7 @@ export function renderInterpretPractice(rng: () => number = Math.random): HTMLEl
 
   const answer = document.createElement('div');
   answer.className = 'interpret-answer hidden';
-  answer.textContent = `${current.korean} / ${current.english}`;
+  answer.textContent = [current.korean, current.english].filter(Boolean).join(' / ');
   container.appendChild(answer);
 
   const gradeWrap = document.createElement('div');

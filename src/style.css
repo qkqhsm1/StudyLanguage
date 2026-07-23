@@ -491,7 +491,6 @@ nav a {
 .home-stat-value {
   font-size: 22px;
   font-weight: 800;
-  line-height: 1.1;
   color: var(--accent);
 }
 
@@ -505,7 +504,6 @@ nav a {
 
 .home-stat-label {
   font-size: 11px;
-  font-weight: 600;
   color: var(--text-secondary);
   margin-top: 2px;
 }
@@ -673,10 +671,6 @@ nav a {
    화면 폭을 꽉 채운다(리디자인 이전과 동일). flex 배치는 인사말과 통계를 좌우로
    나눠 놓을 폭이 있는 넓은 화면에서만 켠다 — 폰에서 flex item이 되면 통계 줄이
    내용 크기로 줄어들어 오른쪽에 빈 공간이 생긴다. */
-.home-header {
-  margin-bottom: 20px;
-}
-
 .home-grid {
   display: grid;
   grid-template-columns: 1fr;
@@ -698,6 +692,7 @@ nav a {
     align-items: flex-end;
     gap: 20px;
     flex-wrap: wrap;
+    margin-bottom: 20px;
   }
 
   .home-greeting {
@@ -724,10 +719,12 @@ nav a {
 
   .home-stat-value {
     font-size: 34px;
+    line-height: 1.1;
   }
 
   .home-stat-label {
     font-size: 14px;
+    font-weight: 600;
     margin-top: 4px;
   }
 

@@ -47,6 +47,28 @@ describe('renderPhraseView', () => {
     expect(loadPhrases()).toEqual([]);
   });
 
+  it('captures a new phrase when Enter is pressed in the input', () => {
+    const view = renderPhraseView();
+    const refreshSpy = vi.fn();
+    view.addEventListener('phrase:refresh', refreshSpy);
+    const input = view.querySelector<HTMLInputElement>('.phrase-capture-input')!;
+    input.value = '물 좀 주세요';
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+
+    expect(loadPhrases().map((p) => p.korean)).toEqual(['물 좀 주세요']);
+    expect(input.value).toBe('');
+    expect(refreshSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not capture on Enter when the input is empty or whitespace-only', () => {
+    const view = renderPhraseView();
+    const input = view.querySelector<HTMLInputElement>('.phrase-capture-input')!;
+    input.value = '   ';
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+
+    expect(loadPhrases()).toEqual([]);
+  });
+
   it('renders unfilled phrases with editable japanese and reading fields', () => {
     savePhrases([UNFILLED]);
     const view = renderPhraseView();

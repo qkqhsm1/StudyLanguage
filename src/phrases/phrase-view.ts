@@ -22,16 +22,22 @@ export function renderCaptureBox(container: HTMLElement): HTMLElement {
   input.placeholder = '집에 가고 싶은데…';
   box.appendChild(input);
 
-  const submit = document.createElement('button');
-  submit.type = 'button';
-  submit.className = 'phrase-capture-submit btn btn-primary';
-  submit.textContent = '담아두기';
-  submit.addEventListener('click', () => {
+  function submitPhrase(): void {
     if (input.value.trim() === '') return;
     addPhrase(input.value);
     input.value = '';
     container.dispatchEvent(new Event('phrase:refresh'));
+  }
+
+  input.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') submitPhrase();
   });
+
+  const submit = document.createElement('button');
+  submit.type = 'button';
+  submit.className = 'phrase-capture-submit btn btn-primary';
+  submit.textContent = '담아두기';
+  submit.addEventListener('click', submitPhrase);
   box.appendChild(submit);
 
   return box;
@@ -177,6 +183,7 @@ function renderBackupBox(container: HTMLElement): HTMLElement {
     if (!file) return;
     void file.text().then((text) => {
       container.dispatchEvent(new CustomEvent('phrase:import-text', { detail: text }));
+      fileInput.value = '';
     });
   });
   importLabel.appendChild(fileInput);
@@ -243,8 +250,7 @@ export function renderPhraseView(): HTMLElement {
 
   if (completed.length > 0) {
     const section = renderSection(`완성된 문장 (${completed.length})`, completed.map((p) => renderCompletedCard(p, container)));
-    const completedList = section.querySelector<HTMLElement>('.phrase-list')!;
-    attachSentenceCardActions(completedList, container, 'phrase:refresh');
+    attachSentenceCardActions(section, container, 'phrase:refresh');
     container.appendChild(section);
   }
 

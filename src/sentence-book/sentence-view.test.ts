@@ -26,6 +26,17 @@ describe('renderSentenceCard', () => {
     const card = renderSentenceCard(ENTRY, undefined);
     expect(card.querySelector('.badge-category')?.textContent).toBe('👋 Greetings');
   });
+
+  it('shows korean / english for a built-in entry with both fields', () => {
+    const card = renderSentenceCard(ENTRY, undefined);
+    expect(card.querySelector('.sentence-translation')?.textContent).toBe('안녕하세요. (아침 인사) / Good morning.');
+  });
+
+  it('shows only korean, with no trailing separator, for a captured phrase with no english', () => {
+    const captured: SentenceEntry = { ...ENTRY, english: '' };
+    const card = renderSentenceCard(captured, undefined);
+    expect(card.querySelector('.sentence-translation')?.textContent).toBe('안녕하세요. (아침 인사)');
+  });
 });
 
 describe('renderCategoryList', () => {
