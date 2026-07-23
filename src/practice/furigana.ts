@@ -1,3 +1,5 @@
+import { romanizeKana } from '../data/kana-romanize';
+
 export interface FuriganaSegment {
   /** 화면에 그대로 보이는 부분(한자 또는 가나). */
   base: string;
@@ -66,6 +68,36 @@ export function buildFurigana(japanese: string, reading: string): FuriganaSegmen
 
   if (pos !== reading.length) return null; // 읽기가 남으면 어긋난 것
   return segments;
+}
+
+/**
+ * "읽기 보기"를 눌렀을 때의 공통 동작. 해석 연습과 문어장 카드가 함께 쓴다.
+ *
+ * 1) 한자 위에 후리가나를 얹고(정렬 실패 시 전체 가나 읽기를 한 줄로),
+ * 2) 그 아래에 한글 발음 · 로마자를 덧붙인다 — 가나를 아직 못 읽어도
+ *    소리를 알 수 있어야 공부가 된다.
+ *
+ * `sentenceEl`은 일본어 문장이 들어 있는 요소로, 그 자리에서 ruby 버전으로 바뀐다.
+ */
+export function revealReading(sentenceEl: HTMLElement, japanese: string, reading: string): void {
+  const segments = buildFurigana(japanese, reading);
+  if (segments) {
+    sentenceEl.classList.add('has-furigana');
+    sentenceEl.textContent = '';
+    sentenceEl.appendChild(renderFurigana(segments));
+  } else {
+    const kana = document.createElement('div');
+    kana.className = 'reading-kana';
+    kana.textContent = reading;
+    sentenceEl.insertAdjacentElement('afterend', kana);
+  }
+
+  const { romaji, hangul } = romanizeKana(reading);
+  const pronunciation = document.createElement('div');
+  pronunciation.className = 'reading-pronunciation';
+  pronunciation.textContent = `${hangul} · ${romaji}`;
+  // 후리가나 실패 시 끼워 넣은 가나 줄 뒤에 오도록 문장 요소 기준으로 붙인다.
+  (sentenceEl.nextElementSibling ?? sentenceEl).insertAdjacentElement('afterend', pronunciation);
 }
 
 /** 세그먼트 목록을 ruby DOM으로. 한자 구간은 <ruby>한자<rt>읽기</rt></ruby>,

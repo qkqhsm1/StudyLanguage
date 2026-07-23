@@ -31,20 +31,24 @@ describe('renderSentenceCard', () => {
     expect(translation.textContent).toContain('Good morning.');
   });
 
-  it('reveals furigana over the kanji when 읽기 보기 is clicked', () => {
+  it('reveals furigana over the kanji plus a hangul/romaji pronunciation', () => {
     const card = renderSentenceCard(KANJI_ENTRY, undefined);
     const jp = card.querySelector('.sentence-japanese')!;
     expect(jp.querySelector('rt')).toBeNull(); // no furigana until revealed
+    expect(card.querySelector('.reading-pronunciation')).toBeNull();
 
     card.querySelector<HTMLButtonElement>('.sentence-reading-reveal')!.click();
     expect(Array.from(jp.querySelectorAll('rt')).map((rt) => rt.textContent)).toEqual(['えき']);
     expect(jp.textContent).toContain('駅');
     expect(jp.textContent).toContain('はどこですか。');
+    // Furigana alone doesn't help if you can't read kana yet — the sound must be spelled out.
+    expect(card.querySelector('.reading-pronunciation')?.textContent).toBe('에키하도코데스카。 · ekihadokodesuka。');
   });
 
-  it('offers no reading reveal for a kana-only sentence', () => {
+  it('still offers the reading for a kana-only sentence, for the pronunciation', () => {
     const card = renderSentenceCard(ENTRY, undefined);
-    expect(card.querySelector('.sentence-reading-reveal')).toBeNull();
+    card.querySelector<HTMLButtonElement>('.sentence-reading-reveal')!.click();
+    expect(card.querySelector('.reading-pronunciation')?.textContent).toContain('오하요');
   });
 
   it('shows a category badge with the mapped icon', () => {

@@ -5,7 +5,7 @@ import {
   renderSentenceBookmarkToggle,
   saveSentenceSrsStore,
 } from '../sentence-book/sentence-view';
-import { buildFurigana, renderFurigana } from './furigana';
+import { revealReading } from './furigana';
 import { NAV_HTML } from '../nav';
 import type { SentenceEntry, SrsGrade } from '../types';
 
@@ -43,31 +43,19 @@ export function renderInterpretPractice(rng: () => number = Math.random): HTMLEl
   questionRow.appendChild(renderSentenceBookmarkToggle(current.id));
   questionCard.appendChild(questionRow);
 
-  // 한자가 있어 표기와 읽기가 다를 때만 "읽기 보기"를 준다. 한자를 못 읽어 막히는
-  // 경우의 대비책 — 뜻(정답)과는 별개라 여기서 읽기를 봐도 채점에는 영향이 없다.
-  if (current.reading && current.reading !== current.japanese) {
+  // 읽는 법을 모를 때의 대비책: 한자 위 후리가나 + 한글 발음·로마자. 가나뿐인
+  // 문장도 발음은 도움이 되므로 읽기만 있으면 준다. 뜻(정답)과는 별개라 채점에
+  // 영향이 없다.
+  if (current.reading) {
     const readingReveal = document.createElement('button');
     readingReveal.type = 'button';
     readingReveal.className = 'interpret-reading-reveal';
     readingReveal.textContent = '읽기 보기';
     questionCard.appendChild(readingReveal);
 
-    const segments = buildFurigana(current.japanese, current.reading);
-
     readingReveal.addEventListener('click', () => {
       readingReveal.classList.add('hidden');
-      if (segments) {
-        // 한자 위에 후리가나를 올린다 — 문장을 그 자리에서 ruby 버전으로 교체.
-        question.classList.add('has-furigana');
-        question.textContent = '';
-        question.appendChild(renderFurigana(segments));
-      } else {
-        // 정렬 실패(드묾) 시엔 전체 읽기를 한 줄로 대신 보여준다.
-        const line = document.createElement('div');
-        line.className = 'interpret-reading';
-        line.textContent = current.reading;
-        questionCard.appendChild(line);
-      }
+      revealReading(question, current.japanese, current.reading);
     });
   }
 

@@ -615,10 +615,19 @@ nav a {
   cursor: pointer;
 }
 
-.interpret-reading {
+.interpret-reading,
+.reading-kana {
   margin-top: 8px;
   font-size: 20px;
   color: var(--text-secondary);
+}
+
+/* 한글 발음 · 로마자 — 가나를 아직 못 읽어도 소리를 알 수 있게. */
+.reading-pronunciation {
+  margin-top: 6px;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--accent);
 }
 
 /* 후리가나가 붙은 문장: rt(읽기)가 한자 위에 얹힐 세로 공간을 확보한다. */

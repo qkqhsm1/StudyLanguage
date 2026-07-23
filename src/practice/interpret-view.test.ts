@@ -70,7 +70,7 @@ describe('renderInterpretPractice', () => {
     expect(answer.textContent).toBe(captured.korean);
   });
 
-  it('puts furigana over the kanji when the reading is revealed', () => {
+  it('puts furigana over the kanji and spells out the pronunciation', () => {
     const captured: CapturedPhrase = {
       id: 'my-kanji',
       korean: '집에 가고 싶어요',
@@ -96,15 +96,18 @@ describe('renderInterpretPractice', () => {
     expect(question.textContent).toContain('帰');
     expect(question.textContent).toContain('りたいです');
     expect(reveal.classList.contains('hidden')).toBe(true);
+    expect(view.querySelector('.reading-pronunciation')?.textContent).toBe('이에니카에리타이데스 · ienikaeritaidesu');
   });
 
-  it('omits the reading reveal for a kana-only sentence', () => {
-    // rng 0 -> entries[0], greetings-1 (おはようございます。), whose reading equals
-    // its japanese, so there is no kanji to look up.
+  it('still offers the reading for a kana-only sentence, for the pronunciation', () => {
+    // rng 0 -> entries[0], greetings-1 (おはようございます。): no kanji, so no furigana,
+    // but the hangul/romaji sound is still worth showing.
     const view = renderInterpretPractice(() => 0);
     const current = SENTENCES.entries.find((e) => e.id === view.dataset.currentId)!;
     expect(current.japanese).toBe(current.reading);
-    expect(view.querySelector('.interpret-reading-reveal')).toBeNull();
+
+    view.querySelector<HTMLButtonElement>('.interpret-reading-reveal')!.click();
+    expect(view.querySelector('.reading-pronunciation')?.textContent).toContain('오하요');
   });
 
   it('bookmarks the current sentence in place, without moving to a new question', () => {
