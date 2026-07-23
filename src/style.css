@@ -457,34 +457,38 @@ nav a {
 }
 
 .home-greeting {
-  font-size: 32px;
+  font-size: 22px;
   font-weight: 700;
   color: var(--text);
+  margin-top: 8px;
 }
 
 .home-subtitle {
-  font-size: 16px;
+  font-size: 14px;
   color: var(--text-secondary);
   margin-top: 2px;
 }
 
+/* 폰 기본값: 통계 타일 3개가 한 줄을 균등하게 나눠 갖는다(flex: 1).
+   넓은 화면에서는 헤더 우측에 내용 크기만큼만 놓이도록 아래에서 덮어쓴다. */
 .home-stats {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   flex-shrink: 0;
 }
 
 .home-stat {
+  flex: 1;
   background: var(--card-bg);
-  border-radius: 20px;
-  padding: 16px 26px;
+  border-radius: 16px;
+  padding: 14px;
   text-align: center;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   border: 1px solid rgba(0, 0, 0, 0.04);
 }
 
 .home-stat-value {
-  font-size: 34px;
+  font-size: 22px;
   font-weight: 800;
   line-height: 1.1;
   color: var(--accent);
@@ -499,29 +503,30 @@ nav a {
 }
 
 .home-stat-label {
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--text-secondary);
-  margin-top: 4px;
+  margin-top: 2px;
 }
 
+/* 폰 기본값: 기능 카드 4개를 2x2로. 아이콘 위 / 이름 아래로 쌓이는 세로 카드다.
+   넓은 화면에서는 이 블록이 좁은 1열 안으로 들어가므로 아래 미디어 쿼리에서
+   가로 한 줄짜리 행으로 바꾼다. */
 .home-links {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 10px;
 }
 
 .home-link {
   background: var(--card-bg);
-  border-radius: 16px;
-  padding: 15px 18px;
+  border-radius: 18px;
+  padding: 18px;
   border: 1px solid rgba(0, 0, 0, 0.04);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   text-decoration: none;
   color: var(--text);
-  display: flex;
-  align-items: center;
-  gap: 12px;
+  display: block;
 }
 
 /* Per-card tints, matching the approved mockup: each entry card carries the
@@ -548,12 +553,15 @@ nav a {
 }
 
 .home-link-icon {
-  font-size: 28px;
+  font-size: 30px;
+  display: block;
 }
 
 .home-link-title {
-  font-size: 17px;
+  font-size: 15px;
   font-weight: 700;
+  display: block;
+  margin-top: 8px;
 }
 
 .phrase-capture {
@@ -675,12 +683,66 @@ nav a {
   gap: 18px;
 }
 
-/* 넓은 화면에서만 3열. 좁은 화면에서는 위 1열 규칙이 그대로 적용되어
-   폰 레이아웃이 지금과 동일하게 유지된다. */
+/* 넓은 화면에서만 3열 + 대시보드용 확대 타이포. 좁은 화면에서는 위의 기본
+   규칙들이 그대로 적용되어 폰 레이아웃이 리디자인 이전과 동일하게 유지된다.
+   사용자가 폰 화면은 만족한다고 했으므로 이 경계 밖으로 새 스타일이 새면 안 된다. */
 @media (min-width: 900px) {
   .home-grid {
     grid-template-columns: 0.95fr 1.15fr 1.15fr;
     align-items: start;
+  }
+
+  .home-greeting {
+    font-size: 32px;
+    margin-top: 0;
+  }
+
+  .home-subtitle {
+    font-size: 16px;
+  }
+
+  .home-stats {
+    gap: 12px;
+  }
+
+  .home-stat {
+    flex: 0 0 auto;
+    border-radius: 20px;
+    padding: 16px 26px;
+  }
+
+  .home-stat-value {
+    font-size: 34px;
+  }
+
+  .home-stat-label {
+    font-size: 14px;
+    margin-top: 4px;
+  }
+
+  /* 좁은 1열 안에 들어가므로 2x2 대신 가로 한 줄짜리 행으로 */
+  .home-links {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .home-link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-radius: 16px;
+    padding: 15px 18px;
+  }
+
+  .home-link-icon {
+    font-size: 28px;
+    display: inline;
+  }
+
+  .home-link-title {
+    font-size: 17px;
+    display: inline;
+    margin-top: 0;
   }
 }
 
