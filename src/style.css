@@ -438,9 +438,10 @@ nav a {
   color: var(--text-secondary);
 }
 
-/* The revealed translation on the 해석 연습 screen plays the same role as
-   .compose-correct-answer does on 작문 연습, so it gets the same treatment. */
-.interpret-answer {
+/* Revealed answer text: the same role on three screens (해석 연습, 문어장 card,
+   작문 연습), so it gets one shared treatment. */
+.interpret-answer,
+.sentence-translation {
   margin-top: 10px;
   font-weight: 600;
   font-size: 15px;
