@@ -1,5 +1,6 @@
 import { buildKanaTable } from '../data/kana-data';
 import { checkReadingAnswer, filterKana, type KanaQuizFilter } from './quiz-logic';
+import { NAV_HTML } from '../nav';
 import type { KanaChar } from '../types';
 
 const TABLE = buildKanaTable();
@@ -18,7 +19,7 @@ export function renderKanaQuizView(rng: () => number = Math.random): HTMLElement
   container.className = 'kana-quiz';
 
   const nav = document.createElement('nav');
-  nav.innerHTML = `<a href="#/vocab">단어장</a><a href="#/vocab/today">오늘 복습</a><a href="#/kana">가나 퀴즈</a>`;
+  nav.innerHTML = NAV_HTML;
   container.appendChild(nav);
 
   const questionArea = document.createElement('div');

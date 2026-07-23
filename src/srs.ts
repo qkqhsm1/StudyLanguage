@@ -1,4 +1,4 @@
-import type { SrsGrade, SrsState, SrsStore, VocabEntry } from './types';
+import type { SrsGrade, SrsState, SrsStore } from './types';
 
 const DEFAULT_EASE = 2.5;
 const MIN_EASE = 1.3;
@@ -40,7 +40,11 @@ export function toggleBookmark(prev: SrsState | undefined, today: Date = new Dat
   };
 }
 
-export function buildTodayQueue(entries: VocabEntry[], srsStore: SrsStore, today: Date = new Date()): VocabEntry[] {
+export function buildTodayQueue<T extends { id: string }>(
+  entries: T[],
+  srsStore: SrsStore,
+  today: Date = new Date(),
+): T[] {
   const todayStr = addDays(today, 0);
   return entries.filter((entry) => {
     const state = srsStore[entry.id];
