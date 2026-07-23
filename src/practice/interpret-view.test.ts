@@ -26,6 +26,20 @@ describe('renderInterpretPractice', () => {
     expect(view.querySelector('.interpret-grades')!.classList.contains('hidden')).toBe(false);
   });
 
+  it('styles the three self-grade buttons alike, so none looks pre-selected', () => {
+    const view = renderInterpretPractice(() => 0);
+    view.querySelector<HTMLButtonElement>('.interpret-reveal')!.click();
+
+    // Pressing any of them advances immediately, so there is no "selected" state —
+    // highlighting 맞았음 in blue made it look like the answer was already right.
+    const grades = view.querySelectorAll('.interpret-grade');
+    expect(grades).toHaveLength(3);
+    expect(view.querySelectorAll('.interpret-grade.btn-primary')).toHaveLength(0);
+    for (const btn of grades) {
+      expect(btn.classList.contains('btn-plain')).toBe(true);
+    }
+  });
+
   it('persists the chosen grade under the sentence SRS store', () => {
     const view = renderInterpretPractice(() => 0);
     const currentId = view.dataset.currentId!;

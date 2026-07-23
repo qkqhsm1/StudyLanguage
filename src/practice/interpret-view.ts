@@ -74,7 +74,7 @@ export function renderInterpretPractice(rng: () => number = Math.random): HTMLEl
   container.appendChild(questionCard);
 
   const revealBtn = document.createElement('button');
-  revealBtn.className = 'interpret-reveal btn btn-secondary';
+  revealBtn.className = 'interpret-reveal btn btn-plain';
   revealBtn.textContent = '정답 보기';
   container.appendChild(revealBtn);
 
@@ -88,7 +88,9 @@ export function renderInterpretPractice(rng: () => number = Math.random): HTMLEl
   const gradeLabels: Record<SrsGrade, string> = { unknown: '몰랐음', confusing: '헷갈렸음', known: '맞았음' };
   (Object.keys(gradeLabels) as SrsGrade[]).forEach((grade) => {
     const btn = document.createElement('button');
-    btn.className = `interpret-grade interpret-grade-${grade} btn ${grade === 'known' ? 'btn-primary' : 'btn-secondary'}`;
+    // 셋 다 대등한 선택지다(누르면 곧장 다음 문제로 넘어가므로 "선택된 상태"가
+    // 없다). 하나만 파랗게 두면 이미 맞힌 것처럼 보여서, 회색 배경 위 흰 버튼으로 통일.
+    btn.className = `interpret-grade interpret-grade-${grade} btn btn-plain`;
     btn.textContent = gradeLabels[grade];
     btn.addEventListener('click', () => {
       const store = loadSentenceSrsStore();

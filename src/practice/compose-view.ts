@@ -143,7 +143,7 @@ export function renderComposePractice(rng: () => number = Math.random): HTMLElem
   container.appendChild(correctAnswer);
 
   const nextBtn = document.createElement('button');
-  nextBtn.className = 'compose-next hidden btn btn-secondary';
+  nextBtn.className = 'compose-next hidden btn btn-plain';
   nextBtn.textContent = '다음 문장';
   nextBtn.addEventListener('click', () => {
     container.dispatchEvent(new Event('sentence:refresh'));
