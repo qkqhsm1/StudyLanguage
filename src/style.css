@@ -282,6 +282,66 @@ nav a {
   font-weight: 600;
 }
 
+/* 정답: 카드 전체가 파랗게 번쩍인 뒤 다음 문제로 자동 전환된다.
+   오답: 좌우로 짧게 흔들리고 빨간 테두리가 남아 다시 입력하게 한다. */
+@keyframes kana-correct-flash {
+  0% {
+    background: var(--card-bg);
+    border-color: rgba(0, 0, 0, 0.04);
+  }
+  35% {
+    background: #e8f2ff;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.18);
+  }
+  100% {
+    background: var(--card-bg);
+    border-color: rgba(0, 0, 0, 0.04);
+  }
+}
+
+@keyframes kana-wrong-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-8px); }
+  40% { transform: translateX(8px); }
+  60% { transform: translateX(-5px); }
+  80% { transform: translateX(3px); }
+}
+
+.kana-question-area.kana-correct {
+  animation: kana-correct-flash 700ms ease-out;
+}
+
+.kana-question-area.kana-correct .kana-question,
+.kana-question-area.kana-correct .kana-feedback {
+  color: var(--accent);
+}
+
+.kana-question-area.kana-wrong {
+  animation: kana-wrong-shake 400ms ease-in-out;
+  border-color: var(--danger-text);
+}
+
+.kana-question-area.kana-wrong .kana-feedback {
+  color: var(--danger-text);
+}
+
+.kana-question-area.kana-wrong .kana-answer-input {
+  border-color: var(--danger-text);
+}
+
+/* 모션을 줄이도록 설정한 사용자에게는 흔들림·번쩍임 없이 색으로만 알린다. */
+@media (prefers-reduced-motion: reduce) {
+  .kana-question-area.kana-correct,
+  .kana-question-area.kana-wrong {
+    animation: none;
+  }
+
+  .kana-question-area.kana-correct {
+    border-color: var(--accent);
+  }
+}
+
 .kana-keyboard {
   background: var(--card-bg);
   border-radius: 20px;
