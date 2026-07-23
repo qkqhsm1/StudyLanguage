@@ -170,7 +170,7 @@ git commit -m "feat: add design tokens, Noto Sans JP font, and shared card/badge
 
 **Interfaces:**
 - Consumes: `SrsState` from `src/types.ts`
-- Produces: `categoryIcon(name: string): string`, `interface ReviewBadge { label: string; urgent: boolean }`, `describeReviewStatus(state: SrsState | undefined, today?: Date): ReviewBadge | null` — Task 3(단어 카드)과 Task 5(문장 카드)가 사용.
+- Produces: `categoryIcon(name: string): string`, `renderIconLinkList(items: string[], hrefPrefix: string): HTMLElement`, `interface ReviewBadge { label: string; urgent: boolean }`, `describeReviewStatus(state: SrsState | undefined, today?: Date): ReviewBadge | null` — Task 3(단어 카드)이 `categoryIcon`/`describeReviewStatus`를, Task 4(단어장 스킬 목록)와 Task 5(문장 카드+카테고리 목록)가 `renderIconLinkList`를, Task 5가 `describeReviewStatus`도 함께 사용.
 
 - [ ] **Step 1: 실패하는 테스트 작성 (카테고리 아이콘)**
 
@@ -247,14 +247,73 @@ export function categoryIcon(name: string): string {
 Run: `npx vitest run src/data/category-icons.test.ts`
 Expected: PASS (2 tests).
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 5: 실패하는 테스트 작성 (공유 아이콘 링크 리스트) — src/data/category-icons.test.ts에 추가**
+
+단어장 스킬 목록(`#/vocab/skill/`)과 문어장 카테고리 목록(`#/sentences/category/`)이 아이콘+이름+화살표로 된 똑같은 모양의 리스트를 쓰므로, 그 렌더링을 여기 한 곳에만 구현해서 두 화면이 재사용한다.
+
+```typescript
+describe('renderIconLinkList', () => {
+  it('renders one item per entry with icon, name, and href built from the prefix', () => {
+    const list = renderIconLinkList(['Basics', 'Cafe'], '#/vocab/skill/');
+    const links = list.querySelectorAll<HTMLAnchorElement>('a.skill-list-item');
+    expect(links).toHaveLength(2);
+    expect(links[1].getAttribute('href')).toBe('#/vocab/skill/Cafe');
+    expect(links[1].querySelector('.skill-list-icon')?.textContent).toBe('☕');
+    expect(links[1].querySelector('.skill-list-name')?.textContent).toBe('Cafe');
+  });
+});
+```
+
+- [ ] **Step 6: 테스트 실패 확인**
+
+Run: `npx vitest run src/data/category-icons.test.ts`
+Expected: FAIL — `renderIconLinkList is not a function`.
+
+- [ ] **Step 7: src/data/category-icons.ts에 renderIconLinkList 추가 (파일 끝에 추가)**
+
+```typescript
+export function renderIconLinkList(items: string[], hrefPrefix: string): HTMLElement {
+  const list = document.createElement('div');
+  list.className = 'skill-list';
+  for (const item of items) {
+    const link = document.createElement('a');
+    link.className = 'skill-list-item';
+    link.href = `${hrefPrefix}${item}`;
+
+    const icon = document.createElement('span');
+    icon.className = 'skill-list-icon';
+    icon.textContent = categoryIcon(item);
+    link.appendChild(icon);
+
+    const name = document.createElement('span');
+    name.className = 'skill-list-name';
+    name.textContent = item;
+    link.appendChild(name);
+
+    const chevron = document.createElement('span');
+    chevron.className = 'skill-list-chevron';
+    chevron.textContent = '›';
+    link.appendChild(chevron);
+
+    list.appendChild(link);
+  }
+  return list;
+}
+```
+
+- [ ] **Step 8: 테스트 통과 확인**
+
+Run: `npx vitest run src/data/category-icons.test.ts`
+Expected: PASS (3 tests).
+
+- [ ] **Step 9: Commit**
 
 ```bash
 git add src/data/category-icons.ts src/data/category-icons.test.ts
 git commit -m "feat: add category-to-icon mapping for vocab skills and sentence categories"
 ```
 
-- [ ] **Step 6: 실패하는 테스트 작성 (복습 배지 문구) — src/srs.test.ts 끝에 추가**
+- [ ] **Step 10: 실패하는 테스트 작성 (복습 배지 문구) — src/srs.test.ts 끝에 추가**
 
 ```typescript
 // src/srs.test.ts 파일 끝, 기존 마지막 describe 블록 뒤에 추가
@@ -282,7 +341,7 @@ describe('describeReviewStatus', () => {
 });
 ```
 
-- [ ] **Step 7: import 추가 및 테스트 실패 확인**
+- [ ] **Step 11: import 추가 및 테스트 실패 확인**
 
 `src/srs.test.ts` 최상단 import 줄을 아래로 교체:
 
@@ -295,7 +354,7 @@ import type { SrsStore, VocabEntry } from './types';
 Run: `npx vitest run src/srs.test.ts`
 Expected: FAIL — `describeReviewStatus is not a function` (아직 미구현).
 
-- [ ] **Step 8: src/srs.ts에 함수 추가**
+- [ ] **Step 12: src/srs.ts에 함수 추가**
 
 파일 끝(`buildTodayQueue` 함수 뒤)에 추가:
 
@@ -318,12 +377,12 @@ export function describeReviewStatus(state: SrsState | undefined, today: Date = 
 }
 ```
 
-- [ ] **Step 9: 테스트 통과 확인**
+- [ ] **Step 13: 테스트 통과 확인**
 
 Run: `npx vitest run src/srs.test.ts`
 Expected: PASS (11 tests — 기존 7개 + 신규 4개).
 
-- [ ] **Step 10: Commit**
+- [ ] **Step 14: Commit**
 
 ```bash
 git add src/srs.ts src/srs.test.ts
@@ -597,7 +656,7 @@ git commit -m "feat: redesign word card with ruby furigana, meta line, and statu
 - Test: `src/vocab/vocab-view.test.ts` (`renderSkillList` describe 블록 수정)
 
 **Interfaces:**
-- Consumes: `categoryIcon` (Task 2)
+- Consumes: `renderIconLinkList` (Task 2)
 - Produces: 변경 없음 (`renderSkillList(skills: string[]): HTMLElement` 시그니처 그대로)
 
 - [ ] **Step 1: 기존 테스트를 새 마크업에 맞게 수정 — src/vocab/vocab-view.test.ts의 `renderSkillList` describe 블록 교체**
@@ -620,36 +679,18 @@ describe('renderSkillList', () => {
 Run: `npx vitest run src/vocab/vocab-view.test.ts`
 Expected: FAIL — `a.skill-list-item` not found.
 
-- [ ] **Step 3: renderSkillList 재작성 — src/vocab/vocab-view.ts:74-86 교체**
+- [ ] **Step 3: renderSkillList를 공유 헬퍼 위임으로 재작성 — src/vocab/vocab-view.ts:74-86 교체**
 
 ```typescript
 export function renderSkillList(skills: string[]): HTMLElement {
-  const list = document.createElement('div');
-  list.className = 'skill-list';
-  for (const skill of skills) {
-    const link = document.createElement('a');
-    link.className = 'skill-list-item';
-    link.href = `#/vocab/skill/${skill}`;
-
-    const icon = document.createElement('span');
-    icon.className = 'skill-list-icon';
-    icon.textContent = categoryIcon(skill);
-    link.appendChild(icon);
-
-    const name = document.createElement('span');
-    name.className = 'skill-list-name';
-    name.textContent = skill;
-    link.appendChild(name);
-
-    const chevron = document.createElement('span');
-    chevron.className = 'skill-list-chevron';
-    chevron.textContent = '›';
-    link.appendChild(chevron);
-
-    list.appendChild(link);
-  }
-  return list;
+  return renderIconLinkList(skills, '#/vocab/skill/');
 }
+```
+
+또한 파일 상단 import 줄에 `renderIconLinkList`를 추가 (기존 `import { categoryIcon } from '../data/category-icons';` 줄을 교체):
+
+```typescript
+import { categoryIcon, renderIconLinkList } from '../data/category-icons';
 ```
 
 - [ ] **Step 4: 테스트 통과 확인**
@@ -722,7 +763,7 @@ git commit -m "feat: add category icons to the vocab skill list"
 - Test: `src/sentence-book/sentence-view.test.ts`
 
 **Interfaces:**
-- Consumes: `categoryIcon`, `describeReviewStatus` (Task 2), 공용 CSS(Task 1, 3, 4에서 이미 정의된 `.card`, `.badge*`, `.btn*`, `.skill-list*` 클래스를 그대로 재사용 — 신규 CSS 거의 없음)
+- Consumes: `categoryIcon`, `describeReviewStatus`, `renderIconLinkList` (Task 2), 공용 CSS(Task 1, 3, 4에서 이미 정의된 `.card`, `.badge*`, `.btn*`, `.skill-list*` 클래스를 그대로 재사용 — 신규 CSS 거의 없음)
 - Produces: 변경 없음(`renderSentenceCard`, `renderCategoryList` 시그니처 그대로, `renderSentenceCard`에 4번째 선택 인자 `today: Date = new Date()` 추가)
 
 - [ ] **Step 1: 실패하는 테스트 작성 — src/sentence-book/sentence-view.test.ts에 추가**
@@ -761,7 +802,7 @@ Expected: FAIL.
 import { SENTENCES } from '../data/sentences-data';
 import { loadJSON, saveJSON } from '../storage';
 import { buildTodayQueue, describeReviewStatus, reviewEntry, toggleBookmark } from '../srs';
-import { categoryIcon } from '../data/category-icons';
+import { categoryIcon, renderIconLinkList } from '../data/category-icons';
 import { NAV_HTML } from '../nav';
 import type { SentenceEntry, SrsGrade, SrsState, SrsStore } from '../types';
 ```
@@ -843,35 +884,11 @@ export function renderSentenceCard(entry: SentenceEntry, srsState: SrsState | un
 }
 ```
 
-- [ ] **Step 5: renderCategoryList 재작성 (Task 4의 skill-list 마크업과 완전히 동일한 구조) — src/sentence-book/sentence-view.ts의 `renderCategoryList` 함수 교체**
+- [ ] **Step 5: renderCategoryList를 공유 헬퍼 위임으로 재작성 — src/sentence-book/sentence-view.ts의 `renderCategoryList` 함수 교체**
 
 ```typescript
 export function renderCategoryList(categories: string[]): HTMLElement {
-  const list = document.createElement('div');
-  list.className = 'skill-list';
-  for (const category of categories) {
-    const link = document.createElement('a');
-    link.className = 'skill-list-item';
-    link.href = `#/sentences/category/${category}`;
-
-    const icon = document.createElement('span');
-    icon.className = 'skill-list-icon';
-    icon.textContent = categoryIcon(category);
-    link.appendChild(icon);
-
-    const name = document.createElement('span');
-    name.className = 'skill-list-name';
-    name.textContent = category;
-    link.appendChild(name);
-
-    const chevron = document.createElement('span');
-    chevron.className = 'skill-list-chevron';
-    chevron.textContent = '›';
-    link.appendChild(chevron);
-
-    list.appendChild(link);
-  }
-  return list;
+  return renderIconLinkList(categories, '#/sentences/category/');
 }
 ```
 
