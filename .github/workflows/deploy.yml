@@ -3,6 +3,9 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [main]
+  # Actions 탭의 "Run workflow" 버튼으로 언제든 수동 배포할 수 있게 한다 —
+  # push 트리거가 막히거나(사용 시간 소진 등) 재배포만 하고 싶을 때의 대비책.
+  workflow_dispatch:
 
 permissions:
   contents: read
