@@ -22,4 +22,16 @@ describe('updateStreak', () => {
     const prev = { lastDate: '2026-01-01', streak: 5 };
     expect(updateStreak(prev, TODAY)).toEqual({ lastDate: '2026-01-10', streak: 1 });
   });
+
+  it('treats the previous day as yesterday across a year boundary', () => {
+    const prev = { lastDate: '2025-12-31', streak: 5 };
+    const newYear = new Date('2026-01-01T00:00:00Z');
+    expect(updateStreak(prev, newYear)).toEqual({ lastDate: '2026-01-01', streak: 6 });
+  });
+
+  it('treats the previous day as yesterday across a month boundary', () => {
+    const prev = { lastDate: '2026-02-28', streak: 3 };
+    const marchFirst = new Date('2026-03-01T00:00:00Z');
+    expect(updateStreak(prev, marchFirst)).toEqual({ lastDate: '2026-03-01', streak: 4 });
+  });
 });

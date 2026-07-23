@@ -483,13 +483,37 @@ nav a {
 }
 
 .home-link {
-  background: var(--bg);
+  background: var(--card-bg);
   border-radius: 18px;
   padding: 18px;
   border: 1px solid rgba(0, 0, 0, 0.04);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   text-decoration: none;
   color: var(--text);
   display: block;
+}
+
+/* Per-card tints, matching the approved mockup: each entry card carries the
+   accent of the feature it opens. Without these the four cards are plain white
+   and indistinguishable from each other. */
+.home-link-vocab {
+  background: linear-gradient(160deg, #eaf3ff, var(--card-bg));
+  border-color: rgba(0, 113, 227, 0.12);
+}
+
+.home-link-kana {
+  background: linear-gradient(160deg, #fff4e5, var(--card-bg));
+  border-color: rgba(200, 114, 10, 0.12);
+}
+
+.home-link-sentences {
+  background: linear-gradient(160deg, #eafaf0, var(--card-bg));
+  border-color: rgba(26, 158, 92, 0.12);
+}
+
+.home-link-practice {
+  background: linear-gradient(160deg, #ffeef5, var(--card-bg));
+  border-color: rgba(255, 105, 161, 0.12);
 }
 
 .home-link-icon {
