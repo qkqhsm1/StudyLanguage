@@ -1,4 +1,4 @@
-import { SENTENCES } from '../data/sentences-data';
+import { allSentences } from '../data/all-sentences';
 import { buildTodayQueue, reviewEntry } from '../srs';
 import { loadSentenceSrsStore, saveSentenceSrsStore } from '../sentence-book/sentence-view';
 import { NAV_HTML } from '../nav';
@@ -6,8 +6,9 @@ import type { SentenceEntry, SrsGrade } from '../types';
 
 function pickQueue(): SentenceEntry[] {
   const srsStore = loadSentenceSrsStore();
-  const due = buildTodayQueue(SENTENCES.entries, srsStore);
-  return due.length > 0 ? due : SENTENCES.entries;
+  const entries = allSentences();
+  const due = buildTodayQueue(entries, srsStore);
+  return due.length > 0 ? due : entries;
 }
 
 export function renderInterpretPractice(rng: () => number = Math.random): HTMLElement {
@@ -39,7 +40,7 @@ export function renderInterpretPractice(rng: () => number = Math.random): HTMLEl
 
   const answer = document.createElement('div');
   answer.className = 'interpret-answer hidden';
-  answer.textContent = `${current.korean} / ${current.english}`;
+  answer.textContent = [current.korean, current.english].filter(Boolean).join(' / ');
   container.appendChild(answer);
 
   const gradeWrap = document.createElement('div');

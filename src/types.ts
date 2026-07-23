@@ -50,3 +50,11 @@ export interface SentenceData {
   categories: string[];
   entries: SentenceEntry[];
 }
+
+export interface CapturedPhrase {
+  id: string;
+  korean: string;
+  japanese: string;
+  reading: string;
+  createdAt: string;
+}

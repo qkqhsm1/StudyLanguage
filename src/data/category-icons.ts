@@ -29,6 +29,10 @@ const CATEGORY_ICONS: Record<string, string> = {
   'Travel 2': '✈️',
   Cooking: '🍳',
   Bookstore: '📚',
+  // '내 문장' must stay in sync with MY_PHRASES_CATEGORY in ../data/all-sentences.ts
+  // (not imported here — that module imports the phrase store, and importing
+  // it back from here would create a cycle).
+  '내 문장': '📝',
 };
 
 const DEFAULT_ICON = '📘';

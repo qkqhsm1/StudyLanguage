@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { renderComposePractice } from './compose-view';
 import { SENTENCES } from '../data/sentences-data';
+import { savePhrases } from '../phrases/phrase-store';
 
 function clickKey(root: HTMLElement, text: string): void {
   const btn = Array.from(root.querySelectorAll<HTMLButtonElement>('.keyboard-key')).find(
@@ -244,5 +245,28 @@ describe('renderComposePractice', () => {
 
     expect(view.querySelector('.keyboard-key.hint-highlight')).not.toBeNull();
     expect(view.querySelector('.compose-hint-message')!.classList.contains('hidden')).toBe(false);
+  });
+
+  it('never asks a captured phrase that has no kana reading', () => {
+    // Composition practice is graded by exact match against `reading`, typed on a
+    // kana-only keyboard. A phrase filled in with kanji but no reading is therefore
+    // unanswerable, and must not be selectable. Captured phrases are appended after
+    // the built-ins, so an rng near 1 picks the last entry — which is exactly the
+    // reading-less phrase if the view were reading the unfiltered pool.
+    savePhrases([
+      { id: 'my-no-reading', korean: '지금 몇 시예요?', japanese: '今何時ですか', reading: '', createdAt: '2026-01-10' },
+    ]);
+
+    const view = renderComposePractice(() => 0.999999);
+    expect(view.dataset.currentId).not.toBe('my-no-reading');
+  });
+
+  it('can ask a captured phrase that does have a kana reading', () => {
+    savePhrases([
+      { id: 'my-with-reading', korean: '집에 가고 싶어요', japanese: '家に帰りたいです', reading: 'いえにかえりたいです', createdAt: '2026-01-10' },
+    ]);
+
+    const view = renderComposePractice(() => 0.999999);
+    expect(view.dataset.currentId).toBe('my-with-reading');
   });
 });
