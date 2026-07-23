@@ -202,19 +202,23 @@ export function renderVocabHome(hash: string): HTMLElement {
 
   const srsStore = loadSrsStore();
 
+  // #/vocab/day/N 에서 N을 뽑되, 정수가 아니거나 범위 밖(빈 Day)이면 null → Day 목록으로.
+  const dayEntries = hash.startsWith('#/vocab/day/')
+    ? entriesForDay(TYPED_VOCAB_DATA.entries, Number.parseInt(hash.slice('#/vocab/day/'.length), 10))
+    : [];
+  const day = dayEntries.length > 0 ? Number.parseInt(hash.slice('#/vocab/day/'.length), 10) : null;
+
   if (hash === '#/vocab/today') {
     const queue = buildTodayQueue(TYPED_VOCAB_DATA.entries, srsStore);
     const heading = document.createElement('h2');
     heading.textContent = `오늘 복습할 단어 (${queue.length})`;
     container.appendChild(heading);
     container.appendChild(renderCardList(queue, srsStore, container));
-  } else if (hash.startsWith('#/vocab/day/')) {
-    const day = Number.parseInt(hash.replace('#/vocab/day/', ''), 10);
-    const entries = entriesForDay(TYPED_VOCAB_DATA.entries, day);
+  } else if (day !== null) {
     const heading = document.createElement('h2');
     heading.textContent = `Day ${day}`;
     container.appendChild(heading);
-    container.appendChild(renderCardList(entries, srsStore, container));
+    container.appendChild(renderCardList(dayEntries, srsStore, container));
   } else {
     container.appendChild(renderDayList(TYPED_VOCAB_DATA.entries, srsStore));
   }

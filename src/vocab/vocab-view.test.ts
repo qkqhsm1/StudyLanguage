@@ -152,4 +152,13 @@ describe('renderVocabHome integration', () => {
     const gradedId = knownButton!.dataset.entryId!;
     expect(stored[gradedId].grade).toBe('known');
   });
+
+  it('falls back to the Day list for a malformed or out-of-range day hash', () => {
+    for (const bad of ['#/vocab/day/', '#/vocab/day/abc', '#/vocab/day/0', '#/vocab/day/999']) {
+      const view = renderVocabHome(bad);
+      // No "Day NaN"/empty card view — it shows the day list (links to real days) instead.
+      expect(view.querySelector('h2')).toBeNull();
+      expect(view.querySelector('a.skill-list-item[href="#/vocab/day/1"]')).not.toBeNull();
+    }
+  });
 });
