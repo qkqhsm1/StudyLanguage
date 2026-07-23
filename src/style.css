@@ -217,3 +217,22 @@ nav a {
 .skill-list-chevron {
   color: #c7c7cc;
 }
+
+.sentence-japanese {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.sentence-reading {
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin-top: 2px;
+}
+
+.sentence-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 14px;
+}
