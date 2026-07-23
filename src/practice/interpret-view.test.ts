@@ -56,7 +56,7 @@ describe('renderInterpretPractice', () => {
     expect(answer.textContent).toBe(captured.korean);
   });
 
-  it('offers a reading reveal for a sentence whose kanji reads differently', () => {
+  it('puts furigana over the kanji when the reading is revealed', () => {
     const captured: CapturedPhrase = {
       id: 'my-kanji',
       korean: '집에 가고 싶어요',
@@ -69,14 +69,18 @@ describe('renderInterpretPractice', () => {
     expect(view.dataset.currentId).toBe('my-kanji');
 
     const reveal = view.querySelector<HTMLButtonElement>('.interpret-reading-reveal')!;
-    expect(reveal).not.toBeNull();
-
-    const reading = view.querySelector('.interpret-reading')!;
-    expect(reading.classList.contains('hidden')).toBe(true);
+    const question = view.querySelector('.interpret-question')!;
+    expect(question.querySelector('rt')).toBeNull(); // no furigana until revealed
 
     reveal.click();
-    expect(reading.classList.contains('hidden')).toBe(false);
-    expect(reading.textContent).toBe('いえにかえりたいです');
+
+    // Reading sits only over the kanji runs, not over the kana.
+    const rubies = Array.from(question.querySelectorAll('rt')).map((rt) => rt.textContent);
+    expect(rubies).toEqual(['いえ', 'かえ']);
+    // The sentence's own text is preserved (kanji + kana intact).
+    expect(question.textContent).toContain('家');
+    expect(question.textContent).toContain('帰');
+    expect(question.textContent).toContain('りたいです');
     expect(reveal.classList.contains('hidden')).toBe(true);
   });
 

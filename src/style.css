@@ -549,6 +549,17 @@ nav a {
   color: var(--text-secondary);
 }
 
+/* 후리가나가 붙은 문장: rt(읽기)가 한자 위에 얹힐 세로 공간을 확보한다. */
+.interpret-question-furigana {
+  line-height: 2.1;
+}
+
+.interpret-question-furigana rt {
+  font-size: 0.45em;
+  font-weight: 600;
+  color: var(--accent);
+}
+
 .home-greeting {
   font-size: 22px;
   font-weight: 700;

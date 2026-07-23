@@ -5,8 +5,28 @@ import {
   renderSentenceBookmarkToggle,
   saveSentenceSrsStore,
 } from '../sentence-book/sentence-view';
+import { buildFurigana, type FuriganaSegment } from './furigana';
 import { NAV_HTML } from '../nav';
 import type { SentenceEntry, SrsGrade } from '../types';
+
+/** 세그먼트 목록을 ruby DOM으로. 한자 구간은 <ruby>한자<rt>읽기</rt></ruby>,
+ *  가나 구간은 그냥 텍스트로 붙인다. */
+function renderFurigana(segments: FuriganaSegment[]): DocumentFragment {
+  const frag = document.createDocumentFragment();
+  for (const seg of segments) {
+    if (seg.ruby === null) {
+      frag.appendChild(document.createTextNode(seg.base));
+    } else {
+      const ruby = document.createElement('ruby');
+      ruby.appendChild(document.createTextNode(seg.base));
+      const rt = document.createElement('rt');
+      rt.textContent = seg.ruby;
+      ruby.appendChild(rt);
+      frag.appendChild(ruby);
+    }
+  }
+  return frag;
+}
 
 function pickQueue(): SentenceEntry[] {
   const srsStore = loadSentenceSrsStore();
@@ -51,14 +71,22 @@ export function renderInterpretPractice(rng: () => number = Math.random): HTMLEl
     readingReveal.textContent = '읽기 보기';
     questionCard.appendChild(readingReveal);
 
-    const reading = document.createElement('div');
-    reading.className = 'interpret-reading hidden';
-    reading.textContent = current.reading;
-    questionCard.appendChild(reading);
+    const segments = buildFurigana(current.japanese, current.reading);
 
     readingReveal.addEventListener('click', () => {
-      reading.classList.remove('hidden');
       readingReveal.classList.add('hidden');
+      if (segments) {
+        // 한자 위에 후리가나를 올린다 — 문장을 그 자리에서 ruby 버전으로 교체.
+        question.classList.add('interpret-question-furigana');
+        question.textContent = '';
+        question.appendChild(renderFurigana(segments));
+      } else {
+        // 정렬 실패(드묾) 시엔 전체 읽기를 한 줄로 대신 보여준다.
+        const line = document.createElement('div');
+        line.className = 'interpret-reading';
+        line.textContent = current.reading;
+        questionCard.appendChild(line);
+      }
     });
   }
 
