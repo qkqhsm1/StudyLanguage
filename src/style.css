@@ -214,16 +214,41 @@ nav a {
   font-weight: 600;
 }
 
-/* Day 화면의 등급별 하위 섹션 제목(모름 (12) 등). 첫 제목은 위 여백을 줄인다. */
+/* Day 화면의 등급별 하위 섹션 제목 — 누르면 접히는 토글. 크고 굵게. */
 .vocab-group-title {
-  font-size: 16px;
-  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 28px 0 14px;
+  text-align: left;
+  font-family: inherit;
+  font-size: 32px;
+  font-weight: 800;
   color: var(--text);
-  margin: 24px 0 10px;
+  cursor: pointer;
 }
 
-.vocab-day-groups > .vocab-group-title:first-child {
+.vocab-day-groups > .vocab-group:first-child .vocab-group-title {
   margin-top: 8px;
+}
+
+.vocab-group-arrow {
+  font-size: 0.6em;
+  color: var(--text-secondary);
+  transition: transform 0.15s ease;
+}
+
+/* 접혔을 때: 화살표를 눕히고 카드 목록을 숨긴다. */
+.vocab-group.collapsed .vocab-group-arrow {
+  transform: rotate(-90deg);
+}
+
+.vocab-group.collapsed .card-list {
+  display: none;
 }
 
 /* Day 목록 항목: 이름(Day N) 위에, 진척도(50단어 · N개 암기)를 아래 작은 줄로. */

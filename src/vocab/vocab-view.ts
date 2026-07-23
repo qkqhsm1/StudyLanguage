@@ -199,16 +199,17 @@ export function renderCardList(entries: VocabEntry[], srsStore: SrsStore, contai
   return list;
 }
 
-// Day 화면에서 단어를 등급별 하위 섹션으로 묶는 순서. '아직 안 함'(채점 전)이
-// 맨 위 — 새로 볼 단어 → 모름 → 헷갈림 → 암기됨(끝난 것)이 맨 아래.
+// Day 화면에서 단어를 등급별 하위 섹션으로 묶는 순서. 채점 전 단어가 맨 위,
+// 다 외운 단어가 맨 아래. 라벨은 채점 버튼(모름/헷갈림/암기됨)보다 부드럽게.
 const DAY_GROUPS: Array<{ key: SrsGrade | 'ungraded'; label: string }> = [
-  { key: 'ungraded', label: '아직 안 함' },
-  { key: 'unknown', label: '모름' },
-  { key: 'confusing', label: '헷갈림' },
-  { key: 'known', label: '암기됨' },
+  { key: 'ungraded', label: '아직 안 본 단어' },
+  { key: 'unknown', label: '잘 모르는 단어' },
+  { key: 'confusing', label: '헷갈리는 단어' },
+  { key: 'known', label: '외운 단어' },
 ];
 
-/** Day 안의 단어를 등급별 하위 섹션으로 나눠 보여준다. 비어 있는 섹션은 건너뛴다. */
+/** Day 안의 단어를 등급별 하위 섹션으로 나눠 보여준다. 비어 있는 섹션은 건너뛰고,
+ *  각 섹션 제목을 누르면 그 안의 카드가 접혔다 펼쳐진다. */
 export function renderDayGroups(entries: VocabEntry[], srsStore: SrsStore, container: HTMLElement): HTMLElement {
   const wrap = document.createElement('div');
   wrap.className = 'vocab-day-groups';
@@ -217,17 +218,34 @@ export function renderDayGroups(entries: VocabEntry[], srsStore: SrsStore, conta
     const groupEntries = entries.filter((e) => (srsStore[e.id]?.grade ?? 'ungraded') === group.key);
     if (groupEntries.length === 0) continue;
 
-    const heading = document.createElement('h3');
-    heading.className = 'vocab-group-title';
-    heading.textContent = `${group.label} (${groupEntries.length})`;
-    wrap.appendChild(heading);
+    const section = document.createElement('div');
+    section.className = 'vocab-group';
+
+    const header = document.createElement('button');
+    header.type = 'button';
+    header.className = 'vocab-group-title';
+
+    const arrow = document.createElement('span');
+    arrow.className = 'vocab-group-arrow';
+    arrow.textContent = '▾';
+    header.appendChild(arrow);
+
+    const label = document.createElement('span');
+    label.className = 'vocab-group-label';
+    label.textContent = `${group.label} (${groupEntries.length})`;
+    header.appendChild(label);
+
+    header.addEventListener('click', () => section.classList.toggle('collapsed'));
+    section.appendChild(header);
 
     const list = document.createElement('div');
     list.className = 'card-list';
     for (const entry of groupEntries) {
       list.appendChild(renderWordCard(entry, srsStore[entry.id]));
     }
-    wrap.appendChild(list);
+    section.appendChild(list);
+
+    wrap.appendChild(section);
   }
 
   attachVocabCardActions(wrap, container);

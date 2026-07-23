@@ -119,22 +119,36 @@ describe('renderWordCard', () => {
 });
 
 describe('renderDayGroups', () => {
-  it('groups words by grade into ungraded / 모름 / 헷갈림 / 암기됨, skipping empty sections', () => {
+  function threeGroupView(): HTMLElement {
     const entries = makeVocabEntries(4); // e0..e3
     const store: SrsStore = {
       e1: { grade: 'unknown', intervalDays: 1, easeFactor: 2.3, dueDate: '2026-01-02', bookmarked: false },
       e2: knownState(), // 'known'
-      // e0, e3 have no state -> ungraded; 헷갈림 is empty and must be skipped
+      // e0, e3 have no state -> ungraded; the 헷갈리는 group is empty and must be skipped
     };
-    const view = renderDayGroups(entries, store, document.createElement('div'));
+    return renderDayGroups(entries, store, document.createElement('div'));
+  }
 
-    const titles = Array.from(view.querySelectorAll('.vocab-group-title')).map((t) => t.textContent);
-    expect(titles).toEqual(['아직 안 함 (2)', '모름 (1)', '암기됨 (1)']);
+  it('groups words by grade into softly-worded sections, skipping empty ones', () => {
+    const view = threeGroupView();
+    const labels = Array.from(view.querySelectorAll('.vocab-group-label')).map((t) => t.textContent);
+    expect(labels).toEqual(['아직 안 본 단어 (2)', '잘 모르는 단어 (1)', '외운 단어 (1)']);
 
-    // ungraded words land in the first section, the known word in the last
     const sections = view.querySelectorAll('.card-list');
-    expect(sections[0].querySelectorAll('.word-card')).toHaveLength(2);
-    expect(sections[2].querySelectorAll('.word-card')).toHaveLength(1);
+    expect(sections[0].querySelectorAll('.word-card')).toHaveLength(2); // ungraded first
+    expect(sections[2].querySelectorAll('.word-card')).toHaveLength(1); // known last
+  });
+
+  it('collapses and re-expands a section when its title is clicked', () => {
+    const view = threeGroupView();
+    const firstSection = view.querySelector('.vocab-group')!;
+    const title = firstSection.querySelector<HTMLButtonElement>('.vocab-group-title')!;
+
+    expect(firstSection.classList.contains('collapsed')).toBe(false);
+    title.click();
+    expect(firstSection.classList.contains('collapsed')).toBe(true);
+    title.click();
+    expect(firstSection.classList.contains('collapsed')).toBe(false);
   });
 });
 
