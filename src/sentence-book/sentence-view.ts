@@ -118,8 +118,9 @@ export function renderSentenceCard(entry: SentenceEntry, srsState: SrsState | un
   gradeWrap.className = 'srs-grades';
   const gradeLabels: Record<SrsGrade, string> = { unknown: '모름', confusing: '헷갈림', known: '암기됨' };
   (Object.keys(gradeLabels) as SrsGrade[]).forEach((grade) => {
+    const selected = srsState?.grade === grade;
     const btn = document.createElement('button');
-    btn.className = `srs-grade srs-grade-${grade} btn ${grade === 'known' ? 'btn-primary' : 'btn-secondary'}`;
+    btn.className = `srs-grade srs-grade-${grade} btn ${selected ? 'btn-primary' : 'btn-secondary'}`;
     btn.textContent = gradeLabels[grade];
     btn.dataset.entryId = entry.id;
     btn.dataset.grade = grade;

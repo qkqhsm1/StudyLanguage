@@ -214,6 +214,18 @@ nav a {
   font-weight: 600;
 }
 
+/* Day 화면의 등급별 하위 섹션 제목(모름 (12) 등). 첫 제목은 위 여백을 줄인다. */
+.vocab-group-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 24px 0 10px;
+}
+
+.vocab-day-groups > .vocab-group-title:first-child {
+  margin-top: 8px;
+}
+
 /* Day 목록 항목: 이름(Day N) 위에, 진척도(50단어 · N개 암기)를 아래 작은 줄로. */
 .skill-list-body {
   flex: 1;

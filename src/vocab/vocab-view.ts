@@ -91,8 +91,11 @@ export function renderWordCard(entry: VocabEntry, srsState: SrsState | undefined
   gradeWrap.className = 'srs-grades';
   const gradeLabels: Record<SrsGrade, string> = { unknown: '모름', confusing: '헷갈림', known: '암기됨' };
   (Object.keys(gradeLabels) as SrsGrade[]).forEach((grade) => {
+    // 현재 이 카드의 등급인 버튼만 파랗게. 아직 채점 안 한 카드는 셋 다 회색이고,
+    // 누르면 그 버튼이 파래진다(누른 뒤 재렌더되며 반영).
+    const selected = srsState?.grade === grade;
     const btn = document.createElement('button');
-    btn.className = `srs-grade srs-grade-${grade} btn ${grade === 'known' ? 'btn-primary' : 'btn-secondary'}`;
+    btn.className = `srs-grade srs-grade-${grade} btn ${selected ? 'btn-primary' : 'btn-secondary'}`;
     btn.textContent = gradeLabels[grade];
     btn.dataset.entryId = entry.id;
     btn.dataset.grade = grade;
@@ -149,14 +152,10 @@ export function renderDayList(entries: VocabEntry[], srsStore: SrsStore): HTMLEl
   return list;
 }
 
-export function renderCardList(entries: VocabEntry[], srsStore: SrsStore, container: HTMLElement): HTMLElement {
-  const list = document.createElement('div');
-  list.className = 'card-list';
-  for (const entry of entries) {
-    list.appendChild(renderWordCard(entry, srsStore[entry.id]));
-  }
-
-  list.addEventListener('click', (event) => {
+/** 카드 안의 발음 재생·북마크·채점 버튼을 위임으로 처리한다. 카드 목록이 여러
+ *  개로 나뉜 화면(Day의 등급별 하위 섹션)에서는 바깥 컨테이너에 한 번만 붙인다. */
+function attachVocabCardActions(root: HTMLElement, container: HTMLElement): void {
+  root.addEventListener('click', (event) => {
     const target = event.target as HTMLElement;
 
     if (target.classList.contains('audio-play')) {
@@ -188,8 +187,51 @@ export function renderCardList(entries: VocabEntry[], srsStore: SrsStore, contai
       container.dispatchEvent(new Event('vocab:refresh'));
     }
   });
+}
 
+export function renderCardList(entries: VocabEntry[], srsStore: SrsStore, container: HTMLElement): HTMLElement {
+  const list = document.createElement('div');
+  list.className = 'card-list';
+  for (const entry of entries) {
+    list.appendChild(renderWordCard(entry, srsStore[entry.id]));
+  }
+  attachVocabCardActions(list, container);
   return list;
+}
+
+// Day 화면에서 단어를 등급별 하위 섹션으로 묶는 순서. '아직 안 함'(채점 전)이
+// 맨 위 — 새로 볼 단어 → 모름 → 헷갈림 → 암기됨(끝난 것)이 맨 아래.
+const DAY_GROUPS: Array<{ key: SrsGrade | 'ungraded'; label: string }> = [
+  { key: 'ungraded', label: '아직 안 함' },
+  { key: 'unknown', label: '모름' },
+  { key: 'confusing', label: '헷갈림' },
+  { key: 'known', label: '암기됨' },
+];
+
+/** Day 안의 단어를 등급별 하위 섹션으로 나눠 보여준다. 비어 있는 섹션은 건너뛴다. */
+export function renderDayGroups(entries: VocabEntry[], srsStore: SrsStore, container: HTMLElement): HTMLElement {
+  const wrap = document.createElement('div');
+  wrap.className = 'vocab-day-groups';
+
+  for (const group of DAY_GROUPS) {
+    const groupEntries = entries.filter((e) => (srsStore[e.id]?.grade ?? 'ungraded') === group.key);
+    if (groupEntries.length === 0) continue;
+
+    const heading = document.createElement('h3');
+    heading.className = 'vocab-group-title';
+    heading.textContent = `${group.label} (${groupEntries.length})`;
+    wrap.appendChild(heading);
+
+    const list = document.createElement('div');
+    list.className = 'card-list';
+    for (const entry of groupEntries) {
+      list.appendChild(renderWordCard(entry, srsStore[entry.id]));
+    }
+    wrap.appendChild(list);
+  }
+
+  attachVocabCardActions(wrap, container);
+  return wrap;
 }
 
 export function renderVocabHome(hash: string): HTMLElement {
@@ -218,7 +260,7 @@ export function renderVocabHome(hash: string): HTMLElement {
     const heading = document.createElement('h2');
     heading.textContent = `Day ${day}`;
     container.appendChild(heading);
-    container.appendChild(renderCardList(dayEntries, srsStore, container));
+    container.appendChild(renderDayGroups(dayEntries, srsStore, container));
   } else {
     container.appendChild(renderDayList(TYPED_VOCAB_DATA.entries, srsStore));
   }

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { renderDayList, renderVocabHome, renderWordCard } from './vocab-view';
+import { renderDayGroups, renderDayList, renderVocabHome, renderWordCard } from './vocab-view';
 import { WORDS_PER_DAY } from '../data/vocab-days';
 import type { SrsState, SrsStore, VocabEntry } from '../types';
 
@@ -97,6 +97,44 @@ describe('renderWordCard', () => {
     const card = renderWordCard(KANJI_ENTRY, undefined);
     expect(card.querySelector('.badge-urgent')).toBeNull();
     expect(card.querySelector('.badge-ok')).toBeNull();
+  });
+
+  it('highlights no grade button on a card that has not been graded', () => {
+    const card = renderWordCard(KANA_ONLY_ENTRY, undefined);
+    expect(card.querySelectorAll('.srs-grade.btn-primary')).toHaveLength(0);
+  });
+
+  it('highlights the button matching the current grade, and only that one', () => {
+    const known = renderWordCard(KANA_ONLY_ENTRY, knownState());
+    expect(known.querySelector('.srs-grade-known')?.classList.contains('btn-primary')).toBe(true);
+    expect(known.querySelector('.srs-grade-unknown')?.classList.contains('btn-primary')).toBe(false);
+    expect(known.querySelector('.srs-grade-confusing')?.classList.contains('btn-primary')).toBe(false);
+
+    const unknownGraded = renderWordCard(KANA_ONLY_ENTRY, {
+      grade: 'unknown', intervalDays: 1, easeFactor: 2.3, dueDate: '2026-01-02', bookmarked: false,
+    });
+    expect(unknownGraded.querySelector('.srs-grade-unknown')?.classList.contains('btn-primary')).toBe(true);
+    expect(unknownGraded.querySelector('.srs-grade-known')?.classList.contains('btn-primary')).toBe(false);
+  });
+});
+
+describe('renderDayGroups', () => {
+  it('groups words by grade into ungraded / 모름 / 헷갈림 / 암기됨, skipping empty sections', () => {
+    const entries = makeVocabEntries(4); // e0..e3
+    const store: SrsStore = {
+      e1: { grade: 'unknown', intervalDays: 1, easeFactor: 2.3, dueDate: '2026-01-02', bookmarked: false },
+      e2: knownState(), // 'known'
+      // e0, e3 have no state -> ungraded; 헷갈림 is empty and must be skipped
+    };
+    const view = renderDayGroups(entries, store, document.createElement('div'));
+
+    const titles = Array.from(view.querySelectorAll('.vocab-group-title')).map((t) => t.textContent);
+    expect(titles).toEqual(['아직 안 함 (2)', '모름 (1)', '암기됨 (1)']);
+
+    // ungraded words land in the first section, the known word in the last
+    const sections = view.querySelectorAll('.card-list');
+    expect(sections[0].querySelectorAll('.word-card')).toHaveLength(2);
+    expect(sections[2].querySelectorAll('.word-card')).toHaveLength(1);
   });
 });
 
