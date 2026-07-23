@@ -123,6 +123,62 @@ nav a {
   display: none;
 }
 
+/* 비밀번호 화면 — 화면 가운데 한 장. */
+.gate {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 70vh;
+}
+
+.gate-box {
+  width: 100%;
+  max-width: 360px;
+  text-align: center;
+  padding: 32px 28px;
+}
+
+.gate-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.gate-subtitle {
+  font-size: 15px;
+  color: var(--text-secondary);
+  margin-top: 6px;
+  margin-bottom: 20px;
+}
+
+.gate-input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1.5px solid #d2d2d7;
+  border-radius: 12px;
+  padding: 13px 15px;
+  font-size: 16px;
+  font-family: inherit;
+  text-align: center;
+  outline: none;
+}
+
+.gate-input:focus {
+  border-color: var(--accent);
+}
+
+.gate-submit {
+  width: 100%;
+  margin-top: 12px;
+}
+
+.gate-error {
+  margin-top: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--danger-text);
+}
+
 .word-card-top {
   display: flex;
   justify-content: space-between;

@@ -1,6 +1,7 @@
 import { renderVocabHome } from './vocab/vocab-view';
 import { renderKanaQuizView } from './kana-quiz/kana-quiz-view';
 import { renderKanaChartView } from './kana-quiz/kana-chart-view';
+import { isUnlocked, renderGate } from './gate';
 import { renderSentenceBookHome } from './sentence-book/sentence-view';
 import { renderInterpretPractice } from './practice/interpret-view';
 import { renderComposePractice } from './practice/compose-view';
@@ -52,8 +53,16 @@ function renderPracticePicker(): HTMLElement {
 }
 
 function route(): void {
-  const hash = window.location.hash || '#/home';
   app.innerHTML = '';
+
+  // 잠겨 있으면 어떤 주소로 들어와도 비밀번호 화면부터. (진짜 보안은 아니다 —
+  // gate.ts의 설명 참고. 우연히 들어온 사람을 돌려보내는 용도.)
+  if (!isUnlocked()) {
+    app.appendChild(renderGate(route));
+    return;
+  }
+
+  const hash = window.location.hash || '#/home';
 
   let view: HTMLElement;
   if (hash === '#/home') {
