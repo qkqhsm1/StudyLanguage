@@ -52,5 +52,48 @@ export function deletePhrase(id: string): void {
 }
 
 export function isComplete(phrase: CapturedPhrase): boolean {
-  return phrase.japanese !== '';
+  return phrase.japanese.trim() !== '';
+}
+
+function isCapturedPhrase(value: unknown): value is CapturedPhrase {
+  if (typeof value !== 'object' || value === null) return false;
+  const record = value as Record<string, unknown>;
+  return (
+    typeof record.id === 'string' &&
+    typeof record.korean === 'string' &&
+    typeof record.japanese === 'string' &&
+    typeof record.reading === 'string' &&
+    typeof record.createdAt === 'string'
+  );
+}
+
+// 가져오기는 사용자가 고른 임의의 파일을 받는다. 형식이 조금이라도 어긋나면
+// null을 돌려주고, 호출부는 기존 데이터를 절대 건드리지 않는다 — 잘못된 파일
+// 하나로 담아둔 문장이 전부 날아가면 복구할 방법이 없다.
+export function parsePhrasesFile(text: string): CapturedPhrase[] | null {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    return null;
+  }
+  if (!Array.isArray(parsed)) return null;
+  if (!parsed.every(isCapturedPhrase)) return null;
+  return parsed;
+}
+
+export function mergePhrases(incoming: CapturedPhrase[]): number {
+  const phrases = loadPhrases();
+  const existingIds = new Set(phrases.map((p) => p.id));
+
+  let added = 0;
+  for (const phrase of incoming) {
+    if (existingIds.has(phrase.id)) continue;
+    phrases.push(phrase);
+    existingIds.add(phrase.id);
+    added += 1;
+  }
+
+  savePhrases(phrases);
+  return added;
 }

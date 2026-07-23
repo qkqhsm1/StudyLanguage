@@ -633,3 +633,38 @@ nav a {
   color: var(--text-secondary);
   line-height: 1.6;
 }
+
+.phrase-backup {
+  margin-top: 24px;
+}
+
+.phrase-backup-label {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.phrase-backup-note {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-top: 6px;
+}
+
+.phrase-import {
+  display: inline-block;
+  cursor: pointer;
+}
+
+.phrase-export {
+  display: inline-block;
+  text-decoration: none;
+  text-align: center;
+}
+
+.phrase-import-status {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-top: 10px;
+  line-height: 1.5;
+}

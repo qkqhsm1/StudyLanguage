@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { addPhrase, deletePhrase, isComplete, loadPhrases, savePhrases, updatePhrase } from './phrase-store';
+import { addPhrase, deletePhrase, isComplete, loadPhrases, mergePhrases, parsePhrasesFile, savePhrases, updatePhrase } from './phrase-store';
 import type { CapturedPhrase } from '../types';
 
 const NOW = new Date(2026, 0, 10, 9, 30);
@@ -77,5 +77,63 @@ describe('phrase store', () => {
     ];
     savePhrases(phrases);
     expect(loadPhrases()).toEqual(phrases);
+  });
+});
+
+describe('parsePhrasesFile', () => {
+  const VALID: CapturedPhrase = { id: 'my-1', korean: 'ㄱ', japanese: '家', reading: 'いえ', createdAt: '2026-01-10' };
+
+  it('parses a valid exported array', () => {
+    expect(parsePhrasesFile(JSON.stringify([VALID]))).toEqual([VALID]);
+  });
+
+  it('accepts an empty array', () => {
+    expect(parsePhrasesFile('[]')).toEqual([]);
+  });
+
+  it('returns null for malformed JSON', () => {
+    expect(parsePhrasesFile('{not json')).toBeNull();
+  });
+
+  it('returns null when the top level is not an array', () => {
+    expect(parsePhrasesFile('{"korean":"ㄱ"}')).toBeNull();
+  });
+
+  it('returns null when an item is missing required fields', () => {
+    expect(parsePhrasesFile('[{"id":"my-1","korean":"ㄱ"}]')).toBeNull();
+  });
+
+  it('returns null when a field has the wrong type', () => {
+    expect(parsePhrasesFile('[{"id":1,"korean":"ㄱ","japanese":"","reading":"","createdAt":"2026-01-10"}]')).toBeNull();
+  });
+});
+
+describe('mergePhrases', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  const EXISTING: CapturedPhrase = { id: 'my-1', korean: '기존', japanese: '既存', reading: 'きそん', createdAt: '2026-01-10' };
+  const INCOMING_NEW: CapturedPhrase = { id: 'my-2', korean: '새로운', japanese: '', reading: '', createdAt: '2026-01-11' };
+  const INCOMING_DUPLICATE: CapturedPhrase = { id: 'my-1', korean: '덮어쓰면 안 됨', japanese: '', reading: '', createdAt: '2026-01-11' };
+
+  it('appends phrases whose ids are not present yet', () => {
+    savePhrases([EXISTING]);
+    expect(mergePhrases([INCOMING_NEW])).toBe(1);
+    expect(loadPhrases().map((p) => p.id)).toEqual(['my-1', 'my-2']);
+  });
+
+  it('skips incoming phrases whose id already exists, without overwriting', () => {
+    savePhrases([EXISTING]);
+    expect(mergePhrases([INCOMING_DUPLICATE])).toBe(0);
+
+    const stored = loadPhrases();
+    expect(stored).toHaveLength(1);
+    expect(stored[0].korean).toBe('기존');
+  });
+
+  it('merges into an empty store', () => {
+    expect(mergePhrases([INCOMING_NEW])).toBe(1);
+    expect(loadPhrases()).toEqual([INCOMING_NEW]);
   });
 });

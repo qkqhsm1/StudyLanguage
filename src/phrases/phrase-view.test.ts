@@ -120,3 +120,42 @@ describe('renderPhraseView', () => {
     expect(stored[COMPLETE.id].grade).toBe('known');
   });
 });
+
+describe('renderPhraseView export/import', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  it('offers an export button whose download contains the captured phrases', () => {
+    savePhrases([COMPLETE]);
+    const view = renderPhraseView();
+
+    const exportBtn = view.querySelector<HTMLAnchorElement>('.phrase-export')!;
+    expect(exportBtn).not.toBeNull();
+    expect(exportBtn.getAttribute('download')).toContain('.json');
+  });
+
+  it('merges a valid imported file into the existing phrases', () => {
+    savePhrases([COMPLETE]);
+    const view = renderPhraseView();
+
+    const status = view.querySelector<HTMLElement>('.phrase-import-status')!;
+    view.dispatchEvent(new CustomEvent('phrase:import-text', {
+      detail: JSON.stringify([{ id: 'my-imported', korean: '가져온 문장', japanese: '', reading: '', createdAt: '2026-01-11' }]),
+    }));
+
+    expect(loadPhrases().map((p) => p.id)).toContain('my-imported');
+    expect(status.textContent).toContain('1');
+  });
+
+  it('leaves the existing phrases untouched when the imported file is invalid', () => {
+    savePhrases([COMPLETE]);
+    const view = renderPhraseView();
+
+    const status = view.querySelector<HTMLElement>('.phrase-import-status')!;
+    view.dispatchEvent(new CustomEvent('phrase:import-text', { detail: '{not json' }));
+
+    expect(loadPhrases()).toEqual([COMPLETE]);
+    expect(status.textContent).toContain('읽을 수 없');
+  });
+});
