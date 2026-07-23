@@ -148,6 +148,21 @@ describe('renderPhraseView export/import', () => {
     expect(status.textContent).toContain('1');
   });
 
+  it('refreshes the export link after an import so a backup taken next is complete', () => {
+    // Import deliberately skips the re-render (it would wipe the status message),
+    // so the export href has to be refreshed by hand — otherwise the "backup" the
+    // user downloads next is the pre-import snapshot, missing what they just merged.
+    savePhrases([COMPLETE]);
+    const view = renderPhraseView();
+
+    view.dispatchEvent(new CustomEvent('phrase:import-text', {
+      detail: JSON.stringify([{ id: 'my-imported', korean: '가져온 문장', japanese: '', reading: '', createdAt: '2026-01-11' }]),
+    }));
+
+    const href = view.querySelector<HTMLAnchorElement>('.phrase-export')!.getAttribute('href')!;
+    expect(decodeURIComponent(href)).toContain('my-imported');
+  });
+
   it('leaves the existing phrases untouched when the imported file is invalid', () => {
     savePhrases([COMPLETE]);
     const view = renderPhraseView();

@@ -154,7 +154,11 @@ function renderBackupBox(container: HTMLElement): HTMLElement {
   exportLink.className = 'phrase-export btn btn-secondary';
   exportLink.textContent = '내보내기';
   exportLink.download = 'my-phrases.json';
-  exportLink.href = `data:application/json;charset=utf-8,${encodeURIComponent(JSON.stringify(loadPhrases(), null, 2))}`;
+
+  function refreshExportHref(): void {
+    exportLink.href = `data:application/json;charset=utf-8,${encodeURIComponent(JSON.stringify(loadPhrases(), null, 2))}`;
+  }
+  refreshExportHref();
   actions.appendChild(exportLink);
 
   const importLabel = document.createElement('label');
@@ -192,6 +196,9 @@ function renderBackupBox(container: HTMLElement): HTMLElement {
     // 가져오기 성공 후 phrase:refresh를 쏘면 목록은 즉시 갱신되지만 이 상태
     // 메시지도 함께 다시 그려지며 사라진다. 메시지를 남기는 쪽을 택했으므로
     // 목록은 사용자가 화면을 다시 열거나 다른 조작을 할 때 갱신된다.
+    // 다만 내보내기 링크만은 지금 갱신해야 한다 — 화면을 다시 그리지 않는 탓에
+    // 방금 합친 문장이 빠진 옛 스냅샷을 백업이랍시고 내려주게 된다.
+    refreshExportHref();
     status.textContent = `${added}개를 가져왔어요. (이미 있는 문장은 건너뜁니다)`;
   });
 

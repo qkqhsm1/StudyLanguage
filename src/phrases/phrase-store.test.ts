@@ -69,6 +69,9 @@ describe('phrase store', () => {
     // reading is optional — it must not affect completeness
     expect(isComplete({ ...empty, japanese: '家', reading: 'いえ' })).toBe(true);
     expect(isComplete({ ...empty, reading: 'いえ' })).toBe(false);
+    // An imported phrase bypasses updatePhrase's trimming, so whitespace-only
+    // japanese must not count as complete — it would render a blank card.
+    expect(isComplete({ ...empty, japanese: '   ' })).toBe(false);
   });
 
   it('round-trips a list through savePhrases', () => {
@@ -101,6 +104,12 @@ describe('parsePhrasesFile', () => {
 
   it('returns null when an item is missing required fields', () => {
     expect(parsePhrasesFile('[{"id":"my-1","korean":"ㄱ"}]')).toBeNull();
+  });
+
+  it('rejects the whole file when only some items are malformed', () => {
+    // Partial application is the dangerous case: importing the good half of a file
+    // and silently dropping the rest would be indistinguishable from a full import.
+    expect(parsePhrasesFile(JSON.stringify([VALID, VALID, { id: 1 }]))).toBeNull();
   });
 
   it('returns null when a field has the wrong type', () => {
