@@ -1,6 +1,7 @@
 import vocabData from '../data/vocabulary.json';
 import { loadJSON, saveJSON } from '../storage';
-import { buildTodayQueue, reviewEntry, toggleBookmark } from '../srs';
+import { buildTodayQueue, describeReviewStatus, reviewEntry, toggleBookmark } from '../srs';
+import { categoryIcon } from '../data/category-icons';
 import { NAV_HTML } from '../nav';
 import type { SrsGrade, SrsState, SrsStore, VocabData, VocabEntry } from '../types';
 
@@ -15,52 +16,82 @@ function saveSrsStore(store: SrsStore): void {
   saveJSON(SRS_STORAGE_KEY, store);
 }
 
-export function renderWordCard(entry: VocabEntry, srsState: SrsState | undefined): HTMLElement {
+export function renderWordCard(entry: VocabEntry, srsState: SrsState | undefined, today: Date = new Date()): HTMLElement {
   const card = document.createElement('div');
-  card.className = 'word-card';
+  card.className = 'word-card card';
 
-  const jp = document.createElement('div');
-  jp.className = 'word-japanese';
-  jp.textContent = entry.japanese;
-  card.appendChild(jp);
+  const top = document.createElement('div');
+  top.className = 'word-card-top';
 
-  if (entry.reading && entry.reading !== entry.japanese) {
-    const reading = document.createElement('div');
-    reading.className = 'word-reading';
-    reading.textContent = entry.reading;
-    card.appendChild(reading);
-  }
-
-  const romaji = document.createElement('div');
-  romaji.className = 'word-romaji';
-  romaji.textContent = entry.romaji;
-  card.appendChild(romaji);
-
-  const korean = document.createElement('div');
-  korean.className = 'word-korean';
-  korean.textContent = entry.korean;
-  card.appendChild(korean);
-
-  const bookmarkBtn = document.createElement('button');
-  bookmarkBtn.className = 'bookmark-toggle';
-  bookmarkBtn.textContent = srsState?.bookmarked ? '🔖' : '📑';
-  bookmarkBtn.dataset.entryId = entry.id;
-  card.appendChild(bookmarkBtn);
+  const headword = document.createElement('div');
+  headword.className = 'word-card-headword';
 
   if (entry.audioUrl) {
     const playBtn = document.createElement('button');
     playBtn.className = 'audio-play';
     playBtn.textContent = '▶';
     playBtn.dataset.audioUrl = entry.audioUrl;
-    card.appendChild(playBtn);
+    headword.appendChild(playBtn);
   }
+
+  if (entry.reading && entry.reading !== entry.japanese) {
+    const ruby = document.createElement('ruby');
+    ruby.className = 'word-japanese-ruby';
+    const base = document.createElement('span');
+    base.className = 'word-japanese';
+    base.textContent = entry.japanese;
+    const rt = document.createElement('rt');
+    rt.className = 'word-reading';
+    rt.textContent = entry.reading;
+    ruby.appendChild(base);
+    ruby.appendChild(rt);
+    headword.appendChild(ruby);
+  } else {
+    const jp = document.createElement('span');
+    jp.className = 'word-japanese';
+    jp.textContent = entry.japanese;
+    headword.appendChild(jp);
+  }
+
+  top.appendChild(headword);
+
+  const bookmarkBtn = document.createElement('button');
+  bookmarkBtn.className = 'bookmark-toggle';
+  bookmarkBtn.textContent = srsState?.bookmarked ? '🔖' : '📑';
+  bookmarkBtn.dataset.entryId = entry.id;
+  top.appendChild(bookmarkBtn);
+
+  card.appendChild(top);
+
+  const meta = document.createElement('div');
+  meta.className = 'word-meta';
+  meta.textContent = `${entry.romaji} · ${entry.korean}`;
+  card.appendChild(meta);
+
+  const badges = document.createElement('div');
+  badges.className = 'word-badges';
+
+  const categoryBadge = document.createElement('span');
+  categoryBadge.className = 'badge badge-category';
+  categoryBadge.textContent = `${categoryIcon(entry.skillName)} ${entry.skillName}`;
+  badges.appendChild(categoryBadge);
+
+  const reviewBadge = describeReviewStatus(srsState, today);
+  if (reviewBadge) {
+    const badge = document.createElement('span');
+    badge.className = `badge ${reviewBadge.urgent ? 'badge-urgent' : 'badge-ok'}`;
+    badge.textContent = reviewBadge.label;
+    badges.appendChild(badge);
+  }
+
+  card.appendChild(badges);
 
   const gradeWrap = document.createElement('div');
   gradeWrap.className = 'srs-grades';
   const gradeLabels: Record<SrsGrade, string> = { unknown: '모름', confusing: '헷갈림', known: '암기됨' };
   (Object.keys(gradeLabels) as SrsGrade[]).forEach((grade) => {
     const btn = document.createElement('button');
-    btn.className = `srs-grade srs-grade-${grade}`;
+    btn.className = `srs-grade srs-grade-${grade} btn ${grade === 'known' ? 'btn-primary' : 'btn-secondary'}`;
     btn.textContent = gradeLabels[grade];
     btn.dataset.entryId = entry.id;
     btn.dataset.grade = grade;
