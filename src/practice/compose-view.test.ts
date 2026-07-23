@@ -66,4 +66,50 @@ describe('renderComposePractice', () => {
     const stored = JSON.parse(localStorage.getItem('srs-store-sentences') ?? '{}');
     expect(stored[currentId].grade).toBe('unknown');
   });
+
+  it('shows the next expected character and highlights its key when hint is clicked', () => {
+    // rng -> 0 picks entries[0] "greetings-1": おはようございます。 reading おはようございます。
+    const view = renderComposePractice(() => 0);
+    view.querySelector<HTMLButtonElement>('.compose-hint')!.click();
+
+    expect(view.querySelector('.compose-hint-message')?.textContent).toContain('お');
+    expect(view.querySelector('.keyboard-key.hint-highlight')?.textContent).toBe('お');
+  });
+
+  it('grades a correct answer as confusing instead of known when a hint was used', () => {
+    const view = renderComposePractice(() => 0);
+    const currentId = view.dataset.currentId!;
+    const current = SENTENCES.entries.find((e) => e.id === currentId)!;
+
+    view.querySelector<HTMLButtonElement>('.compose-hint')!.click();
+
+    function clickKey(text: string): void {
+      const btn = Array.from(view.querySelectorAll<HTMLButtonElement>('.keyboard-key')).find(
+        (b) => b.textContent === text,
+      );
+      btn!.click();
+    }
+    for (const char of current.japanese.replace('。', '')) {
+      clickKey(char);
+    }
+    view.querySelector<HTMLButtonElement>('.keyboard-period')!.click();
+
+    view.querySelector<HTMLButtonElement>('.compose-submit')!.click();
+
+    expect(view.querySelector('.compose-feedback')!.textContent).toBe('정답!');
+    const stored = JSON.parse(localStorage.getItem('srs-store-sentences') ?? '{}');
+    expect(stored[currentId].grade).toBe('confusing');
+  });
+
+  it('marks the answer field as errored once typed text diverges from the reading', () => {
+    const view = renderComposePractice(() => 0);
+    const field = view.querySelector<HTMLElement>('.compose-answer-field')!;
+    expect(field.classList.contains('compose-answer-field-error')).toBe(false);
+
+    const wrongKey = Array.from(view.querySelectorAll<HTMLButtonElement>('.keyboard-key')).find(
+      (b) => b.textContent === 'ん',
+    )!;
+    wrongKey.click(); // "greetings-1" reading starts with お, so ん is an immediate mismatch
+    expect(field.classList.contains('compose-answer-field-error')).toBe(true);
+  });
 });
