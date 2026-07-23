@@ -38,3 +38,31 @@ const DEFAULT_ICON = '📘';
 export function categoryIcon(name: string): string {
   return CATEGORY_ICONS[name] ?? DEFAULT_ICON;
 }
+
+export function renderIconLinkList(items: string[], hrefPrefix: string): HTMLElement {
+  const list = document.createElement('div');
+  list.className = 'skill-list';
+  for (const item of items) {
+    const link = document.createElement('a');
+    link.className = 'skill-list-item';
+    link.href = `${hrefPrefix}${item}`;
+
+    const icon = document.createElement('span');
+    icon.className = 'skill-list-icon';
+    icon.textContent = categoryIcon(item);
+    link.appendChild(icon);
+
+    const name = document.createElement('span');
+    name.className = 'skill-list-name';
+    name.textContent = item;
+    link.appendChild(name);
+
+    const chevron = document.createElement('span');
+    chevron.className = 'skill-list-chevron';
+    chevron.textContent = '›';
+    link.appendChild(chevron);
+
+    list.appendChild(link);
+  }
+  return list;
+}
