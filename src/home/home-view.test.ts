@@ -88,6 +88,15 @@ describe('renderHomeView', () => {
     expect(loadJSON<CapturedPhrase[]>('captured-phrases', []).map((p) => p.korean)).toEqual(['물 좀 주세요']);
   });
 
+  it('refuses to capture a whitespace-only phrase from home', () => {
+    // addPhrase itself does not validate, so this guard lives in the capture box.
+    const view = renderHomeView(TODAY);
+    view.querySelector<HTMLInputElement>('.phrase-capture-input')!.value = '   ';
+    view.querySelector<HTMLButtonElement>('.phrase-capture-submit')!.click();
+
+    expect(loadJSON<CapturedPhrase[]>('captured-phrases', [])).toEqual([]);
+  });
+
   it('lists pending phrases in the capture box', () => {
     savePhrases([{ id: 'my-1', korean: '아직 안 채운 문장', japanese: '', reading: '', createdAt: '2026-01-10' }]);
     const view = renderHomeView(TODAY);

@@ -467,6 +467,7 @@ nav a {
   font-size: 14px;
   color: var(--text-secondary);
   margin-top: 2px;
+  margin-bottom: 18px;
 }
 
 /* 폰 기본값: 통계 타일 3개가 한 줄을 균등하게 나눠 갖는다(flex: 1).
@@ -474,7 +475,7 @@ nav a {
 .home-stats {
   display: flex;
   gap: 10px;
-  flex-shrink: 0;
+  margin-bottom: 16px;
 }
 
 .home-stat {
@@ -668,12 +669,11 @@ nav a {
   text-align: center;
 }
 
+/* 폰에서는 헤더가 그냥 블록이라 인사말 → 통계 타일이 세로로 흐르고, 통계 줄이
+   화면 폭을 꽉 채운다(리디자인 이전과 동일). flex 배치는 인사말과 통계를 좌우로
+   나눠 놓을 폭이 있는 넓은 화면에서만 켠다 — 폰에서 flex item이 되면 통계 줄이
+   내용 크기로 줄어들어 오른쪽에 빈 공간이 생긴다. */
 .home-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  gap: 20px;
-  flex-wrap: wrap;
   margin-bottom: 20px;
 }
 
@@ -692,6 +692,14 @@ nav a {
     align-items: start;
   }
 
+  .home-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+
   .home-greeting {
     font-size: 32px;
     margin-top: 0;
@@ -699,10 +707,13 @@ nav a {
 
   .home-subtitle {
     font-size: 16px;
+    margin-bottom: 0;
   }
 
   .home-stats {
     gap: 12px;
+    flex-shrink: 0;
+    margin-bottom: 0;
   }
 
   .home-stat {

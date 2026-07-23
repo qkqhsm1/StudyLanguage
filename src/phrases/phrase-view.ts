@@ -4,7 +4,10 @@ import { attachSentenceCardActions, loadSentenceSrsStore, renderSentenceCard } f
 import { NAV_HTML } from '../nav';
 import type { CapturedPhrase } from '../types';
 
-function renderCaptureBox(container: HTMLElement): HTMLElement {
+/** 담기 입력 상자. 내 문장 화면과 홈 대시보드가 같은 것을 쓴다 — 두 벌로 두면
+ *  한쪽에만 조용히 적용되는 변경이 생긴다. 담은 뒤 `phrase:refresh`를 쏘므로
+ *  호출부는 라우터가 다시 그려주는 컨테이너를 넘겨야 한다. */
+export function renderCaptureBox(container: HTMLElement): HTMLElement {
   const box = document.createElement('div');
   box.className = 'phrase-capture card';
 

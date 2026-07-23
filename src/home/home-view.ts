@@ -3,7 +3,8 @@ import { allSentences } from '../data/all-sentences';
 import { loadJSON, saveJSON } from '../storage';
 import { buildTodayQueue } from '../srs';
 import { updateStreak, type StreakState } from '../streak';
-import { addPhrase, isComplete, loadPhrases } from '../phrases/phrase-store';
+import { isComplete, loadPhrases } from '../phrases/phrase-store';
+import { renderCaptureBox } from '../phrases/phrase-view';
 import { renderCardList } from '../vocab/vocab-view';
 import { loadSentenceSrsStore, renderSentenceList } from '../sentence-book/sentence-view';
 import { NAV_HTML } from '../nav';
@@ -64,7 +65,7 @@ function renderMoreNote(hiddenCount: number): HTMLElement {
   return more;
 }
 
-function renderCaptureBox(container: HTMLElement): HTMLElement {
+function renderCaptureSection(container: HTMLElement): HTMLElement {
   const section = document.createElement('div');
   section.className = 'home-capture-section';
 
@@ -73,31 +74,9 @@ function renderCaptureBox(container: HTMLElement): HTMLElement {
   heading.textContent = '문장 담기';
   section.appendChild(heading);
 
-  const box = document.createElement('div');
-  box.className = 'phrase-capture card';
-
-  const label = document.createElement('div');
-  label.className = 'phrase-capture-label';
-  label.textContent = '일본어로 뭐라고 하지?';
-  box.appendChild(label);
-
-  const input = document.createElement('input');
-  input.type = 'text';
-  input.className = 'phrase-capture-input';
-  input.placeholder = '집에 가고 싶은데…';
-  box.appendChild(input);
-
-  const submit = document.createElement('button');
-  submit.type = 'button';
-  submit.className = 'phrase-capture-submit btn btn-primary';
-  submit.textContent = '담아두기';
-  submit.addEventListener('click', () => {
-    if (input.value.trim() === '') return;
-    addPhrase(input.value);
-    input.value = '';
-    container.dispatchEvent(new Event('phrase:refresh'));
-  });
-  box.appendChild(submit);
+  // 내 문장 화면과 같은 상자를 그대로 쓴다. 홈에는 그 아래에 "채우기 대기"
+  // 미리보기를 덧붙여서, 담아둔 뒤 잊어버리지 않게 한다.
+  const box = renderCaptureBox(container);
 
   const pending = loadPhrases().filter((p) => !isComplete(p));
   const pendingBlock = document.createElement('div');
@@ -191,7 +170,7 @@ export function renderHomeView(today: Date = new Date()): HTMLElement {
     <a class="home-link home-link-practice" href="#/practice"><span class="home-link-icon">✍️</span><span class="home-link-title">문장 연습</span></a>
   `;
   actionColumn.appendChild(links);
-  actionColumn.appendChild(renderCaptureBox(container));
+  actionColumn.appendChild(renderCaptureSection(container));
   grid.appendChild(actionColumn);
 
   // 2열: 오늘 복습할 단어
