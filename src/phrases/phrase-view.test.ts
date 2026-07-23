@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderPhraseView } from './phrase-view';
 import { addPhrase, loadPhrases, savePhrases } from './phrase-store';
 import type { CapturedPhrase } from '../types';
@@ -27,12 +27,15 @@ describe('renderPhraseView', () => {
 
   it('captures a new phrase from the input and clears the field', () => {
     const view = renderPhraseView();
+    const refreshSpy = vi.fn();
+    view.addEventListener('phrase:refresh', refreshSpy);
     const input = view.querySelector<HTMLInputElement>('.phrase-capture-input')!;
     input.value = '물 좀 주세요';
     view.querySelector<HTMLButtonElement>('.phrase-capture-submit')!.click();
 
     expect(loadPhrases().map((p) => p.korean)).toEqual(['물 좀 주세요']);
     expect(input.value).toBe('');
+    expect(refreshSpy).toHaveBeenCalledTimes(1);
   });
 
   it('does not capture an empty or whitespace-only phrase', () => {
@@ -104,5 +107,16 @@ describe('renderPhraseView', () => {
 
     const sections = Array.from(view.querySelectorAll('.phrase-section-title')).map((el) => el.textContent);
     expect(sections[0]).toContain('채우기 대기');
+  });
+
+  it('grading a completed phrase card persists SRS state under the sentence-specific storage key', () => {
+    savePhrases([COMPLETE]);
+    const view = renderPhraseView();
+
+    const knownButton = view.querySelector<HTMLButtonElement>('.srs-grade-known')!;
+    knownButton.click();
+
+    const stored = JSON.parse(localStorage.getItem('srs-store-sentences') ?? '{}');
+    expect(stored[COMPLETE.id].grade).toBe('known');
   });
 });

@@ -92,13 +92,7 @@ export function renderCategoryList(categories: string[]): HTMLElement {
   return renderIconLinkList(categories, '#/sentences/category/');
 }
 
-function renderSentenceList(entries: SentenceEntry[], srsStore: SrsStore, container: HTMLElement): HTMLElement {
-  const list = document.createElement('div');
-  list.className = 'sentence-list card-list';
-  for (const entry of entries) {
-    list.appendChild(renderSentenceCard(entry, srsStore[entry.id]));
-  }
-
+export function attachSentenceCardActions(list: HTMLElement, container: HTMLElement, refreshEvent: string): void {
   list.addEventListener('click', (event) => {
     const target = event.target as HTMLElement;
     const entryId = target.dataset.entryId;
@@ -109,7 +103,7 @@ function renderSentenceList(entries: SentenceEntry[], srsStore: SrsStore, contai
     if (target.classList.contains('bookmark-toggle')) {
       store[entryId] = toggleBookmark(store[entryId]);
       saveSentenceSrsStore(store);
-      container.dispatchEvent(new Event('sentence:refresh'));
+      container.dispatchEvent(new Event(refreshEvent));
       return;
     }
 
@@ -117,9 +111,19 @@ function renderSentenceList(entries: SentenceEntry[], srsStore: SrsStore, contai
     if (grade) {
       store[entryId] = reviewEntry(store[entryId], grade);
       saveSentenceSrsStore(store);
-      container.dispatchEvent(new Event('sentence:refresh'));
+      container.dispatchEvent(new Event(refreshEvent));
     }
   });
+}
+
+function renderSentenceList(entries: SentenceEntry[], srsStore: SrsStore, container: HTMLElement): HTMLElement {
+  const list = document.createElement('div');
+  list.className = 'sentence-list card-list';
+  for (const entry of entries) {
+    list.appendChild(renderSentenceCard(entry, srsStore[entry.id]));
+  }
+
+  attachSentenceCardActions(list, container, 'sentence:refresh');
 
   return list;
 }

@@ -1,6 +1,6 @@
 import { addPhrase, deletePhrase, isComplete, loadPhrases, updatePhrase } from './phrase-store';
 import { toSentenceEntry } from '../data/all-sentences';
-import { loadSentenceSrsStore, renderSentenceCard } from '../sentence-book/sentence-view';
+import { attachSentenceCardActions, loadSentenceSrsStore, renderSentenceCard } from '../sentence-book/sentence-view';
 import { NAV_HTML } from '../nav';
 import type { CapturedPhrase } from '../types';
 
@@ -32,6 +32,19 @@ function renderCaptureBox(container: HTMLElement): HTMLElement {
   box.appendChild(submit);
 
   return box;
+}
+
+function renderDeleteButton(phrase: CapturedPhrase, container: HTMLElement): HTMLElement {
+  const del = document.createElement('button');
+  del.type = 'button';
+  del.className = 'phrase-delete btn btn-secondary';
+  del.textContent = '삭제';
+  del.dataset.phraseId = phrase.id;
+  del.addEventListener('click', () => {
+    deletePhrase(phrase.id);
+    container.dispatchEvent(new Event('phrase:refresh'));
+  });
+  return del;
 }
 
 function renderPendingRow(phrase: CapturedPhrase, container: HTMLElement): HTMLElement {
@@ -74,17 +87,7 @@ function renderPendingRow(phrase: CapturedPhrase, container: HTMLElement): HTMLE
     container.dispatchEvent(new Event('phrase:refresh'));
   });
   actions.appendChild(save);
-
-  const del = document.createElement('button');
-  del.type = 'button';
-  del.className = 'phrase-delete btn btn-secondary';
-  del.textContent = '삭제';
-  del.dataset.phraseId = phrase.id;
-  del.addEventListener('click', () => {
-    deletePhrase(phrase.id);
-    container.dispatchEvent(new Event('phrase:refresh'));
-  });
-  actions.appendChild(del);
+  actions.appendChild(renderDeleteButton(phrase, container));
 
   row.appendChild(actions);
   return row;
@@ -102,21 +105,12 @@ function renderCompletedCard(phrase: CapturedPhrase, container: HTMLElement): HT
 
   if (phrase.reading === '') {
     const badge = document.createElement('span');
-    badge.className = 'badge badge-urgent phrase-interpret-only';
+    badge.className = 'badge badge-ok phrase-interpret-only';
     badge.textContent = '해석 연습만';
     footer.appendChild(badge);
   }
 
-  const del = document.createElement('button');
-  del.type = 'button';
-  del.className = 'phrase-delete btn btn-secondary';
-  del.textContent = '삭제';
-  del.dataset.phraseId = phrase.id;
-  del.addEventListener('click', () => {
-    deletePhrase(phrase.id);
-    container.dispatchEvent(new Event('phrase:refresh'));
-  });
-  footer.appendChild(del);
+  footer.appendChild(renderDeleteButton(phrase, container));
 
   wrap.appendChild(footer);
   return wrap;
@@ -172,9 +166,10 @@ export function renderPhraseView(): HTMLElement {
   }
 
   if (completed.length > 0) {
-    container.appendChild(
-      renderSection(`완성된 문장 (${completed.length})`, completed.map((p) => renderCompletedCard(p, container))),
-    );
+    const section = renderSection(`완성된 문장 (${completed.length})`, completed.map((p) => renderCompletedCard(p, container)));
+    const completedList = section.querySelector<HTMLElement>('.phrase-list')!;
+    attachSentenceCardActions(completedList, container, 'phrase:refresh');
+    container.appendChild(section);
   }
 
   return container;
