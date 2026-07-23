@@ -1,6 +1,7 @@
 import vocabData from '../data/vocabulary.json';
 import { loadJSON, saveJSON } from '../storage';
 import { buildTodayQueue, reviewEntry, toggleBookmark } from '../srs';
+import { NAV_HTML } from '../nav';
 import type { SrsGrade, SrsState, SrsStore, VocabData, VocabEntry } from '../types';
 
 const SRS_STORAGE_KEY = 'srs-store';
@@ -132,7 +133,7 @@ export function renderVocabHome(hash: string): HTMLElement {
   container.className = 'vocab-home';
 
   const nav = document.createElement('nav');
-  nav.innerHTML = `<a href="#/vocab">단어장</a><a href="#/vocab/today">오늘 복습</a><a href="#/kana">가나 퀴즈</a><a href="#/sentences">문어장</a><a href="#/practice">문장 연습</a>`;
+  nav.innerHTML = NAV_HTML;
   container.appendChild(nav);
 
   const srsStore = loadSrsStore();

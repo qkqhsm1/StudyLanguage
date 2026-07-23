@@ -3,14 +3,14 @@ import { renderKanaQuizView } from './kana-quiz/kana-quiz-view';
 import { renderSentenceBookHome } from './sentence-book/sentence-view';
 import { renderInterpretPractice } from './practice/interpret-view';
 import { renderComposePractice } from './practice/compose-view';
+import { NAV_HTML } from './nav';
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
 
 function renderPracticePicker(): HTMLElement {
   const container = document.createElement('div');
   const nav = document.createElement('nav');
-  nav.innerHTML =
-    '<a href="#/vocab">단어장</a><a href="#/kana">가나 퀴즈</a><a href="#/sentences">문어장</a><a href="#/practice">문장 연습</a>';
+  nav.innerHTML = NAV_HTML;
   container.appendChild(nav);
 
   const list = document.createElement('ul');

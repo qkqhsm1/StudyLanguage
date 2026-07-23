@@ -40,6 +40,7 @@ export function renderKanaKeyboard(handlers: KeyboardHandlers): HTMLElement {
     script = script === 'hiragana' ? 'katakana' : 'hiragana';
     toggleBtn.textContent = script === 'hiragana' ? 'カタカナ' : 'ひらがな';
     renderGrid();
+    renderSokuonLabel();
   });
 
   renderGrid();
@@ -59,6 +60,22 @@ export function renderKanaKeyboard(handlers: KeyboardHandlers): HTMLElement {
   periodBtn.textContent = '。';
   periodBtn.addEventListener('click', () => handlers.onChar('。'));
 
+  const sokuonBtn = document.createElement('button');
+  sokuonBtn.type = 'button';
+  sokuonBtn.className = 'keyboard-sokuon';
+  sokuonBtn.addEventListener('click', () => handlers.onChar(script === 'hiragana' ? 'っ' : 'ッ'));
+
+  const choonpuBtn = document.createElement('button');
+  choonpuBtn.type = 'button';
+  choonpuBtn.className = 'keyboard-choonpu';
+  choonpuBtn.textContent = 'ー';
+  choonpuBtn.addEventListener('click', () => handlers.onChar('ー'));
+
+  function renderSokuonLabel(): void {
+    sokuonBtn.textContent = script === 'hiragana' ? 'っ' : 'ッ';
+  }
+  renderSokuonLabel();
+
   const backspaceBtn = document.createElement('button');
   backspaceBtn.type = 'button';
   backspaceBtn.className = 'keyboard-backspace';
@@ -73,6 +90,8 @@ export function renderKanaKeyboard(handlers: KeyboardHandlers): HTMLElement {
 
   controls.appendChild(spaceBtn);
   controls.appendChild(periodBtn);
+  controls.appendChild(sokuonBtn);
+  controls.appendChild(choonpuBtn);
   controls.appendChild(backspaceBtn);
   controls.appendChild(clearBtn);
 

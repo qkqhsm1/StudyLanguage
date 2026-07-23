@@ -2,10 +2,8 @@ import { SENTENCES } from '../data/sentences-data';
 import { reviewEntry } from '../srs';
 import { loadSentenceSrsStore, saveSentenceSrsStore } from '../sentence-book/sentence-view';
 import { renderKanaKeyboard } from './keyboard';
+import { NAV_HTML } from '../nav';
 import type { SentenceEntry, SrsGrade } from '../types';
-
-const NAV_HTML =
-  '<a href="#/vocab">단어장</a><a href="#/kana">가나 퀴즈</a><a href="#/sentences">문어장</a><a href="#/practice">문장 연습</a>';
 
 function normalize(text: string): string {
   return text.replace(/\s+/g, '');
@@ -85,6 +83,7 @@ export function renderComposePractice(rng: () => number = Math.random): HTMLElem
     feedback.textContent = isCorrect ? '정답!' : '오답';
     correctAnswer.classList.remove('hidden');
     nextBtn.classList.remove('hidden');
+    submitBtn.disabled = true;
 
     const store = loadSentenceSrsStore();
     const grade: SrsGrade = isCorrect ? 'known' : 'unknown';
