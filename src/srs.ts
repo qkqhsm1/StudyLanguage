@@ -13,21 +13,23 @@ export function reviewEntry(prev: SrsState | undefined, grade: SrsGrade, today: 
   const bookmarked = prev?.bookmarked ?? false;
   const easeBefore = prev?.easeFactor ?? DEFAULT_EASE;
   const intervalBefore = prev?.intervalDays ?? 0;
+  // 폰과 PC의 기록을 합칠 때 어느 쪽이 최신인지 가리는 기준(sync.ts).
+  const reviewedAt = today.toISOString();
 
   if (grade === 'unknown') {
     const easeFactor = Math.max(MIN_EASE, easeBefore - 0.2);
-    return { grade, easeFactor, intervalDays: 1, dueDate: addDays(today, 1), bookmarked };
+    return { grade, easeFactor, intervalDays: 1, dueDate: addDays(today, 1), bookmarked, reviewedAt };
   }
 
   if (grade === 'confusing') {
     const easeFactor = Math.max(MIN_EASE, easeBefore - 0.05);
     const intervalDays = Math.max(1, Math.round(intervalBefore * 1.2));
-    return { grade, easeFactor, intervalDays, dueDate: addDays(today, intervalDays), bookmarked };
+    return { grade, easeFactor, intervalDays, dueDate: addDays(today, intervalDays), bookmarked, reviewedAt };
   }
 
   const easeFactor = easeBefore + 0.1;
   const intervalDays = intervalBefore === 0 ? 1 : Math.round(intervalBefore * easeFactor);
-  return { grade, easeFactor, intervalDays, dueDate: addDays(today, intervalDays), bookmarked };
+  return { grade, easeFactor, intervalDays, dueDate: addDays(today, intervalDays), bookmarked, reviewedAt };
 }
 
 export function toggleBookmark(prev: SrsState | undefined, today: Date = new Date()): SrsState {
@@ -37,6 +39,7 @@ export function toggleBookmark(prev: SrsState | undefined, today: Date = new Dat
     intervalDays: prev?.intervalDays ?? 0,
     dueDate: prev?.dueDate ?? addDays(today, 0),
     bookmarked: !(prev?.bookmarked ?? false),
+    reviewedAt: today.toISOString(),
   };
 }
 

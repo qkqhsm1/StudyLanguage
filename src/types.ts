@@ -1,3 +1,5 @@
+import type { StreakState } from './streak';
+
 export interface VocabEntry {
   id: string;
   japanese: string;
@@ -33,9 +35,20 @@ export interface SrsState {
   easeFactor: number;
   dueDate: string;
   bookmarked: boolean;
+  /** 기기 간 병합에서 "더 최근에 만진 쪽"을 고르는 기준. 이 필드가 생기기 전에
+   *  저장된 기록에는 없어서 선택 필드다. */
+  reviewedAt?: string;
 }
 
 export type SrsStore = Record<string, SrsState>;
+
+/** 기기 사이를 오가는 학습 기록 한 벌. */
+export interface ProgressSnapshot {
+  srs: SrsStore;
+  srsSentences: SrsStore;
+  phrases: CapturedPhrase[];
+  streak: StreakState;
+}
 
 export interface SentenceEntry {
   id: string;

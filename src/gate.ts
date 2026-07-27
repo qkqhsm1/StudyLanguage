@@ -12,7 +12,7 @@
 const PASSWORD_HASH = '81baaad9354fb971d3863ffa6f68652c36c0908d37eac3298d21640e76cb6c65';
 const UNLOCKED_KEY = 'site-unlocked';
 
-async function sha256Hex(text: string): Promise<string> {
+export async function sha256Hex(text: string): Promise<string> {
   const bytes = new TextEncoder().encode(text);
   const digest = await crypto.subtle.digest('SHA-256', bytes);
   return Array.from(new Uint8Array(digest))
@@ -80,6 +80,68 @@ export function renderGate(onUnlock: () => void): HTMLElement {
         input.value = '';
         input.focus();
       }
+    });
+  });
+
+  container.appendChild(box);
+  return container;
+}
+
+/**
+ * 공용 암호를 지난 뒤의 두 번째 화면 — 내 학습 기록을 여는 개인 비밀번호.
+ * 이건 문이 아니라 **열쇠**다. 틀린 비밀번호라는 게 없고, 처음 보는 비밀번호면
+ * 그 비밀번호의 새 기록이 시작된다. 폰과 PC에 같은 걸 넣으면 기록이 합쳐진다.
+ *
+ * 실제로 무엇을 여는지는 이 화면이 모른다 — 저장·연동은 `onSubmit`이 한다.
+ */
+export function renderPersonalGate(onSubmit: (password: string) => Promise<void>): HTMLElement {
+  const container = document.createElement('div');
+  container.className = 'gate';
+
+  const box = document.createElement('form');
+  box.className = 'gate-box card';
+
+  const title = document.createElement('div');
+  title.className = 'gate-title';
+  title.textContent = '내 기록 열기 🔑';
+  box.appendChild(title);
+
+  const subtitle = document.createElement('div');
+  subtitle.className = 'gate-subtitle';
+  subtitle.textContent = '폰과 컴퓨터에 같은 비밀번호를 넣으면 학습 기록이 이어져요.';
+  box.appendChild(subtitle);
+
+  const input = document.createElement('input');
+  input.type = 'password';
+  input.className = 'gate-input';
+  input.placeholder = '내 비밀번호';
+  input.autofocus = true;
+  box.appendChild(input);
+
+  const submit = document.createElement('button');
+  submit.type = 'submit';
+  submit.className = 'gate-submit btn btn-primary';
+  submit.textContent = '열기';
+  box.appendChild(submit);
+
+  const error = document.createElement('div');
+  error.className = 'gate-error hidden';
+  error.textContent = '비밀번호를 입력해 주세요.';
+  box.appendChild(error);
+
+  box.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const password = input.value.trim();
+    if (password === '') {
+      error.classList.remove('hidden');
+      return;
+    }
+    error.classList.add('hidden');
+    submit.disabled = true;
+    submit.textContent = '불러오는 중…';
+    void onSubmit(password).finally(() => {
+      submit.disabled = false;
+      submit.textContent = '열기';
     });
   });
 

@@ -1,7 +1,10 @@
 import { renderVocabHome } from './vocab/vocab-view';
 import { renderKanaQuizView } from './kana-quiz/kana-quiz-view';
 import { renderKanaChartView } from './kana-quiz/kana-chart-view';
-import { isUnlocked, renderGate } from './gate';
+import { isUnlocked, renderGate, renderPersonalGate } from './gate';
+import { getSyncKey, openProgress, schedulePush, syncNow } from './sync';
+import { isSyncConfigured } from './sync-config';
+import { onStorageSave } from './storage';
 import { renderSentenceBookHome } from './sentence-book/sentence-view';
 import { renderInterpretPractice } from './practice/interpret-view';
 import { renderComposePractice } from './practice/compose-view';
@@ -62,6 +65,19 @@ function route(): void {
     return;
   }
 
+  // 공용 암호 다음: 내 기록을 여는 개인 비밀번호. 연동을 설정하기 전(sync-config가
+  // 비어 있을 때)에는 물어볼 이유가 없으니 이 화면 자체를 건너뛴다.
+  if (isSyncConfigured() && getSyncKey() === null) {
+    app.appendChild(
+      renderPersonalGate(async (password) => {
+        await openProgress(password);
+        await syncNow();
+        route();
+      }),
+    );
+    return;
+  }
+
   const hash = window.location.hash || '#/home';
 
   let view: HTMLElement;
@@ -94,4 +110,12 @@ function route(): void {
 
 window.addEventListener('hashchange', route);
 window.addEventListener('DOMContentLoaded', route);
+// 채점·북마크 등 무엇이든 저장되면 잠시 뒤 서버로 올린다.
+onStorageSave(schedulePush);
 route();
+
+// 다른 기기에서 한 공부를 받아온다. 화면은 이 기기 기록으로 먼저 그리고, 받아온
+// 뒤에 달라졌으면 다시 그린다 — 네트워크를 기다리며 빈 화면을 보여주지 않는다.
+void syncNow().then((synced) => {
+  if (synced) route();
+});
