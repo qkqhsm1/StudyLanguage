@@ -10,6 +10,8 @@ const PHRASES_KEY = 'captured-phrases';
 const STREAK_KEY = 'streak-state';
 /** 이 브라우저가 지금 어느 기록으로 들어와 있는지(개인 비밀번호의 해시). */
 const SYNC_KEY_STORAGE = 'sync-key';
+/** 마지막으로 서버와 주고받기에 성공한 시각. saveJSON을 안 거쳐야 올리기가 다시 안 돈다. */
+const LAST_SYNC_STORAGE = 'sync-last-at';
 
 const EMPTY_STREAK: StreakState = { lastDate: '', streak: 0 };
 
@@ -104,6 +106,28 @@ export function getSyncKey(): string | null {
   return localStorage.getItem(SYNC_KEY_STORAGE);
 }
 
+/** 연동이 켜져 있나 — 설정도 됐고 기록도 열렸나. */
+export function isSyncOn(): boolean {
+  return isSyncConfigured() && getSyncKey() !== null;
+}
+
+export function getLastSyncAt(): string | null {
+  return localStorage.getItem(LAST_SYNC_STORAGE);
+}
+
+/** 홈에 띄울 "언제 이어졌는지" 한 줄. 실패해도 앱이 조용해서, 이 줄이 유일한 신호다. */
+export function describeSyncAge(lastAt: string | null, now: Date = new Date()): string {
+  if (lastAt === null) return '아직 연동 안 됨';
+
+  const minutes = Math.floor((now.getTime() - new Date(lastAt).getTime()) / 60_000);
+  if (minutes < 1) return '방금 연동됨';
+  if (minutes < 60) return `${minutes}분 전 연동됨`;
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}시간 전 연동됨`;
+  return `${Math.floor(hours / 24)}일 전 연동됨`;
+}
+
 /**
  * 개인 비밀번호로 기록을 연다. 비밀번호 자체는 어디에도 저장·전송하지 않고 해시만
  * 쓴다. 다른 비밀번호로 바꿔 들어오면(같은 브라우저를 둘이 나눠 쓰는 경우) 앞사람
@@ -149,6 +173,7 @@ export async function syncNow(): Promise<boolean> {
     const merged = isProgressSnapshot(remote) ? mergeSnapshots(local, remote) : local;
     writeLocalSnapshot(merged);
     await callRpc('put_progress', { p_key: key, p_data: merged });
+    localStorage.setItem(LAST_SYNC_STORAGE, new Date().toISOString());
     return true;
   } catch {
     return false;

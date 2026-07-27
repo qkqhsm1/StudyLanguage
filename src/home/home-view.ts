@@ -3,6 +3,7 @@ import { allSentences } from '../data/all-sentences';
 import { loadJSON, saveJSON } from '../storage';
 import { buildTodayQueue } from '../srs';
 import { updateStreak, type StreakState } from '../streak';
+import { describeSyncAge, getLastSyncAt, isSyncOn } from '../sync';
 import { isComplete, loadPhrases } from '../phrases/phrase-store';
 import { renderCaptureBox } from '../phrases/phrase-view';
 import { renderCardList } from '../vocab/vocab-view';
@@ -138,6 +139,15 @@ export function renderHomeView(today: Date = new Date()): HTMLElement {
   subtitle.className = 'home-subtitle';
   subtitle.textContent = '오늘도 일본어 공부해볼까요?';
   intro.appendChild(subtitle);
+
+  // 연동은 실패해도 조용하다. 이 줄이 "폰에서 한 게 넘어왔나"를 확인하는 유일한 창구다.
+  if (isSyncOn()) {
+    const sync = document.createElement('div');
+    sync.className = 'home-sync';
+    sync.textContent = `🔄 ${describeSyncAge(getLastSyncAt(), today)}`;
+    intro.appendChild(sync);
+  }
+
   header.appendChild(intro);
 
   const stats = document.createElement('div');

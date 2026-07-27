@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
   clearLocalSnapshot,
+  describeSyncAge,
   getSyncKey,
   isProgressSnapshot,
   mergeSnapshots,
@@ -89,6 +90,23 @@ describe('mergeSnapshots', () => {
     const remote = snapshot({ streak: { lastDate: '2026-01-12', streak: 2 } });
 
     expect(mergeSnapshots(local, remote).streak.streak).toBe(5);
+  });
+});
+
+describe('describeSyncAge', () => {
+  const now = new Date('2026-07-27T12:00:00.000Z');
+
+  it('says so when this device has never reached the server', () => {
+    expect(describeSyncAge(null, now)).toBe('아직 연동 안 됨');
+  });
+
+  it.each([
+    ['2026-07-27T11:59:30.000Z', '방금 연동됨'],
+    ['2026-07-27T11:55:00.000Z', '5분 전 연동됨'],
+    ['2026-07-27T09:00:00.000Z', '3시간 전 연동됨'],
+    ['2026-07-25T12:00:00.000Z', '2일 전 연동됨'],
+  ])('describes %s as %s', (lastAt, expected) => {
+    expect(describeSyncAge(lastAt, now)).toBe(expected);
   });
 });
 

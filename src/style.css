@@ -798,6 +798,17 @@ nav a {
   margin-bottom: 18px;
 }
 
+/* 연동 시각 줄이 붙으면 부제와의 간격을 좁힌다 — 둘이 한 덩어리로 읽혀야 한다. */
+.home-subtitle:has(+ .home-sync) {
+  margin-bottom: 4px;
+}
+
+.home-sync {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 18px;
+}
+
 /* 폰 기본값: 통계 타일 3개가 한 줄을 균등하게 나눠 갖는다(flex: 1).
    넓은 화면에서는 헤더 우측에 내용 크기만큼만 놓이도록 아래에서 덮어쓴다. */
 .home-stats {

@@ -57,6 +57,17 @@ describe('renderHomeView', () => {
     expect(stored[FIRST_WORD_ID].grade).toBe('known');
   });
 
+  it('shows how long ago this device reached the server, once records are open', () => {
+    localStorage.setItem('sync-key', 'a'.repeat(64));
+    localStorage.setItem('sync-last-at', new Date(TODAY.getTime() - 5 * 60_000).toISOString());
+
+    expect(renderHomeView(TODAY).querySelector('.home-sync')?.textContent).toContain('5분 전');
+  });
+
+  it('says nothing about syncing before any records are open', () => {
+    expect(renderHomeView(TODAY).querySelector('.home-sync')).toBeNull();
+  });
+
   it('previews due sentence cards', () => {
     saveJSON('srs-store-sentences', { [SENTENCES.entries[0].id]: dueState('2026-01-10') } satisfies SrsStore);
 
