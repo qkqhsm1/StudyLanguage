@@ -1009,6 +1009,28 @@ nav a {
    규칙들이 그대로 적용되어 폰 레이아웃이 리디자인 이전과 동일하게 유지된다.
    사용자가 폰 화면은 만족한다고 했으므로 이 경계 밖으로 새 스타일이 새면 안 된다. */
 @media (min-width: 900px) {
+  /* 문어장 카드는 폰 기준(22px)으로 잡혀 있어서 넓은 화면에서는 카드만 크고 글씨는
+     작다. 특히 후리가나는 0.45em이라 10px밖에 안 돼 안 읽힌다. */
+  .sentence-japanese {
+    font-size: 30px;
+  }
+
+  .sentence-japanese.has-furigana rt {
+    font-size: 0.5em;
+  }
+
+  .sentence-card .reading-kana {
+    font-size: 22px;
+  }
+
+  .sentence-card .reading-pronunciation {
+    font-size: 19px;
+  }
+
+  .sentence-card .reading-toggle {
+    font-size: 15px;
+  }
+
   .home-grid {
     grid-template-columns: 0.95fr 1.15fr 1.15fr;
     align-items: start;
