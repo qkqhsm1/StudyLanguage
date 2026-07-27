@@ -3,9 +3,12 @@ import { renderHomeView } from './home-view';
 import { loadJSON, saveJSON } from '../storage';
 import { savePhrases } from '../phrases/phrase-store';
 import { SENTENCES } from '../data/sentences-data';
-import type { CapturedPhrase, SrsStore } from '../types';
+import vocabData from '../data/vocabulary.json';
+import type { CapturedPhrase, SrsStore, VocabData } from '../types';
 
 const TODAY = new Date(2026, 0, 10, 9, 30);
+// 단어 데이터를 다시 만들면 id가 바뀐다(あさごはん → 朝ごはん). 리터럴 대신 실제 첫 단어를 쓴다.
+const FIRST_WORD_ID = (vocabData as VocabData).entries[0].id;
 
 function dueState(dueDate: string) {
   return { grade: 'unknown' as const, intervalDays: 1, easeFactor: 2.3, dueDate, bookmarked: false };
@@ -17,7 +20,7 @@ describe('renderHomeView', () => {
   });
 
   it('shows today-due counts for both vocab and sentences, and a fresh streak of 1', () => {
-    saveJSON('srs-store', { '1-おちゃ': dueState('2026-01-10') } satisfies SrsStore);
+    saveJSON('srs-store', { [FIRST_WORD_ID]: dueState('2026-01-10') } satisfies SrsStore);
     saveJSON('srs-store-sentences', {
       [SENTENCES.entries[0].id]: dueState('2026-01-10'),
       [SENTENCES.entries[1].id]: dueState('2026-01-09'),
@@ -43,7 +46,7 @@ describe('renderHomeView', () => {
   });
 
   it('previews due word cards with working grade buttons', () => {
-    saveJSON('srs-store', { '1-おちゃ': dueState('2026-01-10') } satisfies SrsStore);
+    saveJSON('srs-store', { [FIRST_WORD_ID]: dueState('2026-01-10') } satisfies SrsStore);
 
     const view = renderHomeView(TODAY);
     const gradeBtn = view.querySelector<HTMLButtonElement>('.home-vocab-column .srs-grade-known');
@@ -51,7 +54,7 @@ describe('renderHomeView', () => {
 
     gradeBtn!.click();
     const stored = JSON.parse(localStorage.getItem('srs-store') ?? '{}');
-    expect(stored['1-おちゃ'].grade).toBe('known');
+    expect(stored[FIRST_WORD_ID].grade).toBe('known');
   });
 
   it('previews due sentence cards', () => {
