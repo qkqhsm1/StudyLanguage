@@ -346,7 +346,7 @@ nav a {
 }
 
 .sentence-japanese {
-  font-size: 22px;
+  font-size: 26px;
   font-weight: 600;
   color: var(--text);
 }
@@ -779,7 +779,7 @@ nav a {
 }
 
 .has-furigana rt {
-  font-size: 0.45em;
+  font-size: 0.5em;
   font-weight: 600;
   color: var(--accent);
 }
@@ -1007,16 +1007,12 @@ nav a {
 
 /* 넓은 화면에서만 3열 + 대시보드용 확대 타이포. 좁은 화면에서는 위의 기본
    규칙들이 그대로 적용되어 폰 레이아웃이 리디자인 이전과 동일하게 유지된다.
-   사용자가 폰 화면은 만족한다고 했으므로 이 경계 밖으로 새 스타일이 새면 안 된다. */
+   폰 레이아웃은 사용자가 명시적으로 요청할 때만 바꾼다 — 전에 여기 규칙이 세 번
+   새어나가 폰 화면을 망가뜨린 적이 있다(문장 글씨 크기는 2026-07-27에 요청받아 조정). */
 @media (min-width: 900px) {
-  /* 문어장 카드는 폰 기준(22px)으로 잡혀 있어서 넓은 화면에서는 카드만 크고 글씨는
-     작다. 특히 후리가나는 0.45em이라 10px밖에 안 돼 안 읽힌다. */
+  /* 넓은 화면에서는 카드만 커지고 글씨는 폰 크기 그대로라 작아 보인다. */
   .sentence-japanese {
     font-size: 30px;
-  }
-
-  .sentence-japanese.has-furigana rt {
-    font-size: 0.5em;
   }
 
   .sentence-card .reading-kana {
