@@ -345,6 +345,11 @@ nav a {
   color: #c7c7cc;
 }
 
+/* Day 목록 위에 얹히는 오답노트 입구 — 목록과 한 덩어리로 보이지 않게 띄운다. */
+.vocab-wrong-link {
+  margin-bottom: 18px;
+}
+
 .sentence-japanese {
   font-size: 26px;
   font-weight: 600;

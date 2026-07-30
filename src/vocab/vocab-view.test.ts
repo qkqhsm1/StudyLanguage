@@ -1,5 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { renderDayGroups, renderDayList, renderVocabHome, renderWordCard } from './vocab-view';
+import {
+  collectWrongNotes,
+  renderCardGroups,
+  renderDayList,
+  renderVocabHome,
+  renderWordCard,
+  WRONG_GROUPS,
+} from './vocab-view';
 import { WORDS_PER_DAY } from '../data/vocab-days';
 import type { SrsState, SrsStore, VocabEntry } from '../types';
 
@@ -118,7 +125,7 @@ describe('renderWordCard', () => {
   });
 });
 
-describe('renderDayGroups', () => {
+describe('renderCardGroups', () => {
   function threeGroupView(): HTMLElement {
     const entries = makeVocabEntries(4); // e0..e3
     const store: SrsStore = {
@@ -126,7 +133,7 @@ describe('renderDayGroups', () => {
       e2: knownState(), // 'known'
       // e0, e3 have no state -> ungraded; the 헷갈리는 group is empty and must be skipped
     };
-    return renderDayGroups(entries, store, document.createElement('div'));
+    return renderCardGroups(entries, store, document.createElement('div'));
   }
 
   it('groups words by grade into softly-worded sections, skipping empty ones', () => {
@@ -149,6 +156,52 @@ describe('renderDayGroups', () => {
     expect(firstSection.classList.contains('collapsed')).toBe(true);
     title.click();
     expect(firstSection.classList.contains('collapsed')).toBe(false);
+  });
+});
+
+describe('collectWrongNotes', () => {
+  const entries = makeVocabEntries(5); // e0..e4
+  const store: SrsStore = {
+    e0: { grade: 'unknown', intervalDays: 1, easeFactor: 2.3, dueDate: '2099-01-01', bookmarked: false },
+    e1: { grade: 'confusing', intervalDays: 2, easeFactor: 2.3, dueDate: '2099-01-01', bookmarked: false },
+    e2: { ...knownState(), bookmarked: true },
+    e3: knownState(),
+    // e4: 아직 채점 안 함
+  };
+
+  it('collects wrong and bookmarked words, leaving out memorised and untouched ones', () => {
+    expect(collectWrongNotes(entries, store).map((e) => e.id)).toEqual(['e0', 'e1', 'e2']);
+  });
+
+  it('keeps words whose review date is far away — a wrong answer is wrong whether or not it is due', () => {
+    // dueDate가 2099년이라 '오늘 복습'에는 절대 안 뜨는 단어들이다.
+    expect(collectWrongNotes(entries, store).map((e) => e.id)).toContain('e0');
+  });
+});
+
+describe('renderCardGroups with WRONG_GROUPS', () => {
+  it('splits the notebook into wrong, confusing and bookmarked sections', () => {
+    const entries = makeVocabEntries(3);
+    const store: SrsStore = {
+      e0: { grade: 'unknown', intervalDays: 1, easeFactor: 2.3, dueDate: '2026-01-02', bookmarked: false },
+      e1: { grade: 'confusing', intervalDays: 1, easeFactor: 2.3, dueDate: '2026-01-02', bookmarked: false },
+      e2: { ...knownState(), bookmarked: true },
+    };
+
+    const view = renderCardGroups(entries, store, document.createElement('div'), WRONG_GROUPS);
+    const labels = Array.from(view.querySelectorAll('.vocab-group-label')).map((t) => t.textContent);
+    expect(labels).toEqual(['모르는 단어 (1)', '헷갈리는 단어 (1)', '북마크한 단어 (1)']);
+  });
+
+  it('lists a bookmarked wrong word once, under the grade rather than twice', () => {
+    const entries = makeVocabEntries(1);
+    const store: SrsStore = {
+      e0: { grade: 'unknown', intervalDays: 1, easeFactor: 2.3, dueDate: '2026-01-02', bookmarked: true },
+    };
+
+    const view = renderCardGroups(entries, store, document.createElement('div'), WRONG_GROUPS);
+    expect(view.querySelectorAll('.word-card')).toHaveLength(1);
+    expect(view.querySelector('.vocab-group-label')?.textContent).toBe('모르는 단어 (1)');
   });
 });
 
@@ -203,6 +256,26 @@ describe('renderVocabHome integration', () => {
     const stored = JSON.parse(localStorage.getItem('srs-store') ?? '{}');
     const gradedId = knownButton!.dataset.entryId!;
     expect(stored[gradedId].grade).toBe('known');
+  });
+
+  it('opens the wrong-notes screen with only the words that need it', () => {
+    const dayView = renderVocabHome('#/vocab/day/1');
+    const unknownButton = dayView.querySelector<HTMLButtonElement>('.srs-grade-unknown')!;
+    unknownButton.click();
+    const wrongId = unknownButton.dataset.entryId!;
+
+    const view = renderVocabHome('#/vocab/wrong');
+    expect(view.querySelector('h2')?.textContent).toBe('오답노트 (1)');
+    expect(view.querySelectorAll('.word-card')).toHaveLength(1);
+    expect(view.querySelector('.bookmark-toggle')?.getAttribute('data-entry-id')).toBe(wrongId);
+  });
+
+  it('offers the wrong-notes screen from the day list, with its count', () => {
+    const view = renderVocabHome('#/vocab');
+    const link = view.querySelector('a.skill-list-item[href="#/vocab/wrong"]');
+
+    expect(link?.querySelector('.skill-list-name')?.textContent).toBe('오답노트');
+    expect(link?.querySelector('.skill-list-sub')?.textContent).toContain('0단어');
   });
 
   it('falls back to the Day list for a malformed or out-of-range day hash', () => {
