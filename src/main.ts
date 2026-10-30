@@ -1,4 +1,5 @@
 import { renderVocabHome } from './vocab/vocab-view';
+import { renderVocabQuizHome } from './vocab/vocab-quiz-view';
 import { renderKanaQuizView } from './kana-quiz/kana-quiz-view';
 import { renderKanaChartView } from './kana-quiz/kana-chart-view';
 import { isUnlocked, renderGate, renderPersonalGate } from './gate';
@@ -85,6 +86,8 @@ function route(): void {
     view = renderHomeView();
   } else if (hash === '#/phrases') {
     view = renderPhraseView();
+  } else if (hash.split('?')[0] === '#/vocab/quiz' || hash.startsWith('#/vocab/quiz/')) {
+    view = renderVocabQuizHome(hash);
   } else if (hash === '#/kana/chart') {
     // '#/kana' 로 시작하는 prefix 분기보다 먼저 와야 가나표가 퀴즈에 가려지지 않는다.
     view = renderKanaChartView();

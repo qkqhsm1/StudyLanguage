@@ -8,17 +8,17 @@ import type { SrsGrade, SrsState, SrsStore, VocabData, VocabEntry, VocabStudyGro
 
 const SRS_STORAGE_KEY = 'srs-store';
 const TYPED_VOCAB_DATA = vocabData as VocabData;
-const STUDY_GROUPS: Record<VocabStudyGroup, { label: string; icon: string; description: string }> = {
+export const STUDY_GROUPS: Record<VocabStudyGroup, { label: string; icon: string; description: string }> = {
   noun: { label: '명사', icon: '📦', description: '사람·사물·장소·시간을 나타내는 말' },
   predicate: { label: '동사·형용사', icon: '🏃', description: '동작·상태·성질을 나타내는 말과 활용 표현' },
   expression: { label: '기타 표현', icon: '💬', description: '부사·조사·인사말과 자주 쓰는 표현' },
 };
 
-function loadSrsStore(): SrsStore {
+export function loadSrsStore(): SrsStore {
   return loadJSON<SrsStore>(SRS_STORAGE_KEY, {});
 }
 
-function saveSrsStore(store: SrsStore): void {
+export function saveSrsStore(store: SrsStore): void {
   saveJSON(SRS_STORAGE_KEY, store);
 }
 
@@ -297,7 +297,7 @@ export function renderCardGroups(
 }
 
 /** Vocabulary shortcuts reuse the existing list layout. */
-function renderVocabLink(href: string, symbol: string, label: string, description: string): HTMLElement {
+export function renderVocabLink(href: string, symbol: string, label: string, description: string): HTMLElement {
   const list = document.createElement('div');
   list.className = 'skill-list vocab-wrong-link';
 
@@ -343,6 +343,7 @@ function renderStudyGroups(srsStore: SrsStore): HTMLElement {
   const heading = document.createElement('h2');
   heading.textContent = '품사별 암기장';
   wrap.appendChild(heading);
+  wrap.appendChild(renderVocabLink('#/vocab/quiz', '🎲', '단어 퀴즈', '일본어 읽기를 보고 한국어 뜻 고르기 · 5지선다'));
   const help = document.createElement('p');
   help.textContent = '비슷한 역할의 말을 50개씩 모아 외워 보세요. Day 단어장과 암기·북마크 기록이 이어집니다.';
   wrap.appendChild(help);
@@ -386,6 +387,7 @@ export function renderVocabHome(hash: string): HTMLElement {
       const heading = document.createElement('h2');
       heading.textContent = batch === null ? STUDY_GROUPS[group].label : `${STUDY_GROUPS[group].label} · 묶음 ${batch}`;
       container.appendChild(heading);
+      container.appendChild(renderVocabLink(`#/vocab/quiz/group/${group}${batch === null ? '' : `/${batch}`}`, '🎲', '이 단어들로 퀴즈', '무작위 최대 10문제 · 한국어 뜻 5지선다'));
       if (batch === null) {
         container.appendChild(renderDayList(entries, srsStore, group));
       } else {
@@ -415,8 +417,10 @@ export function renderVocabHome(hash: string): HTMLElement {
     const heading = document.createElement('h2');
     heading.textContent = `Day ${day}`;
     container.appendChild(heading);
+    container.appendChild(renderVocabLink(`#/vocab/quiz/day/${day}`, '🎲', '이 Day로 단어 퀴즈', '무작위 최대 10문제 · 한국어 뜻 5지선다'));
     container.appendChild(renderCardGroups(dayEntries, srsStore, container));
   } else {
+    container.appendChild(renderVocabLink('#/vocab/quiz', '🎲', '단어 퀴즈', '일본어 읽기를 보고 한국어 뜻 고르기 · 5지선다'));
     container.appendChild(renderVocabLink('#/vocab/groups', '🗂️', '품사별 암기장', '명사 / 동사·형용사 / 기타 표현 · 50개씩 모아 외우기'));
     container.appendChild(renderWrongNotesLink(TYPED_VOCAB_DATA.entries, srsStore));
     container.appendChild(renderDayList(TYPED_VOCAB_DATA.entries, srsStore));

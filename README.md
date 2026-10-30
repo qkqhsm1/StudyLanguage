@@ -25,10 +25,13 @@ npm run build
 - **단어장**: original order, 50 words per Day.
 - **품사별 암기장**: nouns, verbs/adjectives, and other expressions, in 50-word batches. Accessible from the shared navigation and vocabulary home.
 - Both views share word IDs, grading, bookmarks and review scheduling. Inflected phrases are classified by their main role; ambiguous entries use one primary group.
+- **단어 퀴즈**: choose Japanese → Korean (hiragana prompt, Korean meanings) or Korean → Japanese (Korean meaning, hiragana choices). Click one of five numbered choices or press 1–5. Start from the shared menu, a Day, a study group or a 50-word batch. A round contains up to ten random distinct prompts; the result screen offers wrong-answer retry and a fresh round.
+- Quiz meanings use the first Korean sense from existing vocabulary; feedback reveals the original spelling and full meaning list. Correct/wrong choices save `known`/`unknown` through the same SRS store as the notebooks and preserve bookmarks. Kana-only prompts exclude homophones and overlapping meanings from distractors; reverse choices exclude duplicate kana and overlapping Korean meanings. Entries without a kana reading or five distinct suitable choices cannot be questions; small scopes can use choices from the full dictionary. The selected direction is retained in quiz links (`?direction=ko-ja` for Korean → Japanese), retry and restart.
 
 ## Files and data maintenance
 
 - `src/main.ts`: hash router; `src/vocab/vocab-view.ts`: shared cards, vocabulary routes and actions.
+- `src/vocab/vocab-quiz-logic.ts`: question generation and choice exclusions; `src/vocab/vocab-quiz-view.ts`: quiz scopes, rounds, feedback and scoring. Quiz routes use `#/vocab/quiz` ahead of the notebook fallback.
 - `src/data/vocabulary.json`: tracked runtime vocabulary, including readings and study groups. `src/data/`: other bundled learning inputs.
 - `scripts/build-vocabulary.ts`: fetches duome and rebuilds vocabulary. `npm run build:vocab` overwrites the runtime JSON and can change IDs if source spellings change.
 - `scripts/vocab-metadata.ts`: shared reading/POS enrichment using JMdict and Kuromoji (development dependency only; excluded from browser code).

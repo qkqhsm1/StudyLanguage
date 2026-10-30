@@ -6,14 +6,26 @@
 
 ## Goal
 
-Add a part-of-speech vocabulary notebook (nouns, verbs/adjectives, other expressions) and repair missing kanji readings across existing and new vocabulary views.
+Add and publish a bidirectional five-choice vocabulary quiz: hiragana-to-Korean or Korean-to-hiragana, random ten-question rounds from all words, a study group, a Day or a group batch.
 
 ## Decisions
 
+- Quiz uses existing vocabulary readings/meanings and SRS IDs. A first correct choice records known; a wrong choice records unknown, preserves bookmarks and appears in existing wrong notes. Show feedback before manual next; offer wrong-answer retry at round end.
+- Reuse existing card/button/feedback styles and storage helpers. Exclude duplicate/overlapping Korean meanings and all homophones of a prompt from distractors. Use the full dictionary for distractors even for a small source batch; require exactly five choices.
+- Implement with existing TypeScript/DOM stack and no new dependencies. User selected multiple choice; free-text/English answering is out of scope. User now requests Korean-to-Japanese questions and authorizes pushing the whole quiz feature.
+- Direction uses hash query `?direction=ko-ja`; default remains Japanese-to-Korean. Preserve direction across scope choices, retry and restart. Reverse choices are hiragana with unique readings; exclude overlapping Korean senses so another valid translation is not marked wrong.
+- Existing kana multiple-choice helper uses a random sort and only excludes one kana identity; it cannot enforce vocabulary homophone/meaning exclusions. Keep the vocabulary-specific generator in `src/vocab/vocab-quiz-logic.ts` without changing the unrelated kana quiz.
 - Reuse existing cards, 50-word batches and SRS IDs; enrich existing data without re-scraping or changing order/spelling.
 - Use bundled JMdict/JmdictFurigana as primary dictionary inputs; inspect ambiguous readings and inflections before choosing metadata.
 
 ## Verification
+
+- Bidirectional quiz final verification: `npm test` passed all 294 tests across 33 files; `npm run build` passed TypeScript and Vite production compilation; `git diff --check` passed. Bundle-size advisory remains.
+- Chrome verified the local isolated quiz harness: picker, noun quiz, five Korean choices, hiragana prompt, numeric-key answer, disabled answered choices, correct/wrong feedback and next question. Screenshot saved as `.superpowers/vocab-quiz-preview.png`. Harness imports the real quiz module/styles without main/sync, on port 5175; no synced learning records were changed. The actual app router is covered separately by `src/main.test.ts`.
+- Initial quiz review passed; reverse-direction review found a valid translation leaking into distractors via aliases with different Korean sense lists. Fixed using a shared normalized-reading → meaning-union index, with a regression observed failing then passing. Visual checks covered desktop only; narrow mobile layouts and real-device audio were not exercised.
+- Temporary visual harness/screenshots are ignored under `.superpowers/`; they are QA artifacts, not maintained application entry points.
+
+### Previous release verification
 
 - `npm test`: 277 tests across 30 files passed, including new metadata and grouped-view tests and review regressions.
 - `npm run build`: TypeScript and production build passed; Vite reports its bundle-size advisory (bundled vocabulary remains one static asset).
@@ -26,6 +38,8 @@ Add a part-of-speech vocabulary notebook (nouns, verbs/adjectives, other express
 
 ## Mistakes
 
+- 2026-10-30 | Reverse distractor could be another valid translation (주다 → あげます) | Filtering checked one entry rather than all entries sharing its displayed reading | Index the union of meanings by normalized reading for distractor checks | Test aliases whose kana/kanji entries have different Korean sense lists.
+- 2026-10-30 | Browser screenshot with a clip timed out | CDP did not return capture within its limit | Use the documented browser troubleshooting flow and an uncropped capture | Keep visual evidence capture simple; do not repeat a failed clip blindly.
 - 2026-10-30 | Compound readings were mechanically concatenated (一人ぐらし, かさ立て, 一週間に) | Token readings miss whole-compound/counter sounds | Add reviewed shared overrides and actual-dataset regressions | Compare mixed-script compounds against equivalent full dictionary forms.
 - 2026-10-30 | Token-only classification treated kana nouns as verbs | Isolated kana surfaces are ambiguous or split incorrectly | Prefer JMdict headword POS and reviewed contextual overrides | Test kana nouns, adjectives and noun phrases alongside inflections.
 - 2026-10-30 | Inline Node diagnostic failed to parse | PowerShell stripped JavaScript quotes | Use stdin here-strings or script files | Avoid inline `node -e` for quoted JavaScript.
@@ -38,6 +52,16 @@ Add a part-of-speech vocabulary notebook (nouns, verbs/adjectives, other express
 ## Progress
 
 ### Current task — 2026-10-30
+
+- Done: inspected quiz, vocabulary routes, SRS/save hooks and shared styles; selected five-choice design from user's explicit preference.
+- Done: generator, scoped view, notebook/nav/router integration, shared SRS saving, result/retry flows and regression coverage.
+- Done: isolated Chrome interaction/visual check, independent code review and README/AGENTS updates.
+- Done: final combined tests/build and saved visual evidence.
+- Done: Korean-to-Japanese direction, scope-preserving direction links, reverse retry/restart and ambiguity regression; full 294 tests and production build passed.
+- In progress: commit and authorized push of both directions.
+- Next: verify automatic deployment. Mobile real-device layout remains unverified.
+
+### Previous release — part-of-speech notebook
 
 - Done: inspected vocabulary routing, cards, shared SRS handlers, acquisition/enrichment pipeline and existing handoff.
 - Done: shared dictionary/token metadata enrichment, 533 missing readings filled, counter/context overrides, grouped routes and shared SRS interaction tests.

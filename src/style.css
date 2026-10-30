@@ -385,6 +385,57 @@ nav a {
   margin: 18px 0;
 }
 
+.vocab-quiz-session {
+  max-width: 720px;
+  margin: 16px auto;
+}
+
+.vocab-quiz-directions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.vocab-quiz-directions a {
+  padding: 12px 16px;
+  text-decoration: none;
+}
+
+.vocab-quiz-question {
+  overflow-wrap: anywhere;
+  line-height: 1.7;
+}
+
+.vocab-quiz-options {
+  display: grid;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.vocab-quiz-options .vocab-quiz-option.btn {
+  margin: 0;
+  min-height: 48px;
+  padding: 12px 16px;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+.vocab-quiz-option.vocab-quiz-correct {
+  background: var(--accent);
+  color: #fff;
+}
+
+.vocab-quiz-option.vocab-quiz-wrong {
+  background: var(--danger-bg);
+  color: var(--danger-text);
+  outline: 2px solid var(--danger-text);
+}
+
+.vocab-quiz-session > .btn {
+  width: 100%;
+  margin-top: 12px;
+}
+
 .kana-answer-input {
   width: 100%;
   box-sizing: border-box;
