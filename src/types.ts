@@ -1,5 +1,7 @@
 import type { StreakState } from './streak';
 
+export type VocabStudyGroup = 'noun' | 'predicate' | 'expression';
+
 export interface VocabEntry {
   id: string;
   japanese: string;
@@ -9,6 +11,7 @@ export interface VocabEntry {
   audioUrl: string | null;
   skillName: string;
   skillIndex: number;
+  studyGroup?: VocabStudyGroup;
 }
 
 export interface VocabData {

@@ -6,6 +6,7 @@ export interface JmdictForm {
 
 export interface JmdictSense {
   misc: string[];
+  partOfSpeech?: string[];
 }
 
 export interface JmdictWord {

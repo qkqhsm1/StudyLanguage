@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 import { dedupeByJapanese, parseVocabularyHtml } from './parse-duome';
 import { addFurigana, buildFuriganaIndex, type JmdictFuriganaEntry } from './furigana';
 import { buildKanjiFormIndex, type JmdictWord } from './kanji-forms';
+import { buildStudyGroupIndex, createVocabTokenizer, enrichVocabulary } from './vocab-metadata';
 
 const DUOME_URL = 'https://duome.eu/vocabulary/ko/ja/skills';
 const JMDICT_PATH = fileURLToPath(new URL('./vendor/JmdictFurigana.json', import.meta.url));
@@ -33,7 +34,8 @@ async function main(): Promise<void> {
 
   // 한자 표기를 먼저 달고 나서 중복을 접는다 — あさごはん과 朝ごはん처럼 같은 단어가
   // 가나본/한자본으로 따로 들어와 있는 경우가 있어서, 순서가 반대면 안 합쳐진다.
-  const entries = dedupeByJapanese(addFurigana(parsedAll, furiganaIndex, kanjiForms));
+  const tokenizer = await createVocabTokenizer();
+  const entries = enrichVocabulary(dedupeByJapanese(addFurigana(parsedAll, furiganaIndex, kanjiForms)), tokenizer, buildStudyGroupIndex(common.words));
   const skills = [...new Set(entries.map((e) => e.skillName))];
 
   writeFileSync(OUTPUT_PATH, JSON.stringify({ skills, entries }, null, 2));

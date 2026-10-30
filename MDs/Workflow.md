@@ -4,7 +4,49 @@
 스택: TypeScript + Vite + Vitest, 프레임워크 없는 DOM 렌더링, 해시 라우팅, `localStorage` 상태 저장.
 저장소: https://github.com/qkqhsm1/StudyLanguage (main 브랜치)
 
+## Goal
+
+Add a part-of-speech vocabulary notebook (nouns, verbs/adjectives, other expressions) and repair missing kanji readings across existing and new vocabulary views.
+
+## Decisions
+
+- Reuse existing cards, 50-word batches and SRS IDs; enrich existing data without re-scraping or changing order/spelling.
+- Use bundled JMdict/JmdictFurigana as primary dictionary inputs; inspect ambiguous readings and inflections before choosing metadata.
+
+## Verification
+
+- `npm test`: 277 tests across 30 files passed, including new metadata and grouped-view tests and review regressions.
+- `npm run build`: TypeScript and production build passed; Vite reports its bundle-size advisory (bundled vocabulary remains one static asset).
+- Full dataset audit: 4,877 entries; nouns 3,375, verbs/adjectives 1,025, expressions 477. Filled 533 missing readings; corrected 5 established readings; zero missing/Han-containing readings. Original IDs, spellings, order, meanings, audio URLs and skill metadata preserved.
+- Re-running `npm run enrich:vocab` leaves vocabulary JSON byte-identical. Source acquisition uses the same enrichment helper; no scrape was run.
+- Dictionary source: bundled `jmdict-eng-common-3.6.2.json`, SHA-256 `455f53d0f412120df8818279adb81e13002956a7c2ae4d92c5bc79454d816784`. Kuromoji 0.1.2 is a dev dependency only.
+- Compound references: bundled dictionary for 一週間/一人暮らし; [Shogakukan: 傘立て](https://kotobank.jp/word/%E5%82%98%E7%AB%8B%E3%81%A6-461678); [Gakken: ゲーム会社](https://kids.gakken.co.jp/shinro/shigoto/work093/); [Mango Languages: 一か月(間)](https://www.mangolanguages.com/resources/learn/grammar/japanese/how-to-say-the-date-in-japanese-days-weeks-months-and-years/study-resource-vocabulary-for-discussing-dates-in-japanese).
+- Browser runtime returned no available browsers; visual layout and real audio were not verified. DOM tests verify ruby presence and shared interactions.
+- Dependency audit lists pre-existing Vite/Vitest toolchain advisories; none of the newly added packages appear in the advisory list. No dependency upgrades outside this task.
+
+## Mistakes
+
+- 2026-10-30 | Compound readings were mechanically concatenated (一人ぐらし, かさ立て, 一週間に) | Token readings miss whole-compound/counter sounds | Add reviewed shared overrides and actual-dataset regressions | Compare mixed-script compounds against equivalent full dictionary forms.
+- 2026-10-30 | Token-only classification treated kana nouns as verbs | Isolated kana surfaces are ambiguous or split incorrectly | Prefer JMdict headword POS and reviewed contextual overrides | Test kana nouns, adjectives and noun phrases alongside inflections.
+- 2026-10-30 | Inline Node diagnostic failed to parse | PowerShell stripped JavaScript quotes | Use stdin here-strings or script files | Avoid inline `node -e` for quoted JavaScript.
+- 2026-10-30 | Japanese stdin became question marks | PowerShell pipe encoding defaulted to ASCII | Set both `$OutputEncoding` and console encoding to UTF-8 | Use UTF-8 script files or explicit pipe encoding.
+- 2026-10-30 | Metadata generation rejected 〇 | Unicode Han covers the ideographic zero and the previous reading copied the symbol | Add explicit まる reading and test | Check all Unicode Han characters, including symbols and rare ideographs.
+- 2026-10-30 | Build rejected JSON group strings in tests | JSON import widens literals to string | Apply the existing VocabEntry cast at the JSON boundary | Run TypeScript as well as Vitest.
+- 2026-10-30 | Baseline audit exceeded Node buffer | Vocabulary JSON exceeds execSync's default buffer | Increase maxBuffer for this known large artifact | Bound output and set buffer size for large JSON reads.
+- 2026-10-30 | Multi-file patch was rejected | A final context anchor was out of order | Inspect actual anchors and reapply the atomic patch | Keep independent documentation patches small.
+
 ## Progress
+
+### Current task — 2026-10-30
+
+- Done: inspected vocabulary routing, cards, shared SRS handlers, acquisition/enrichment pipeline and existing handoff.
+- Done: shared dictionary/token metadata enrichment, 533 missing readings filled, counter/context overrides, grouped routes and shared SRS interaction tests.
+- Done: data identity audit, idempotence check, regression suite, TypeScript/build and starting README.
+- Done: independent final code review; corrected mixed-script compounds/counters with dataset regressions; final suite/build passed after fixes.
+- In progress: user requested commit/push to main; checking remote state and rerunning tests/build before publishing.
+- Next: push the verified change and check the resulting GitHub Pages workflow. Browser layout/audio remain unverified because no connected browser was available.
+
+### Historical completed work
 
 ### ✅ Phase 1 — 단어장 + 가나 퀴즈 (완료, main에 병합·푸시 완료)
 
@@ -116,7 +158,7 @@ Phase 4까지 병합했는데 **실제 배포가 3개 커밋째 안 되고 있�
 
 **오답노트 (`fcda1a8`)** — "오늘 복습"은 복습일이 된 것만 나와서 지난주에 틀린 단어가 안 보인다. `#/vocab/wrong`은 날짜를 무시하고 모름·헷갈림·북마크를 전부 모은다. 섹션은 모르는/헷갈리는/북마크한 순이고 **앞 조건이 먼저 가져가서** 한 단어가 두 번 안 나온다. 이걸 위해 Day 화면의 등급별 그룹을 조건(predicate) 기반으로 일반화하고 `renderDayGroups` → `renderCardGroups`로 이름 변경(북마크는 등급이 아니라 기존 방식으론 한 구역이 안 됨). 입구는 상단 nav + Day 목록 위 `📕 오답노트` 줄(밀린 개수 표시).
 
-## 현재 상태 (2026-08-04 기준)
+## Historical deployment state (2026-08-04; current local work is above)
 
 - Phase 1~6 전부 main 병합·푸시·배포 완료. 저장소 public, `qkqhsm1.github.io/StudyLanguage`에 최신 반영됨. 265개 테스트.
 - 문 비밀번호 `qkqhsmqkqhsm`(기기·브라우저별 1회) → 그 뒤 개인 비밀번호로 내 기록 열기(기기 간 연동).
@@ -136,7 +178,7 @@ Phase 4까지 병합했는데 **실제 배포가 3개 커밋째 안 되고 있�
 
 1. **문어장에는 오답노트가 없다** — 단어만 만들었다. 구조가 같아서 `collectWrongNotes`/`WRONG_GROUPS`를 문장 쪽에 붙이면 된다. 사용자에게 제안해둔 상태.
 2. **실시간 번역은 다시 검토할 수 있게 됐다** — 원래 "정적 사이트라 API 키를 숨길 데가 없다"가 이유였는데, Supabase가 붙었으니 Edge Function에 키를 두면 해결된다. 단 번역 엔진(DeepL 무료 등)은 카드 등록이 필요하고, "답을 즉시 주면 안 남는다"는 원래 판단은 유효 → **번역을 답이 아니라 채점으로** 쓰는 안(직접 써 넣은 뒤 확인 눌렀을 때 비교)을 제안해둠. 사용자 결정 대기.
-3. **읽기 없는 한자 단어 533개** — 사람 이름(中山)과 활용형(見ます)이 JmdictFurigana에 그 형태로 없어서 후리가나·로마자 없이 뜻만 보인다. 활용형 원형 복원은 규칙이 지저분해서 안 건드림.
+3. **2026-10-30 수정 완료: 한자 독음 533개 누락** — 이름·활용형·복합 표현 읽기를 보강했고 수량 표현/문맥별 독음도 교정했다. 공유 메타데이터 생성기는 `scripts/vocab-metadata.ts`; 현재 push/배포 진행 상태는 이 문서 상단을 참고한다.
 4. **레이아웃은 사람이 브라우저로 확인해야 함** — jsdom은 CSS를 적용하지 않아 테스트로 증명 불가. 글씨 크기·후리가나 위치는 눈으로 볼 것.
 5. **학습 기록이 바뀌면 id가 바뀐다** — id가 `스킬번호-일본어`라서 표기가 바뀐 단어(あさごはん → 朝ごはん)는 채점 기록이 초기화된다. 단어 데이터를 다시 만들 때마다 발생.
 2. **레이아웃은 사람이 브라우저로 확인해야 함** — jsdom은 CSS를 적용하지 않아 테스트로 증명 불가. 900px 경계 3열↔1열, 실제 폰, 후리가나/발음 토글, 가나표 정렬 등은 눈으로 볼 것.

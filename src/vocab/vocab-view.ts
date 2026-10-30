@@ -4,10 +4,15 @@ import { buildTodayQueue, describeReviewStatus, reviewEntry, toggleBookmark } fr
 import { categoryIcon } from '../data/category-icons';
 import { entriesForDay, totalDays } from '../data/vocab-days';
 import { NAV_HTML } from '../nav';
-import type { SrsGrade, SrsState, SrsStore, VocabData, VocabEntry } from '../types';
+import type { SrsGrade, SrsState, SrsStore, VocabData, VocabEntry, VocabStudyGroup } from '../types';
 
 const SRS_STORAGE_KEY = 'srs-store';
 const TYPED_VOCAB_DATA = vocabData as VocabData;
+const STUDY_GROUPS: Record<VocabStudyGroup, { label: string; icon: string; description: string }> = {
+  noun: { label: '명사', icon: '📦', description: '사람·사물·장소·시간을 나타내는 말' },
+  predicate: { label: '동사·형용사', icon: '🏃', description: '동작·상태·성질을 나타내는 말과 활용 표현' },
+  expression: { label: '기타 표현', icon: '💬', description: '부사·조사·인사말과 자주 쓰는 표현' },
+};
 
 function loadSrsStore(): SrsStore {
   return loadJSON<SrsStore>(SRS_STORAGE_KEY, {});
@@ -77,6 +82,13 @@ export function renderWordCard(entry: VocabEntry, srsState: SrsState | undefined
   categoryBadge.textContent = `${categoryIcon(entry.skillName)} ${entry.skillName}`;
   badges.appendChild(categoryBadge);
 
+  if (entry.studyGroup) {
+    const posBadge = document.createElement('span');
+    posBadge.className = 'badge badge-category';
+    posBadge.textContent = STUDY_GROUPS[entry.studyGroup].label;
+    badges.appendChild(posBadge);
+  }
+
   const reviewBadge = describeReviewStatus(srsState, today);
   if (reviewBadge) {
     const badge = document.createElement('span');
@@ -108,7 +120,7 @@ export function renderWordCard(entry: VocabEntry, srsState: SrsState | undefined
 
 /** Day 목록. 306개 스킬 대신 Day 1..N을 보여주고, 각 Day에 그 50단어 중 몇 개를
  *  "암기됨"으로 표시했는지 진척도를 함께 보여준다(워드마스터식 점증 느낌). */
-export function renderDayList(entries: VocabEntry[], srsStore: SrsStore): HTMLElement {
+export function renderDayList(entries: VocabEntry[], srsStore: SrsStore, group?: VocabStudyGroup): HTMLElement {
   const list = document.createElement('div');
   list.className = 'skill-list';
 
@@ -119,7 +131,7 @@ export function renderDayList(entries: VocabEntry[], srsStore: SrsStore): HTMLEl
 
     const link = document.createElement('a');
     link.className = 'skill-list-item';
-    link.href = `#/vocab/day/${day}`;
+    link.href = group ? `#/vocab/group/${group}/${day}` : `#/vocab/day/${day}`;
 
     const icon = document.createElement('span');
     icon.className = 'skill-list-icon';
@@ -131,7 +143,7 @@ export function renderDayList(entries: VocabEntry[], srsStore: SrsStore): HTMLEl
 
     const name = document.createElement('span');
     name.className = 'skill-list-name';
-    name.textContent = `Day ${day}`;
+    name.textContent = group ? `${STUDY_GROUPS[group].label} · 묶음 ${day}` : `Day ${day}`;
     body.appendChild(name);
 
     const sub = document.createElement('span');
@@ -284,18 +296,18 @@ export function renderCardGroups(
   return wrap;
 }
 
-/** Day 목록 맨 위에 두는 오답노트 입구. 몇 개 밀려 있는지 같이 보여준다. */
-export function renderWrongNotesLink(entries: VocabEntry[], srsStore: SrsStore): HTMLElement {
+/** Vocabulary shortcuts reuse the existing list layout. */
+function renderVocabLink(href: string, symbol: string, label: string, description: string): HTMLElement {
   const list = document.createElement('div');
   list.className = 'skill-list vocab-wrong-link';
 
   const link = document.createElement('a');
   link.className = 'skill-list-item';
-  link.href = '#/vocab/wrong';
+  link.href = href;
 
   const icon = document.createElement('span');
   icon.className = 'skill-list-icon';
-  icon.textContent = '📕';
+  icon.textContent = symbol;
   link.appendChild(icon);
 
   const body = document.createElement('span');
@@ -303,12 +315,12 @@ export function renderWrongNotesLink(entries: VocabEntry[], srsStore: SrsStore):
 
   const name = document.createElement('span');
   name.className = 'skill-list-name';
-  name.textContent = '오답노트';
+  name.textContent = label;
   body.appendChild(name);
 
   const sub = document.createElement('span');
   sub.className = 'skill-list-sub';
-  sub.textContent = `모름·헷갈림·북마크 ${collectWrongNotes(entries, srsStore).length}단어`;
+  sub.textContent = description;
   body.appendChild(sub);
 
   link.appendChild(body);
@@ -320,6 +332,27 @@ export function renderWrongNotesLink(entries: VocabEntry[], srsStore: SrsStore):
 
   list.appendChild(link);
   return list;
+}
+
+export function renderWrongNotesLink(entries: VocabEntry[], srsStore: SrsStore): HTMLElement {
+  return renderVocabLink('#/vocab/wrong', '📕', '오답노트', `모름·헷갈림·북마크 ${collectWrongNotes(entries, srsStore).length}단어`);
+}
+
+function renderStudyGroups(srsStore: SrsStore): HTMLElement {
+  const wrap = document.createElement('div');
+  const heading = document.createElement('h2');
+  heading.textContent = '품사별 암기장';
+  wrap.appendChild(heading);
+  const help = document.createElement('p');
+  help.textContent = '비슷한 역할의 말을 50개씩 모아 외워 보세요. Day 단어장과 암기·북마크 기록이 이어집니다.';
+  wrap.appendChild(help);
+  for (const group of Object.keys(STUDY_GROUPS) as VocabStudyGroup[]) {
+    const { label, icon, description } = STUDY_GROUPS[group];
+    const entries = TYPED_VOCAB_DATA.entries.filter(e => e.studyGroup === group);
+    const known = entries.filter(e => srsStore[e.id]?.grade === 'known').length;
+    wrap.appendChild(renderVocabLink(`#/vocab/group/${group}`, icon, label, `${description} · ${entries.length}단어 · ${known}개 암기`));
+  }
+  return wrap;
 }
 
 export function renderVocabHome(hash: string): HTMLElement {
@@ -338,7 +371,35 @@ export function renderVocabHome(hash: string): HTMLElement {
     : [];
   const day = dayEntries.length > 0 ? Number.parseInt(hash.slice('#/vocab/day/'.length), 10) : null;
 
-  if (hash === '#/vocab/today') {
+  if (hash === '#/vocab/groups' || hash.startsWith('#/vocab/group/')) {
+    const match = /^#\/vocab\/group\/(noun|predicate|expression)(?:\/([1-9]\d*))?$/.exec(hash);
+    const group = match?.[1] as VocabStudyGroup | undefined;
+    const batch = match?.[2] ? Number(match[2]) : null;
+    const entries = group ? TYPED_VOCAB_DATA.entries.filter(e => e.studyGroup === group) : [];
+    if (!group || (batch !== null && (!Number.isSafeInteger(batch) || batch > totalDays(entries.length)))) {
+      container.appendChild(renderStudyGroups(srsStore));
+    } else {
+      const back = document.createElement('a');
+      back.href = batch === null ? '#/vocab/groups' : `#/vocab/group/${group}`;
+      back.textContent = batch === null ? '← 품사별 암기장' : `← ${STUDY_GROUPS[group].label} 묶음 목록`;
+      container.appendChild(back);
+      const heading = document.createElement('h2');
+      heading.textContent = batch === null ? STUDY_GROUPS[group].label : `${STUDY_GROUPS[group].label} · 묶음 ${batch}`;
+      container.appendChild(heading);
+      if (batch === null) {
+        container.appendChild(renderDayList(entries, srsStore, group));
+      } else {
+        container.appendChild(renderCardGroups(entriesForDay(entries, batch), srsStore, container));
+        if (batch < totalDays(entries.length)) {
+          const next = document.createElement('a');
+          next.className = 'btn btn-plain';
+          next.href = `#/vocab/group/${group}/${batch + 1}`;
+          next.textContent = '다음 묶음 →';
+          container.appendChild(next);
+        }
+      }
+    }
+  } else if (hash === '#/vocab/today') {
     const queue = buildTodayQueue(TYPED_VOCAB_DATA.entries, srsStore);
     const heading = document.createElement('h2');
     heading.textContent = `오늘 복습할 단어 (${queue.length})`;
@@ -356,6 +417,7 @@ export function renderVocabHome(hash: string): HTMLElement {
     container.appendChild(heading);
     container.appendChild(renderCardGroups(dayEntries, srsStore, container));
   } else {
+    container.appendChild(renderVocabLink('#/vocab/groups', '🗂️', '품사별 암기장', '명사 / 동사·형용사 / 기타 표현 · 50개씩 모아 외우기'));
     container.appendChild(renderWrongNotesLink(TYPED_VOCAB_DATA.entries, srsStore));
     container.appendChild(renderDayList(TYPED_VOCAB_DATA.entries, srsStore));
   }

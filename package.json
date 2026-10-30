@@ -7,11 +7,14 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "build:vocab": "tsx scripts/build-vocabulary.ts"
+    "build:vocab": "tsx scripts/build-vocabulary.ts",
+    "enrich:vocab": "tsx scripts/enrich-vocabulary.ts"
   },
   "devDependencies": {
+    "@types/kuromoji": "^0.1.3",
     "@types/node": "^22.0.0",
     "jsdom": "^25.0.0",
+    "kuromoji": "^0.1.2",
     "tsx": "^4.16.0",
     "typescript": "^5.5.0",
     "vite": "^5.4.0",

@@ -8,6 +8,7 @@ import {
   WRONG_GROUPS,
 } from './vocab-view';
 import { WORDS_PER_DAY } from '../data/vocab-days';
+import vocabData from '../data/vocabulary.json';
 import type { SrsState, SrsStore, VocabEntry } from '../types';
 
 function makeVocabEntries(n: number): VocabEntry[] {
@@ -232,6 +233,48 @@ describe('renderDayList', () => {
 describe('renderVocabHome integration', () => {
   beforeEach(() => {
     localStorage.clear();
+  });
+
+  it('offers a separate part-of-speech notebook from the vocabulary home and shared nav', () => {
+    const home = renderVocabHome('#/vocab');
+    expect(home.querySelector('a.skill-list-item[href="#/vocab/groups"]')?.textContent).toContain('품사별 암기장');
+    expect(home.querySelector('nav a[href="#/vocab/groups"]')).not.toBeNull();
+    const groups = renderVocabHome('#/vocab/groups');
+    for (const group of ['noun', 'predicate', 'expression']) {
+      expect(groups.querySelector(`a.skill-list-item[href="#/vocab/group/${group}"]`)).not.toBeNull();
+    }
+  });
+
+  it('batches each group, shows readings and shares grading/bookmarks with the Day notebook', () => {
+    const entries = vocabData.entries as VocabEntry[];
+    for (const group of ['noun', 'predicate', 'expression']) {
+      const index = renderVocabHome(`#/vocab/group/${group}`);
+      expect(index.querySelector(`a[href="#/vocab/group/${group}/1"]`)).not.toBeNull();
+      const view = renderVocabHome(`#/vocab/group/${group}/1`);
+      const cards = [...view.querySelectorAll('.word-card')];
+      const expected = entries.filter(e => e.studyGroup === group).slice(0, WORDS_PER_DAY);
+      expect(cards).toHaveLength(expected.length);
+      expect(cards.length).toBeGreaterThan(0);
+      for (const [i, card] of cards.entries()) {
+        expect(card.querySelector('.word-japanese')?.textContent).toBe(expected[i].japanese);
+        if (/\p{Script=Han}/u.test(expected[i].japanese)) expect(card.querySelector('rt')?.textContent).toBeTruthy();
+      }
+      const button = cards[0].querySelector<HTMLButtonElement>('.srs-grade-known')!;
+      button.click();
+      view.querySelector<HTMLButtonElement>('.bookmark-toggle')!.click();
+      const day = Math.floor(entries.findIndex(e => e.id === button.dataset.entryId) / WORDS_PER_DAY) + 1;
+      const dayView = renderVocabHome(`#/vocab/day/${day}`);
+      expect(dayView.querySelector(`.srs-grade-known[data-entry-id="${button.dataset.entryId}"]`)?.classList.contains('btn-primary')).toBe(true);
+      expect(dayView.querySelector(`.bookmark-toggle[data-entry-id="${button.dataset.entryId}"]`)?.textContent).toBe('🔖');
+    }
+  });
+
+  it('returns to group selection for invalid groups and malformed batches', () => {
+    for (const hash of ['#/vocab/group/missing', '#/vocab/group/noun/0', '#/vocab/group/noun/999', '#/vocab/group/noun/1abc', '#/vocab/group/noun/1/extra']) {
+      const view = renderVocabHome(hash);
+      expect(view.querySelectorAll('.word-card')).toHaveLength(0);
+      expect(view.querySelector('a.skill-list-item[href="#/vocab/group/noun"]')).not.toBeNull();
+    }
   });
 
   it('clicking the audio button plays the word audio without throwing', () => {
