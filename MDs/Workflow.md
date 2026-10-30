@@ -22,6 +22,7 @@ Add and publish a bidirectional five-choice vocabulary quiz: hiragana-to-Korean 
 
 - Bidirectional quiz final verification: `npm test` passed all 294 tests across 33 files; `npm run build` passed TypeScript and Vite production compilation; `git diff --check` passed. Bundle-size advisory remains.
 - Chrome verified the local isolated quiz harness: picker, noun quiz, five Korean choices, hiragana prompt, numeric-key answer, disabled answered choices, correct/wrong feedback and next question. Screenshot saved as `.superpowers/vocab-quiz-preview.png`. Harness imports the real quiz module/styles without main/sync, on port 5175; no synced learning records were changed. The actual app router is covered separately by `src/main.test.ts`.
+- Reverse-direction picker/links, Korean prompts and five hiragana choices were verified in Chrome; screenshot `.superpowers/vocab-quiz-reverse-preview.png`. Follow-up review confirmed the meaning-union fix with no remaining concrete findings.
 - Initial quiz review passed; reverse-direction review found a valid translation leaking into distractors via aliases with different Korean sense lists. Fixed using a shared normalized-reading → meaning-union index, with a regression observed failing then passing. Visual checks covered desktop only; narrow mobile layouts and real-device audio were not exercised.
 - Temporary visual harness/screenshots are ignored under `.superpowers/`; they are QA artifacts, not maintained application entry points.
 
@@ -58,8 +59,9 @@ Add and publish a bidirectional five-choice vocabulary quiz: hiragana-to-Korean 
 - Done: isolated Chrome interaction/visual check, independent code review and README/AGENTS updates.
 - Done: final combined tests/build and saved visual evidence.
 - Done: Korean-to-Japanese direction, scope-preserving direction links, reverse retry/restart and ambiguity regression; full 294 tests and production build passed.
-- In progress: commit and authorized push of both directions.
-- Next: verify automatic deployment. Mobile real-device layout remains unverified.
+- Done: user-authorized implementation commit `de2740d` pushed to `origin/main` with both quiz directions.
+- In progress: none for implementation/publication.
+- Next: optional real-device mobile checks. Automatic release status is available in the [GitHub Pages workflow](https://github.com/qkqhsm1/StudyLanguage/actions/workflows/deploy.yml).
 
 ### Previous release — part-of-speech notebook
 
