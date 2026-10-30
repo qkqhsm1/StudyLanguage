@@ -43,8 +43,9 @@ Add a part-of-speech vocabulary notebook (nouns, verbs/adjectives, other express
 - Done: shared dictionary/token metadata enrichment, 533 missing readings filled, counter/context overrides, grouped routes and shared SRS interaction tests.
 - Done: data identity audit, idempotence check, regression suite, TypeScript/build and starting README.
 - Done: independent final code review; corrected mixed-script compounds/counters with dataset regressions; final suite/build passed after fixes.
-- In progress: user requested commit/push to main; checking remote state and rerunning tests/build before publishing.
-- Next: push the verified change and check the resulting GitHub Pages workflow. Browser layout/audio remain unverified because no connected browser was available.
+- Done: user-authorized implementation commit `274e3f7` pushed to `origin/main`; fresh verification passed (277 tests and production build).
+- In progress: none for implementation/publication.
+- Next: visual layout/audio verification when a connected browser is available. Automatic deployment is tracked in [GitHub Actions run 41002812569](https://github.com/qkqhsm1/StudyLanguage/actions/runs/41002812569).
 
 ### Historical completed work
 
