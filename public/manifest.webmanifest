@@ -1,0 +1,18 @@
+{
+  "id": "/StudyLanguage/",
+  "name": "히토코토",
+  "short_name": "히토코토",
+  "description": "일본어 단어, 문장, 칸지, JLPT 공부",
+  "lang": "ko",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f3f4f8",
+  "theme_color": "#f3f4f8",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

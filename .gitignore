@@ -3,3 +3,4 @@ dist
 scripts/vendor
 .worktrees
 .superpowers
+.playwright-mcp

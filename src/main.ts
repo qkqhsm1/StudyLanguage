@@ -162,3 +162,12 @@ route();
 void syncNow().then((synced) => {
   if (synced) route();
 });
+
+// 설치한 앱은 껐다 켜도 다시 열리지 않고 이어질 때가 많다. 앱을 오갈 때와 인터넷이 돌아올 때 기록을 맞춘다.
+// 화면은 다시 그리지 않는다. 풀던 퀴즈가 초기화된다. 받은 기록은 다음 화면부터 보인다.
+document.addEventListener('visibilitychange', () => void syncNow());
+window.addEventListener('online', () => void syncNow());
+
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  void navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`);
+}
