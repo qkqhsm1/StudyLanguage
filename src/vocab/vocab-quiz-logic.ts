@@ -17,13 +17,20 @@ function shuffled<T>(values: T[], rng: () => number): T[] {
   return result;
 }
 
+/** 뜻이 같은지 비교하는 키. 사랑 / 사랑하다, ~이상 / 이상, (문을) 닫다 / 닫다는 같은 뜻이다. */
+function meaningKey(meaning: string): string {
+  const plain = meaning.normalize('NFKC').replace(/[\p{P}\p{S}\s]/gu, '');
+  const bare = meaning.normalize('NFKC').replace(/\([^)]*\)/g, '').replace(/[\p{P}\p{S}\s]/gu, '');
+  return (bare || plain).replace(/(.)(?:하다|되다)$/u, '$1');
+}
+
 function prepare(entry: VocabEntry) {
   // 동음어 비교용 키. 비교에만 쓰고 화면에는 entry.reading을 그대로 보여준다 —
   // 접은 값을 보여주면 コーヒー가 こーひー가 된다.
   const prompt = entry.reading.normalize('NFKC').trim()
     .replace(/[ァ-ヶ]/g, char => String.fromCharCode(char.charCodeAt(0) - 0x60));
   const meanings = entry.korean.split(/[,;\n]/).map(s => s.trim()).filter(Boolean);
-  const keys = meanings.map(s => s.normalize('NFKC').replace(/[\p{P}\s]/gu, ''));
+  const keys = meanings.map(meaningKey);
   return { entry, prompt, meanings, keys };
 }
 
@@ -33,7 +40,7 @@ function isKana(value: string): boolean {
 
 export function buildVocabQuiz(
   scope: VocabEntry[], allEntries: VocabEntry[], rng: () => number = Math.random,
-  direction: VocabQuizDirection = 'ja-ko',
+  direction: VocabQuizDirection = 'ja-ko', limit: number = 10,
 ): VocabQuizQuestion[] {
   const reverse = direction === 'ko-ja';
   const candidates = allEntries.map(prepare).filter(word => word.keys[0]);
@@ -64,7 +71,7 @@ export function buildVocabQuiz(
     if (options.length !== 5) continue;
     questions.push({ entry, prompt: reverse ? current.meanings[0] : entry.japanese, options: shuffled(options, rng) });
     usedPrompts.add(questionKey);
-    if (questions.length === 10) break;
+    if (questions.length === limit) break;
   }
   return questions;
 }

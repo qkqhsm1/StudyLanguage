@@ -41,3 +41,18 @@ npm run build
 - `dist/`, `node_modules/`: generated build output and installed packages. `MDs/Workflow.md`: current handoff and historical decisions. `docs/superpowers/`: historical designs/plans.
 
 Metadata generation rejects incomplete kanji readings before writing. Tests cover dataset reading/group completeness, dictionary ambiguity, counters, inflections, routing and shared learning records. DOM tests do not verify visual layout.
+
+## Kanji data
+
+`npm run build:kanji` writes `src/data/kanji.json` and `src/data/kanji-strokes.json` from ignored `scripts/vendor/` inputs listed at the top of `scripts/build-kanji.ts`. Reviewed meanings live in `scripts/kanji-overrides.json`.
+
+Those two generated files are derived from [KanjiVG](https://kanjivg.tagaini.net/) (CC BY-SA 3.0, Ulrich Apel and contributors), [KANJIDIC2](https://www.edrdg.org/wiki/index.php/KANJIDIC_Project) (CC BY-SA 4.0, EDRDG) and [Korean Wiktionary](https://ko.wiktionary.org/) (CC BY-SA), with [libhangul](https://github.com/libhangul/libhangul) hanja data (BSD) and Unihan variants (Unicode License), and are shared under CC BY-SA 4.0.
+
+## JLPT data
+
+`npm run build:jlpt` writes `src/data/jlpt.json` from ignored `scripts/vendor/` inputs listed at the top of `scripts/build-jlpt.ts`.
+
+- Words, levels and kanji levels: [OpenJLPT](https://github.com/evanclan/OpenJLPT) (CC BY-SA 4.0), which uses [Jonathan Waller's JLPT lists](https://www.tanos.co.uk/jlpt/) (CC BY), JMdict and KANJIDIC2 (EDRDG). The levels are unofficial: the JLPT does not publish word lists.
+- Korean meanings and kanji meanings outside the standard 1,800 list: [jmdict-ko](https://github.com/kongchu2/jmdict-ko) (CC BY-SA 4.0), an LLM translation of JMdict. Words it marks as low confidence use `scripts/jlpt-korean.tsv` instead.
+
+The generated files are shared under CC BY-SA 4.0.

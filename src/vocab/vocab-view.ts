@@ -62,6 +62,38 @@ export function renderAudioButton(url: string): HTMLButtonElement {
   return button;
 }
 
+/** 듀오링고 음성이 없는 단어를 기기의 일본어 음성으로 읽는다. 일본어 음성이 없는 기기에서는 다른 언어로
+ *  엉뚱하게 읽지 않도록 소리를 내지 않고 알린다. */
+function renderSpeakButton(reading: string): HTMLButtonElement | null {
+  if (!('speechSynthesis' in window)) return null;
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'audio-play';
+  button.innerHTML = ICONS.play;
+  button.setAttribute('aria-label', '발음 듣기');
+  button.addEventListener('click', () => {
+    const voices = speechSynthesis.getVoices();
+    const voice = voices.find((v) => v.lang.toLowerCase().startsWith('ja'));
+    if (voices.length > 0 && !voice) {
+      button.classList.add('has-error');
+      button.setAttribute('aria-label', '이 기기에는 일본어 음성이 없어요.');
+      return;
+    }
+    button.classList.remove('has-error');
+    playing?.audio.pause();
+    speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(reading);
+    utterance.lang = 'ja-JP';
+    if (voice) utterance.voice = voice;
+    speechSynthesis.speak(utterance);
+  });
+  return button;
+}
+
+export function renderWordAudio(entry: VocabEntry): HTMLButtonElement | null {
+  return entry.audioUrl ? renderAudioButton(entry.audioUrl) : renderSpeakButton(entry.reading);
+}
+
 const VISIBLE_MEANINGS = 4;
 
 export function renderWordCard(entry: VocabEntry, srsState: SrsState | undefined, today: Date = new Date()): HTMLElement {
@@ -84,7 +116,8 @@ export function renderWordCard(entry: VocabEntry, srsState: SrsState | undefined
 
   const tools = document.createElement('div');
   tools.className = 'word-card-tools';
-  if (entry.audioUrl) tools.appendChild(renderAudioButton(entry.audioUrl));
+  const audio = renderWordAudio(entry);
+  if (audio) tools.appendChild(audio);
   const bookmarkBtn = document.createElement('button');
   bookmarkBtn.type = 'button';
   bookmarkBtn.className = 'bookmark-toggle';
@@ -94,12 +127,6 @@ export function renderWordCard(entry: VocabEntry, srsState: SrsState | undefined
   top.appendChild(tools);
 
   card.appendChild(top);
-
-  // 역 표지판의 노선 띠. 색이 곧 이 단어의 암기 상태다.
-  const line = document.createElement('div');
-  line.className = 'station-line';
-  line.setAttribute('aria-hidden', 'true');
-  card.appendChild(line);
 
   const meta = document.createElement('div');
   meta.className = 'word-meta';
@@ -171,9 +198,9 @@ export function renderWordCard(entry: VocabEntry, srsState: SrsState | undefined
 
 /** Day 목록. 306개 스킬 대신 Day 1..N을 보여주고, 각 Day에 그 50단어 중 몇 개를
  *  "암기됨"으로 표시했는지 진척도를 함께 보여준다(워드마스터식 점증 느낌). */
-export function renderDayList(entries: VocabEntry[], srsStore: SrsStore, group?: VocabStudyGroup): HTMLElement {
+export function renderDayList(entries: VocabEntry[], srsStore: SrsStore, group?: VocabStudyGroup, dayHref?: (day: number) => string): HTMLElement {
   const list = document.createElement('div');
-  list.className = 'skill-list route-map';
+  list.className = 'day-grid';
 
   const days = totalDays(entries.length);
   let currentMarked = false;
@@ -183,21 +210,16 @@ export function renderDayList(entries: VocabEntry[], srsStore: SrsStore, group?:
     const done = known === dayEntries.length;
 
     const link = document.createElement('a');
-    link.className = 'skill-list-item route-stop';
-    link.href = group ? `#/vocab/group/${group}/${day}` : `#/vocab/day/${day}`;
-    link.style.setProperty('--known', `${(known / dayEntries.length) * 360}deg`);
+    link.className = 'skill-list-item day-tile';
+    link.href = dayHref ? dayHref(day) : group ? `#/vocab/group/${group}/${day}` : `#/vocab/day/${day}`;
+    link.style.setProperty('--known', `${(known / dayEntries.length) * 100}%`);
     if (done) link.classList.add('is-done');
-    // 다 외우지 않은 첫 역이 지금 있는 곳이다.
+    // 다 외우지 않은 첫 Day가 지금 공부할 곳이다.
     if (!done && !currentMarked) {
       link.classList.add('is-current');
       link.setAttribute('aria-current', 'step');
       currentMarked = true;
     }
-
-    const icon = document.createElement('span');
-    icon.className = 'skill-list-icon';
-    icon.textContent = String(day);
-    link.appendChild(icon);
 
     const body = document.createElement('span');
     body.className = 'skill-list-body';
@@ -413,17 +435,20 @@ function renderStudyGroups(srsStore: SrsStore): HTMLElement {
   help.className = 'page-help';
   help.textContent = '비슷한 역할의 말을 50개씩 모아 외워 보세요. Day 단어장과 암기·북마크 기록이 이어집니다.';
   wrap.appendChild(help);
-  wrap.appendChild(renderVocabLink('#/vocab/quiz', '問', '단어 퀴즈', '일본어 단어를 보고 한국어 뜻 고르기'));
+  const grid = document.createElement('div');
+  grid.className = 'shortcut-grid';
+  wrap.appendChild(grid);
+  grid.appendChild(renderVocabLink('#/vocab/quiz', '問', '단어 퀴즈', '일본어 단어를 보고 한국어 뜻 고르기'));
   for (const group of Object.keys(STUDY_GROUPS) as VocabStudyGroup[]) {
     const { label, icon, description } = STUDY_GROUPS[group];
     const entries = TYPED_VOCAB_DATA.entries.filter(e => e.studyGroup === group);
     const known = entries.filter(e => srsStore[e.id]?.grade === 'known').length;
-    wrap.appendChild(renderVocabLink(`#/vocab/group/${group}`, icon, label, `${description}. ${entries.length}단어 중 ${known}개 암기`));
+    grid.appendChild(renderVocabLink(`#/vocab/group/${group}`, icon, label, `${description}. ${entries.length}단어 중 ${known}개 암기`));
   }
   return wrap;
 }
 
-function renderEmptyState(message: string): HTMLElement {
+export function renderEmptyState(message: string): HTMLElement {
   const empty = document.createElement('p');
   empty.className = 'empty-state';
   empty.textContent = message;
@@ -431,7 +456,7 @@ function renderEmptyState(message: string): HTMLElement {
 }
 
 /** 이 Day를 얼마나 외웠는지 상태별 칸으로 보여준다. */
-function renderDayProgress(entries: VocabEntry[], srsStore: SrsStore): HTMLElement {
+export function renderDayProgress(entries: VocabEntry[], srsStore: SrsStore): HTMLElement {
   const wrap = document.createElement('div');
   wrap.className = 'day-progress';
   const known = entries.filter((e) => srsStore[e.id]?.grade === 'known').length;
@@ -456,7 +481,7 @@ function renderDayProgress(entries: VocabEntry[], srsStore: SrsStore): HTMLEleme
   return wrap;
 }
 
-function renderPager(prev: { href: string; label: string } | null, next: { href: string; label: string } | null): HTMLElement {
+export function renderPager(prev: { href: string; label: string } | null, next: { href: string; label: string } | null): HTMLElement {
   const pager = document.createElement('div');
   pager.className = 'pager';
   for (const [target, className, prefix, suffix] of [[prev, 'pager-prev', '‹ ', ''], [next, 'pager-next', '', ' ›']] as const) {

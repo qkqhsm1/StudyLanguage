@@ -49,6 +49,8 @@ export type SrsStore = Record<string, SrsState>;
 export interface ProgressSnapshot {
   srs: SrsStore;
   srsSentences: SrsStore;
+  /** 한자 기능 이전에 올라간 기록에는 없다. */
+  srsKanji?: SrsStore;
   phrases: CapturedPhrase[];
   streak: StreakState;
 }

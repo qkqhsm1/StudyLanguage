@@ -233,7 +233,18 @@ export function renderPhraseView(): HTMLElement {
   heading.textContent = '내 문장';
   container.appendChild(heading);
 
-  container.appendChild(renderCaptureBox(container));
+  // 넓은 화면에서는 왼쪽에 담기·백업을 고정하고 오른쪽에 문장을 넓게 펼친다.
+  const layout = document.createElement('div');
+  layout.className = 'phrase-layout';
+  container.appendChild(layout);
+  const aside = document.createElement('div');
+  aside.className = 'phrase-aside';
+  const main = document.createElement('div');
+  main.className = 'phrase-main';
+  layout.append(aside, main);
+
+  aside.appendChild(renderCaptureBox(container));
+  aside.appendChild(renderBackupBox(container));
 
   const phrases = loadPhrases();
   const pending = phrases.filter((p) => !isComplete(p));
@@ -241,15 +252,14 @@ export function renderPhraseView(): HTMLElement {
 
   if (phrases.length === 0) {
     const empty = document.createElement('p');
-    empty.className = 'phrase-empty';
-    empty.textContent = '아직 담아둔 문장이 없어요. 일본어로 뭐라고 하는지 궁금한 한국어 문장을 위에 적어두세요.';
-    container.appendChild(empty);
-    container.appendChild(renderBackupBox(container));
+    empty.className = 'phrase-empty empty-state';
+    empty.textContent = '아직 담아둔 문장이 없어요. 일본어로 뭐라고 하는지 궁금한 한국어 문장을 적어두세요.';
+    main.appendChild(empty);
     return container;
   }
 
   if (pending.length > 0) {
-    container.appendChild(
+    main.appendChild(
       renderSection(`채우기 대기 (${pending.length})`, pending.map((p) => renderPendingRow(p, container))),
     );
   }
@@ -257,9 +267,8 @@ export function renderPhraseView(): HTMLElement {
   if (completed.length > 0) {
     const section = renderSection(`완성된 문장 (${completed.length})`, completed.map((p) => renderCompletedCard(p, container)));
     attachSentenceCardActions(section, container, 'phrase:refresh');
-    container.appendChild(section);
+    main.appendChild(section);
   }
 
-  container.appendChild(renderBackupBox(container));
   return container;
 }

@@ -33,18 +33,27 @@ export function markUnlocked(): void {
   localStorage.setItem(UNLOCKED_KEY, 'yes');
 }
 
+/** 두 입구 화면이 함께 쓰는 왼쪽(폰에서는 위쪽) 면. 세로쓰기 ひとこと가 앱의 얼굴이다. */
+function renderGateArt(): HTMLElement {
+  const art = document.createElement('div');
+  art.className = 'gate-art';
+  art.lang = 'ja';
+  art.setAttribute('aria-hidden', 'true');
+  art.textContent = 'ひとこと';
+  return art;
+}
+
 /** 비밀번호 화면. 맞히면 `onUnlock()`을 호출한다. */
 export function renderGate(onUnlock: () => void): HTMLElement {
   const container = document.createElement('div');
   container.className = 'gate';
 
   const box = document.createElement('form');
-  box.className = 'gate-box card';
+  box.className = 'gate-box';
 
   const title = document.createElement('div');
   title.className = 'gate-title';
-  title.lang = 'ja';
-  title.textContent = 'こんにちは';
+  title.textContent = '히토코토';
   box.appendChild(title);
 
   const subtitle = document.createElement('div');
@@ -86,7 +95,7 @@ export function renderGate(onUnlock: () => void): HTMLElement {
     });
   });
 
-  container.appendChild(box);
+  container.append(renderGateArt(), box);
   return container;
 }
 
@@ -102,7 +111,7 @@ export function renderPersonalGate(onSubmit: (password: string) => Promise<void>
   container.className = 'gate';
 
   const box = document.createElement('form');
-  box.className = 'gate-box card';
+  box.className = 'gate-box';
 
   const title = document.createElement('div');
   title.className = 'gate-title';
@@ -150,6 +159,6 @@ export function renderPersonalGate(onSubmit: (password: string) => Promise<void>
     });
   });
 
-  container.appendChild(box);
+  container.append(renderGateArt(), box);
   return container;
 }

@@ -85,3 +85,22 @@ describe('buildVocabQuiz', () => {
     expect(question.options.map(o => o.label)).not.toContain('あげます');
   });
 });
+
+describe('meaning overlap', () => {
+  const word = (id: string, reading: string, korean: string): VocabEntry => ({ id, japanese: id, reading, romaji: '', korean, audioUrl: null, skillName: 'N5', skillIndex: 0 });
+  const others = ['가', '나', '다', '라', '마', '바', '사'].map((m, i) => word(`o${i}`, 'か'.repeat(i + 1), `${m}음`));
+
+  it.each([
+    ['사랑', '사랑하다'],
+    ['~이상', '이상'],
+    ['(문을) 닫다', '닫다'],
+    ['주차', '주차되다'],
+  ])('does not offer %s and %s together', (a, b) => {
+    const answer = word('a', 'あ', a);
+    const trap = word('b', 'い', b);
+    for (let i = 0; i < 40; i++) {
+      const [question] = buildVocabQuiz([answer], [answer, trap, ...others]);
+      expect(question.options.map((option) => option.id)).not.toContain('b');
+    }
+  });
+});

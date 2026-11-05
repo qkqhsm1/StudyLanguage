@@ -8,7 +8,9 @@
     "preview": "vite preview",
     "test": "vitest run",
     "build:vocab": "tsx scripts/build-vocabulary.ts",
-    "enrich:vocab": "tsx scripts/enrich-vocabulary.ts"
+    "enrich:vocab": "tsx scripts/enrich-vocabulary.ts",
+    "build:kanji": "tsx scripts/build-kanji.ts",
+    "build:jlpt": "tsx scripts/build-jlpt.ts"
   },
   "devDependencies": {
     "@types/kuromoji": "^0.1.3",

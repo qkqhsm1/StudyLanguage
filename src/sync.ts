@@ -6,6 +6,7 @@ import type { CapturedPhrase, ProgressSnapshot, SrsState, SrsStore } from './typ
 
 const SRS_KEY = 'srs-store';
 const SRS_SENTENCES_KEY = 'srs-store-sentences';
+const SRS_KANJI_KEY = 'srs-store-kanji';
 const PHRASES_KEY = 'captured-phrases';
 const STREAK_KEY = 'streak-state';
 /** 이 브라우저가 지금 어느 기록으로 들어와 있는지(개인 비밀번호의 해시). */
@@ -19,6 +20,7 @@ export function readLocalSnapshot(): ProgressSnapshot {
   return {
     srs: loadJSON<SrsStore>(SRS_KEY, {}),
     srsSentences: loadJSON<SrsStore>(SRS_SENTENCES_KEY, {}),
+    srsKanji: loadJSON<SrsStore>(SRS_KANJI_KEY, {}),
     phrases: loadJSON<CapturedPhrase[]>(PHRASES_KEY, []),
     streak: loadJSON<StreakState>(STREAK_KEY, EMPTY_STREAK),
   };
@@ -32,6 +34,7 @@ export function writeLocalSnapshot(snapshot: ProgressSnapshot): void {
   try {
     saveJSON(SRS_KEY, snapshot.srs);
     saveJSON(SRS_SENTENCES_KEY, snapshot.srsSentences);
+    saveJSON(SRS_KANJI_KEY, snapshot.srsKanji ?? {});
     saveJSON(PHRASES_KEY, snapshot.phrases);
     saveJSON(STREAK_KEY, snapshot.streak);
   } finally {
@@ -40,7 +43,7 @@ export function writeLocalSnapshot(snapshot: ProgressSnapshot): void {
 }
 
 export function clearLocalSnapshot(): void {
-  for (const key of [SRS_KEY, SRS_SENTENCES_KEY, PHRASES_KEY, STREAK_KEY]) {
+  for (const key of [SRS_KEY, SRS_SENTENCES_KEY, SRS_KANJI_KEY, PHRASES_KEY, STREAK_KEY]) {
     localStorage.removeItem(key);
   }
 }
@@ -83,6 +86,7 @@ export function mergeSnapshots(local: ProgressSnapshot, remote: ProgressSnapshot
   return {
     srs: mergeStores(local.srs, remote.srs),
     srsSentences: mergeStores(local.srsSentences, remote.srsSentences),
+    srsKanji: mergeStores(local.srsKanji ?? {}, remote.srsKanji ?? {}),
     phrases: mergePhraseLists(local.phrases, remote.phrases),
     streak: mergeStreaks(local.streak, remote.streak),
   };

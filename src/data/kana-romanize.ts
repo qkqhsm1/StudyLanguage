@@ -22,6 +22,8 @@ const LOANWORD_COMBOS: Array<[string, string, string]> = [
 for (const [kana, romaji, hangul] of LOANWORD_COMBOS) READINGS.set(kana, { romaji, hangul });
 
 const SOKUON = 'っッ'; // 촉음: 다음 자음을 겹치게 한다
+// 앞 글자와 합쳐지지 않는 작은 모음(リェ)은 그 모음으로 읽는다.
+const SMALL_VOWEL: Record<string, string> = { ァ: 'ア', ィ: 'イ', ゥ: 'ウ', ェ: 'エ', ォ: 'オ', ぁ: 'あ', ぃ: 'い', ぅ: 'う', ぇ: 'え', ぉ: 'お' };
 const CHOONPU = 'ー'; // 장음부호: 앞 모음을 늘인다
 const HATSUON = 'んン'; // 발음(撥音): 단어 안에서는 앞 글자의 받침(ㄴ)이 된다
 
@@ -86,7 +88,7 @@ export function romanizeKana(reading: string): { romaji: string; hangul: string 
       continue;
     }
 
-    const entry = READINGS.get(single);
+    const entry = READINGS.get(SMALL_VOWEL[single] ?? single);
     if (entry) {
       romaji += entry.romaji;
       hangul += entry.hangul;
@@ -112,6 +114,7 @@ function comparableRomaji(romaji: string): string {
     .toLowerCase()
     .replace(/ā/g, 'aa').replace(/ī/g, 'ii').replace(/ū/g, 'uu').replace(/ē/g, 'ee').replace(/ō/g, 'oo')
     .replace(/[^a-z]/g, '')
+    .replace(/wo/g, 'o')
     .replace(/ou/g, 'oo').replace(/ei/g, 'ee').replace(/m(?=[pbm])/g, 'n').replace(/tch/g, 'cch');
 }
 
@@ -120,7 +123,9 @@ function comparableRomaji(romaji: string): string {
  * 가나만 봐서는 조사인지 알 수 없으므로, 함께 저장된 로마자에 맞는 읽기를 찾는다.
  * 맞는 조합이 없으면 글자 그대로 옮긴다.
  */
-export function spokenReading(reading: string, romaji: string): string {
+export function spokenReading(written: string, romaji: string): string {
+  // を는 조사든 단어 안(気を付ける)이든 お로 소리 난다.
+  const reading = written.replace(/を/g, 'お');
   const target = comparableRomaji(romaji);
   const positions = [...reading].flatMap((char, i) => (char === 'は' || char === 'へ' ? [i] : []));
   if (positions.length === 0 || positions.length > 6) return reading;

@@ -1,4 +1,5 @@
 import { buildKanaChart } from './kana-chart';
+import { SCRIPT_NAMES } from './kana-quiz-view';
 import { NAV_HTML } from '../nav';
 import type { KanaScript } from '../types';
 
@@ -7,10 +8,13 @@ function renderChart(script: KanaScript): HTMLElement {
   wrap.className = 'kana-chart';
 
   for (const section of buildKanaChart(script)) {
+    const block = document.createElement('section');
+    block.className = 'kana-chart-section';
+
     const heading = document.createElement('h3');
     heading.className = 'kana-chart-title';
     heading.textContent = section.title;
-    wrap.appendChild(heading);
+    block.appendChild(heading);
 
     const grid = document.createElement('div');
     // 요음은 3열, 나머지는 5열. 열 수를 CSS 변수로 넘겨 한 규칙으로 처리한다.
@@ -44,59 +48,34 @@ function renderChart(script: KanaScript): HTMLElement {
       }
     }
 
-    wrap.appendChild(grid);
+    block.appendChild(grid);
+    wrap.appendChild(block);
   }
 
   return wrap;
 }
 
-export function renderKanaChartView(): HTMLElement {
+export function renderKanaChartView(script: KanaScript): HTMLElement {
   const container = document.createElement('div');
   container.className = 'kana-chart-view';
+  container.dataset.script = script;
 
   const nav = document.createElement('nav');
   nav.innerHTML = NAV_HTML;
   container.appendChild(nav);
 
+  const head = document.createElement('div');
+  head.className = 'page-head';
   const heading = document.createElement('h2');
-  heading.textContent = '가나표';
-  container.appendChild(heading);
+  heading.textContent = `${SCRIPT_NAMES[script]}표`;
+  const quizLink = document.createElement('a');
+  quizLink.className = 'kana-chart-quiz btn btn-primary';
+  quizLink.href = `#/kana/${script}`;
+  quizLink.textContent = `${SCRIPT_NAMES[script]} 퀴즈 풀기`;
+  head.append(heading, quizLink);
+  container.appendChild(head);
 
-  let script: KanaScript = 'hiragana';
-
-  // 히라가나 ↔ 가타카나 전환. 가상 키보드의 알약 토글과 같은 모양.
-  const toggle = document.createElement('div');
-  toggle.className = 'kana-chart-toggle';
-
-  const hiraBtn = document.createElement('button');
-  hiraBtn.type = 'button';
-  hiraBtn.className = 'kana-chart-tab kana-chart-tab-hiragana selected';
-  hiraBtn.textContent = 'ひらがな';
-
-  const kataBtn = document.createElement('button');
-  kataBtn.type = 'button';
-  kataBtn.className = 'kana-chart-tab kana-chart-tab-katakana';
-  kataBtn.textContent = 'カタカナ';
-
-  toggle.appendChild(hiraBtn);
-  toggle.appendChild(kataBtn);
-  container.appendChild(toggle);
-
-  let chart = renderChart(script);
-  container.appendChild(chart);
-
-  function show(next: KanaScript): void {
-    script = next;
-    hiraBtn.classList.toggle('selected', script === 'hiragana');
-    kataBtn.classList.toggle('selected', script === 'katakana');
-
-    const replacement = renderChart(script);
-    chart.replaceWith(replacement);
-    chart = replacement;
-  }
-
-  hiraBtn.addEventListener('click', () => show('hiragana'));
-  kataBtn.addEventListener('click', () => show('katakana'));
+  container.appendChild(renderChart(script));
 
   return container;
 }

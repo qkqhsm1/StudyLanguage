@@ -11,6 +11,8 @@ import { renderInterpretPractice } from './practice/interpret-view';
 import { renderComposePractice } from './practice/compose-view';
 import { renderHomeView } from './home/home-view';
 import { renderPhraseView } from './phrases/phrase-view';
+import { renderKanjiView } from './kanji/kanji-view';
+import { renderJlptView } from './jlpt/jlpt-view';
 import { markActiveNav, NAV_HTML } from './nav';
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
@@ -26,11 +28,11 @@ function renderPracticePicker(): HTMLElement {
   container.appendChild(heading);
 
   const list = document.createElement('div');
-  list.className = 'skill-list';
+  list.className = 'skill-list practice-choices';
 
   const items: Array<{ href: string; icon: string; name: string; sub: string }> = [
     { href: '#/practice/interpret', icon: '訳', name: '해석 연습', sub: '일본어 문장을 보고 뜻을 떠올려요' },
-    { href: '#/practice/compose', icon: '作', name: '작문 연습', sub: '한국어 문장을 보고 가나로 직접 써요' },
+    { href: '#/practice/compose', icon: '作', name: '작문 연습', sub: '한국어 문장을 보고 히라가나·가타카나로 직접 써요' },
   ];
 
   for (const item of items) {
@@ -92,7 +94,13 @@ function route(): void {
     return;
   }
 
-  const hash = window.location.hash || '#/home';
+  let hash = window.location.hash || '#/home';
+  try {
+    decodeURIComponent(hash);
+  } catch {
+    // %가 깨진 주소. 화면마다 주소를 풀어 쓰므로 여기서 걸러 빈 화면을 막는다.
+    hash = '#/home';
+  }
 
   let view: HTMLElement;
   if (hash === '#/home') {
@@ -101,11 +109,16 @@ function route(): void {
     view = renderPhraseView();
   } else if (hash.split('?')[0] === '#/vocab/quiz' || hash.startsWith('#/vocab/quiz/')) {
     view = renderVocabQuizHome(hash);
-  } else if (hash === '#/kana/chart') {
-    // '#/kana' 로 시작하는 prefix 분기보다 먼저 와야 가나표가 퀴즈에 가려지지 않는다.
-    view = renderKanaChartView();
+  } else if (hash.startsWith('#/jlpt')) {
+    view = renderJlptView(hash);
+  } else if (hash.startsWith('#/kanji')) {
+    view = renderKanjiView(hash);
   } else if (hash.startsWith('#/kana')) {
-    view = renderKanaQuizView();
+    // 예전 주소(#/kana, #/kana/chart)는 히라가나 쪽으로 받는다.
+    const [path, query = ''] = hash.split('?');
+    const script = path.endsWith('katakana') ? 'katakana' : 'hiragana';
+    const mode = new URLSearchParams(query).get('mode') === 'round' ? 'round' : 'random';
+    view = path.startsWith('#/kana/chart') ? renderKanaChartView(script) : renderKanaQuizView(script, Math.random, mode);
   } else if (hash === '#/practice') {
     view = renderPracticePicker();
   } else if (hash === '#/practice/interpret') {
@@ -131,7 +144,7 @@ function route(): void {
   app.appendChild(view);
   // 폰의 하위 탭은 가로로 스크롤되므로 현재 탭이 화면 안에 들어오게 한다.
   view.querySelector('.nav-sub-link[aria-current]')?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
-  document.title = `${view.querySelector('h2')?.textContent ?? '홈'} | 일본어 노선도`;
+  document.title = `${view.querySelector('h2')?.textContent ?? '홈'} | 히토코토`;
 }
 
 window.addEventListener('hashchange', () => {

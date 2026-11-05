@@ -27,6 +27,7 @@ function snapshot(overrides: Partial<ProgressSnapshot> = {}): ProgressSnapshot {
   return {
     srs: {},
     srsSentences: {},
+    srsKanji: {},
     phrases: [],
     streak: { lastDate: '', streak: 0 },
     ...overrides,
@@ -61,6 +62,14 @@ describe('mergeSnapshots', () => {
     const remote = snapshot({ srsSentences: { 'cafe-2': state() } });
 
     expect(Object.keys(mergeSnapshots(local, remote).srsSentences).sort()).toEqual(['cafe-1', 'cafe-2']);
+  });
+
+  it('merges kanji records and accepts a record saved before kanji existed', () => {
+    const local = snapshot({ srsKanji: { 'w:一': state() } });
+    const old = snapshot();
+    delete old.srsKanji;
+    expect(isProgressSnapshot(old)).toBe(true);
+    expect(Object.keys(mergeSnapshots(local, old).srsKanji ?? {})).toEqual(['w:一']);
   });
 
   it('unions captured phrases by id, preferring this device on a clash', () => {

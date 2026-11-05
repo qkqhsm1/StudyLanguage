@@ -60,3 +60,14 @@ describe('romanizeKana', () => {
     expect(romanizeKana('スシ')).toEqual({ romaji: 'sushi', hangul: '스시' });
   });
 });
+
+describe('spoken forms in JLPT words', () => {
+  it('reads を inside a word as お', () => {
+    expect(formatPronunciation(spokenReading('きをつける', 'kiotsukeru'))).toBe('키오츠케루 · kiotsukeru');
+    expect(formatPronunciation(spokenReading('やむをえない', 'yamuoenai'))).toContain('yamuoenai');
+  });
+
+  it('reads a small vowel that does not combine as that vowel', () => {
+    expect(formatPronunciation(spokenReading('レクリェーション', 'rekurieeshon'))).toContain('레쿠리에');
+  });
+});

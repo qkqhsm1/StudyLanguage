@@ -42,7 +42,7 @@ describe('renderHomeView', () => {
   it('renders one entry-point link per feature', () => {
     const view = renderHomeView(TODAY);
     const hrefs = Array.from(view.querySelectorAll<HTMLAnchorElement>('.home-link')).map((a) => a.getAttribute('href'));
-    expect(hrefs).toEqual(['#/vocab/quiz', '#/kana', '#/sentences', '#/practice']);
+    expect(hrefs).toEqual(['#/vocab/quiz', '#/kanji', '#/kana/hiragana', '#/kana/katakana', '#/sentences', '#/practice', '#/jlpt']);
   });
 
   it('previews due word cards with working grade buttons', () => {
@@ -57,15 +57,11 @@ describe('renderHomeView', () => {
     expect(stored[FIRST_WORD_ID].grade).toBe('known');
   });
 
-  it('shows how long ago this device reached the server, once records are open', () => {
+  it('does not show sync status on the home screen', () => {
     localStorage.setItem('sync-key', 'a'.repeat(64));
     localStorage.setItem('sync-last-at', new Date(TODAY.getTime() - 5 * 60_000).toISOString());
 
-    expect(renderHomeView(TODAY).querySelector('.home-sync')?.textContent).toContain('5분 전');
-  });
-
-  it('says nothing about syncing before any records are open', () => {
-    expect(renderHomeView(TODAY).querySelector('.home-sync')).toBeNull();
+    expect(renderHomeView(TODAY).textContent).not.toContain('연동');
   });
 
   it('previews due sentence cards', () => {

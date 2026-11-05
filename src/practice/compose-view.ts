@@ -32,8 +32,18 @@ export function renderComposePractice(rng: () => number = Math.random): HTMLElem
   heading.textContent = '작문 연습';
   container.appendChild(heading);
 
+  // 넓은 화면에서는 왼쪽에 문제와 답, 오른쪽에 키보드와 결과를 나란히 둔다.
+  const board = document.createElement('div');
+  board.className = 'practice-board';
+  container.appendChild(board);
+  const main = document.createElement('div');
+  main.className = 'compose-main';
+  const panel = document.createElement('div');
+  panel.className = 'practice-panel';
+  board.append(main, panel);
+
   const questionCard = document.createElement('div');
-  questionCard.className = 'card practice-card';
+  questionCard.className = 'practice-stage';
 
   const label = document.createElement('div');
   label.className = 'compose-label';
@@ -51,7 +61,7 @@ export function renderComposePractice(rng: () => number = Math.random): HTMLElem
   questionRow.appendChild(renderSentenceBookmarkToggle(current.id));
   questionCard.appendChild(questionRow);
 
-  container.appendChild(questionCard);
+  main.appendChild(questionCard);
 
   const answerRow = document.createElement('div');
   answerRow.className = 'compose-answer-row';
@@ -69,11 +79,11 @@ export function renderComposePractice(rng: () => number = Math.random): HTMLElem
   hintBtn.textContent = '힌트';
   answerRow.appendChild(hintBtn);
 
-  container.appendChild(answerRow);
+  main.appendChild(answerRow);
 
   const hintMessage = document.createElement('div');
   hintMessage.className = 'compose-hint-message hidden';
-  container.appendChild(hintMessage);
+  main.appendChild(hintMessage);
 
   let typed = '';
   let hintUsed = false;
@@ -113,7 +123,7 @@ export function renderComposePractice(rng: () => number = Math.random): HTMLElem
     },
   });
   highlightSetter = setHighlight;
-  container.appendChild(keyboard);
+  panel.appendChild(keyboard);
 
   hintBtn.addEventListener('click', () => {
     const comboHint = nextHintCombo(current.reading, typed);
@@ -138,11 +148,11 @@ export function renderComposePractice(rng: () => number = Math.random): HTMLElem
   const submitBtn = document.createElement('button');
   submitBtn.className = 'compose-submit btn btn-primary';
   submitBtn.textContent = '제출';
-  container.appendChild(submitBtn);
+  panel.appendChild(submitBtn);
 
   const feedback = document.createElement('div');
   feedback.className = 'compose-feedback';
-  container.appendChild(feedback);
+  panel.appendChild(feedback);
 
   const correctAnswer = document.createElement('div');
   correctAnswer.className = 'compose-correct-answer hidden';
@@ -154,7 +164,7 @@ export function renderComposePractice(rng: () => number = Math.random): HTMLElem
   correctSound.className = 'reading-pronunciation';
   correctSound.textContent = formatPronunciation(current.spoken ?? current.reading);
   correctAnswer.append(correctSentence, correctSound);
-  container.appendChild(correctAnswer);
+  panel.appendChild(correctAnswer);
 
   const nextBtn = document.createElement('button');
   nextBtn.className = 'compose-next hidden btn btn-plain';
@@ -162,7 +172,7 @@ export function renderComposePractice(rng: () => number = Math.random): HTMLElem
   nextBtn.addEventListener('click', () => {
     container.dispatchEvent(new Event('sentence:refresh'));
   });
-  container.appendChild(nextBtn);
+  panel.appendChild(nextBtn);
 
   submitBtn.addEventListener('click', () => {
     // 아무것도 안 쓰고 누른 건 답이 아니다. 오답으로 기록하면 복습 일정만 망가진다.

@@ -32,3 +32,22 @@ it('routes vocabulary quiz links to the quiz rather than the notebook or kana qu
   window.dispatchEvent(new Event('hashchange'));
   expect(document.querySelector('a[href="#/vocab/quiz/all?direction=ko-ja"]')).not.toBeNull();
 });
+
+it('keeps hiragana and katakana on separate quiz and chart routes', async () => {
+  await import('./main');
+  const cases: Array<[string, string, string | null]> = [
+    ['#/kana/hiragana', '히라가나 퀴즈', '#/kana/hiragana'],
+    ['#/kana/katakana', '가타카나 퀴즈', '#/kana/katakana'],
+    ['#/kana/katakana?mode=round', '가타카나 퀴즈', '#/kana/katakana'],
+    ['#/kana/chart/hiragana', '히라가나표', '#/kana/chart/hiragana'],
+    ['#/kana/chart/katakana', '가타카나표', '#/kana/chart/katakana'],
+    ['#/kana', '히라가나 퀴즈', null],
+    ['#/kana/chart', '히라가나표', null],
+  ];
+  for (const [hash, title, active] of cases) {
+    window.location.hash = hash;
+    window.dispatchEvent(new Event('hashchange'));
+    expect(document.querySelector('h2')?.textContent).toBe(title);
+    if (active) expect(document.querySelector('.nav-sub-link[aria-current="page"]')?.getAttribute('href')).toBe(active);
+  }
+});

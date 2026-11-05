@@ -32,13 +32,20 @@ export function renderInterpretPractice(rng: () => number = Math.random): HTMLEl
   heading.textContent = '해석 연습';
   container.appendChild(heading);
 
+  // 넓은 화면에서는 왼쪽에 문장, 오른쪽에 정답과 채점을 나란히 둔다.
+  const board = document.createElement('div');
+  board.className = 'practice-board';
+  container.appendChild(board);
+  const panel = document.createElement('div');
+  panel.className = 'practice-panel';
+
   const help = document.createElement('p');
   help.className = 'page-help';
   help.textContent = '문장을 먼저 머릿속으로 해석한 뒤 정답을 확인하세요.';
-  container.appendChild(help);
+  panel.appendChild(help);
 
   const questionCard = document.createElement('div');
-  questionCard.className = 'card practice-card';
+  questionCard.className = 'practice-stage';
 
   // 문제 + 북마크를 한 줄에: 연습 중 "이건 나중에 복습하자" 싶으면 바로 담아
   // 문장 오늘 복습 큐에 넣을 수 있게 한다.
@@ -67,17 +74,17 @@ export function renderInterpretPractice(rng: () => number = Math.random): HTMLEl
     );
   }
 
-  container.appendChild(questionCard);
+  board.append(questionCard, panel);
 
   const revealBtn = document.createElement('button');
   revealBtn.className = 'interpret-reveal btn btn-plain';
   revealBtn.innerHTML = '정답 보기<kbd>Space</kbd>';
-  container.appendChild(revealBtn);
+  panel.appendChild(revealBtn);
 
   const answer = document.createElement('div');
   answer.className = 'interpret-answer hidden';
   answer.textContent = [current.korean, current.english].filter(Boolean).join(' / ');
-  container.appendChild(answer);
+  panel.appendChild(answer);
 
   const gradeWrap = document.createElement('div');
   gradeWrap.className = 'interpret-grades srs-grades hidden';
@@ -98,7 +105,7 @@ export function renderInterpretPractice(rng: () => number = Math.random): HTMLEl
     });
     gradeWrap.appendChild(btn);
   });
-  container.appendChild(gradeWrap);
+  panel.appendChild(gradeWrap);
 
   // 키보드만으로 빠르게 넘긴다. 화면이 바뀌면 리스너도 함께 치워지도록 스스로 떼어낸다.
   function onKey(event: KeyboardEvent): void {

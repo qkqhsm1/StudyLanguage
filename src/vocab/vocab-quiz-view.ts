@@ -4,7 +4,7 @@ import { renderWord } from '../practice/furigana';
 import { NAV_HTML } from '../nav';
 import { reviewEntry } from '../srs';
 import type { VocabEntry, VocabStudyGroup } from '../types';
-import { loadSrsStore, pronunciationOf, renderAudioButton, renderVocabLink, saveSrsStore, STUDY_GROUPS } from './vocab-view';
+import { loadSrsStore, pronunciationOf, renderVocabLink, renderWordAudio, saveSrsStore, STUDY_GROUPS } from './vocab-view';
 import { buildVocabQuiz, type VocabQuizQuestion } from './vocab-quiz-logic';
 
 const ENTRIES = vocabulary.entries as VocabEntry[];
@@ -17,7 +17,17 @@ function renderJapaneseLine(entry: VocabEntry): HTMLElement {
   return line;
 }
 
-export function renderVocabQuizHome(hash: string, rng: () => number = Math.random): HTMLElement {
+/** JLPT처럼 다른 단어 목록으로 같은 퀴즈 화면을 쓸 때 범위를 넘겨준다. */
+export interface VocabQuizSource {
+  title: string;
+  pool: VocabEntry[];
+  scope: VocabEntry[];
+  label: string;
+  backHref: string;
+  limit?: number;
+}
+
+export function renderVocabQuizHome(hash: string, rng: () => number = Math.random, source?: VocabQuizSource): HTMLElement {
   const [path, query = ''] = hash.split('?');
   const direction = new URLSearchParams(query).get('direction') === 'ko-ja' ? 'ko-ja' : 'ja-ko';
   const reverse = direction === 'ko-ja';
@@ -28,8 +38,11 @@ export function renderVocabQuizHome(hash: string, rng: () => number = Math.rando
   nav.innerHTML = NAV_HTML;
   container.appendChild(nav);
   const heading = document.createElement('h2');
-  heading.textContent = '단어 퀴즈';
-  container.appendChild(heading);
+  heading.textContent = source?.title ?? '단어 퀴즈';
+  const head = document.createElement('div');
+  head.className = 'page-head';
+  head.appendChild(heading);
+  container.appendChild(head);
   const directions = document.createElement('div');
   directions.className = 'vocab-quiz-directions';
   directions.setAttribute('role', 'group');
@@ -42,14 +55,18 @@ export function renderVocabQuizHome(hash: string, rng: () => number = Math.rando
     if (value === direction) link.setAttribute('aria-current', 'true');
     directions.appendChild(link);
   }
-  container.appendChild(directions);
+  head.appendChild(directions);
 
   let scope: VocabEntry[] = [];
   let label = '';
   let backHref = '#/vocab/quiz' + suffix;
   const dayMatch = /^#\/vocab\/quiz\/day\/([1-9]\d*)$/.exec(path);
   const groupMatch = /^#\/vocab\/quiz\/group\/(noun|predicate|expression)(?:\/([1-9]\d*))?$/.exec(path);
-  if (path === '#/vocab/quiz/all') {
+  if (source) {
+    scope = source.scope;
+    label = source.label;
+    backHref = source.backHref;
+  } else if (path === '#/vocab/quiz/all') {
     scope = ENTRIES;
     label = '전체 단어';
   } else if (dayMatch) {
@@ -73,10 +90,13 @@ export function renderVocabQuizHome(hash: string, rng: () => number = Math.rando
     help.className = 'page-help';
     help.textContent = `${reverse ? '한국어 뜻을 보고 일본어 읽기를 고르세요.' : '일본어 단어를 보고 한국어 뜻을 고르세요.'} 한 번에 최대 10문제이고, 맞히면 암기됨, 틀리면 모름으로 기록됩니다.`;
     container.appendChild(help);
-    container.appendChild(renderVocabLink('#/vocab/quiz/all' + suffix, '全', '전체 단어 퀴즈', '단어장 전체에서 무작위로 출제'));
+    const scopes = document.createElement('div');
+    scopes.className = 'shortcut-grid';
+    container.appendChild(scopes);
+    scopes.appendChild(renderVocabLink('#/vocab/quiz/all' + suffix, '全', '전체 단어 퀴즈', '단어장 전체에서 무작위로 출제'));
     for (const group of Object.keys(STUDY_GROUPS) as VocabStudyGroup[]) {
       const { icon, label: groupLabel } = STUDY_GROUPS[group];
-      container.appendChild(renderVocabLink(`#/vocab/quiz/group/${group}${suffix}`, icon, `${groupLabel} 퀴즈`, '이 품사만 모아서 무작위로 출제'));
+      scopes.appendChild(renderVocabLink(`#/vocab/quiz/group/${group}${suffix}`, icon, `${groupLabel} 퀴즈`, '이 품사만 모아서 무작위로 출제'));
     }
     return container;
   }
@@ -85,7 +105,7 @@ export function renderVocabQuizHome(hash: string, rng: () => number = Math.rando
   back.className = 'back-link';
   back.href = backHref;
   back.textContent = '‹ 목록으로';
-  container.appendChild(back);
+  head.appendChild(back);
   const session = document.createElement('section');
   session.className = 'vocab-quiz-session';
   session.setAttribute('aria-label', `${label} 퀴즈`);
@@ -99,7 +119,7 @@ export function renderVocabQuizHome(hash: string, rng: () => number = Math.rando
   let choiceButtons: HTMLButtonElement[] = [];
 
   function startRound(entries: VocabEntry[]): void {
-    deck = buildVocabQuiz(entries, ENTRIES, rng, direction);
+    deck = buildVocabQuiz(entries, source?.pool ?? ENTRIES, rng, direction, source?.limit);
     index = 0;
     correctCount = 0;
     wrong = [];
@@ -186,9 +206,16 @@ export function renderVocabQuizHome(hash: string, rng: () => number = Math.rando
     session.appendChild(progress);
 
     const card = document.createElement('div');
-    card.className = 'card kana-question-area quiz-card';
+    card.className = 'kana-question-area quiz-card';
+    // 넓은 화면에서는 왼쪽에 문제, 오른쪽에 보기를 나란히 둔다.
+    const stage = document.createElement('div');
+    stage.className = 'quiz-stage';
+    const answers = document.createElement('div');
+    answers.className = 'quiz-answers';
     const question = document.createElement('div');
     question.className = 'vocab-quiz-question';
+    // 글자 수에 맞춰 크기를 정해 짧은 단어는 크게, 긴 문구는 줄바꿈 없이 보이게 한다.
+    question.style.setProperty('--chars', String([...(reverse ? current.prompt : current.entry.japanese)].length));
     if (reverse) {
       question.textContent = current.prompt;
     } else {
@@ -196,10 +223,11 @@ export function renderVocabQuizHome(hash: string, rng: () => number = Math.rando
       question.classList.add('has-furigana');
       question.appendChild(renderWord(current.entry.japanese, current.entry.reading));
     }
-    card.appendChild(question);
+    stage.appendChild(question);
 
     // 일본어를 보는 방향에서는 소리도 바로 들을 수 있게. 뜻을 묻는 문제라 정답이 새지 않는다.
-    if (!reverse && current.entry.audioUrl) card.appendChild(renderAudioButton(current.entry.audioUrl));
+    const stageAudio = reverse ? null : renderWordAudio(current.entry);
+    if (stageAudio) stage.appendChild(stageAudio);
 
     const choices = document.createElement('div');
     choices.className = 'vocab-quiz-options';
@@ -259,7 +287,8 @@ export function renderVocabQuizHome(hash: string, rng: () => number = Math.rando
         meaning.className = 'quiz-detail-meaning';
         meaning.textContent = current.entry.korean;
         detail.replaceChildren(renderJapaneseLine(current.entry), sound, meaning);
-        if (reverse && current.entry.audioUrl) detail.appendChild(renderAudioButton(current.entry.audioUrl));
+        const detailAudio = reverse ? renderWordAudio(current.entry) : null;
+        if (detailAudio) detail.appendChild(detailAudio);
         detail.hidden = false;
         next.hidden = false;
         next.focus();
@@ -267,7 +296,8 @@ export function renderVocabQuizHome(hash: string, rng: () => number = Math.rando
       choices.appendChild(button);
       return button;
     });
-    card.append(choices, feedback, detail, next);
+    answers.append(choices, feedback, detail, next);
+    card.append(stage, answers);
     session.appendChild(card);
   }
 

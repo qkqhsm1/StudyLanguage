@@ -231,7 +231,6 @@ describe('renderDayList', () => {
 
     expect(links).toHaveLength(3);
     expect(links[0].getAttribute('href')).toBe('#/vocab/day/1');
-    expect(links[0].querySelector('.skill-list-icon')?.textContent).toBe('1');
     expect(links[0].querySelector('.skill-list-name')?.textContent).toBe('Day 1');
     expect(links[2].getAttribute('href')).toBe('#/vocab/day/3');
   });
