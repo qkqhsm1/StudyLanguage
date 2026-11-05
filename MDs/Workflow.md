@@ -6,9 +6,34 @@
 
 ## Goal
 
-Add and publish a bidirectional five-choice vocabulary quiz: hiragana-to-Korean or Korean-to-hiragana, random ten-question rounds from all words, a study group, a Day or a group batch.
+독음·가타카나 데이터 오류를 뿌리부터 고치고, 앱 전체를 실제 앱 수준의 디테일로 다시 디자인한다(역 표지판 디자인).
 
-## Decisions
+## 2026-11-05 독음 정확도 + 전면 디자인
+
+### Progress
+
+- [x] 전수 감사: 4,877단어를 JMdict·JmdictFurigana와 대조하고, 사전에 없는 읽기 535개와 복수 읽기 단어를 뜻과 대조해 검토
+- [x] 후리가나 정렬기를 되짚기 방식으로 교체(`昨日の夜`가 `昨日=き`로 붙던 버그, `五つ`·`黄色い`·`可愛い` 정렬 실패 해결), 단어 카드·퀴즈·문장 전부 이 정렬기 사용
+- [x] 읽기의 가타카나 복원(`なんばんほーむ` → `なんばんホーム`), 퀴즈의 가타카나→히라가나 변환 제거, 문장 읽기 수정(작문은 이제 가타카나 입력 필요)
+- [x] 오독 보정: 뜻과 다른 사전 첫 읽기 37개(本/もと → ほん, 秋/とき → あき 등), 로마자 표기의 영문·약어 읽기 추가, 잘못 변환된 표기 7개 수정(id 유지)
+- [x] 로마자 재생성: 병음이 섞인 항목(`o mǔsan`, `sono shí`) 제거, 전체 표기 통일, 조사 は·へ를 소리대로(こんにちは → konnichiwa, 곤니치와). 문장 13개에 `spoken` 추가
+- [x] 외래어 조합(ティ, ファ 등) 한글·로마자 변환 추가
+- [x] 앱 셸: 모바일 하단 탭 + 상단 하위 탭, PC 사이드바, 다크 모드, safe-area, 페이지 제목, 파비콘
+- [x] 화면: 첫 화면 역 표지판, Day 노선도, 상태 색 띠 단어 카드, 퀴즈 진행 막대·결과 화면, 후리가나 기본 표시와 전역 가리기, 키보드 단축키, 작문 키보드 묶음 탭, 빈 상태 문구, 이전/다음 Day
+- [x] 동작 디테일: 채점 후 스크롤 유지, 접은 구역 유지, 아이콘 클릭 처리, 음성 재생 상태·실패 표시, 빈 답안 제출 방지
+- [x] Chrome 검증: 390px·1320px·다크 모드 화면 확인, 320px 16개 화면 가로 넘침 없음, 런타임 오류 없음. Supabase 요청은 전부 차단해 실제 기록을 건드리지 않음
+- [x] 사용자 요청으로 커밋·push (배포 결과는 GitHub Actions에서 확인)
+- [ ] 단독 `お` 항목(`123-お`)의 퀴즈 제외: 제안했으나 사용자가 이번에는 하지 않기로 함
+- [ ] 실제 폰에서 음성·safe-area 확인(브라우저 에뮬레이션만 함)
+
+### 남은 데이터 한계
+
+- 듀오링고 활용형 조각(`か`, `は`, `です`)은 뜻이 "습니까?, 입니까?"처럼 지저분하다. 긴 뜻 목록은 접어 두었고 뜻 자체는 고치지 않았다.
+- `う`(원래 卯로 잘못 변환)의 한국어 뜻은 원본부터 깨진 조각이다. 표기만 바로잡았다.
+- `日本ご`, `かさ立て`처럼 한자·가나가 섞인 초급 표기는 duome 원본 그대로 둔다. 읽기는 정확하다.
+- 작문 키보드에 작은 ァィェ 키가 없어, 직접 담은 문장에 `パーティー`가 있으면 입력할 수 없다. 내장 문장에는 영향이 없다.
+
+## Decisions (2026-10-30 bidirectional quiz)
 
 - Quiz uses existing vocabulary readings/meanings and SRS IDs. A first correct choice records known; a wrong choice records unknown, preserves bookmarks and appears in existing wrong notes. Show feedback before manual next; offer wrong-answer retry at round end.
 - Reuse existing card/button/feedback styles and storage helpers. Exclude duplicate/overlapping Korean meanings and all homophones of a prompt from distractors. Use the full dictionary for distractors even for a small source batch; require exactly five choices.
@@ -39,6 +64,11 @@ Add and publish a bidirectional five-choice vocabulary quiz: hiragana-to-Korean 
 
 ## Mistakes
 
+- 2026-11-05 | 사전의 첫 읽기를 뜻과 대조하지 않아 秋가 とき, 本이 もと로 나감 | "사전에 있는 읽기"만 검증하고 그 뜻이 맞는지는 안 봄 | 복수 읽기 단어를 한국어 뜻과 대조해 보정, 데이터 회귀 테스트 추가 | 한 글자 한자는 사전 일치만으로 통과시키지 말 것.
+- 2026-11-05 | 로마자에 병음이 섞인 채 배포 | duome 로마자를 검증 없이 믿음 | 전부 읽기에서 재생성하고 ASCII만 허용하는 테스트 추가 | 외부 데이터의 모든 필드는 값의 모양까지 검사할 것.
+- 2026-11-05 | 후리가나 정렬이 첫 앵커만 보고 昨日를 き로 정렬 | 맞아 보이는 첫 위치에서 멈추는 탐욕 탐색 | 되짚기 + 한자 수 이상 길이 제약, 전체 단어 회귀 테스트 | 정렬·파서는 전체 데이터로 검증할 것.
+- 2026-11-05 | 조사 は의 소리를 duome 로마자에서 알아내려 함 | 원본도 konnichiha로 글자대로 옮긴 것을 확인 없이 가정 | 조사 항목을 검토해 `spoken`으로 명시 | 데이터에 어떤 정보가 있는지 먼저 세어 볼 것.
+- 2026-11-05 | 긴 패치를 Bash heredoc으로 넘겨 인용 오류 | 셸 파싱 한계 | 스크립트 파일로 저장 후 실행 | 큰 패치는 파일로.
 - 2026-10-30 | Reverse distractor could be another valid translation (주다 → あげます) | Filtering checked one entry rather than all entries sharing its displayed reading | Index the union of meanings by normalized reading for distractor checks | Test aliases whose kana/kanji entries have different Korean sense lists.
 - 2026-10-30 | Browser screenshot with a clip timed out | CDP did not return capture within its limit | Use the documented browser troubleshooting flow and an uncropped capture | Keep visual evidence capture simple; do not repeat a failed clip blindly.
 - 2026-10-30 | Compound readings were mechanically concatenated (一人ぐらし, かさ立て, 一週間に) | Token readings miss whole-compound/counter sounds | Add reviewed shared overrides and actual-dataset regressions | Compare mixed-script compounds against equivalent full dictionary forms.

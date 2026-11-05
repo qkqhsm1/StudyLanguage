@@ -3,13 +3,13 @@ import { categoryIcon, renderIconLinkList } from './category-icons';
 
 describe('categoryIcon', () => {
   it('returns the mapped icon for a known category', () => {
-    expect(categoryIcon('Cafe')).toBe('☕');
-    expect(categoryIcon('Basics')).toBe('🔤');
-    expect(categoryIcon('Travel')).toBe('✈️');
+    expect(categoryIcon('Cafe')).toBe('茶');
+    expect(categoryIcon('Greetings')).toBe('挨');
+    expect(categoryIcon('Travel')).toBe('旅');
   });
 
   it('falls back to the default icon for an unmapped category', () => {
-    expect(categoryIcon('Some Totally New Category')).toBe('📘');
+    expect(categoryIcon('Some Totally New Category')).toBe('文');
   });
 });
 
@@ -19,7 +19,7 @@ describe('renderIconLinkList', () => {
     const links = list.querySelectorAll<HTMLAnchorElement>('a.skill-list-item');
     expect(links).toHaveLength(2);
     expect(links[1].getAttribute('href')).toBe('#/vocab/skill/Cafe');
-    expect(links[1].querySelector('.skill-list-icon')?.textContent).toBe('☕');
-    expect(links[1].querySelector('.skill-list-name')?.textContent).toBe('Cafe');
+    expect(links[1].querySelector('.skill-list-icon')?.textContent).toBe('茶');
+    expect(links[1].querySelector('.skill-list-name')?.textContent).toBe('카페');
   });
 });

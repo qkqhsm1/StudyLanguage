@@ -43,7 +43,8 @@ export function renderGate(onUnlock: () => void): HTMLElement {
 
   const title = document.createElement('div');
   title.className = 'gate-title';
-  title.textContent = 'こんにちは 👋';
+  title.lang = 'ja';
+  title.textContent = 'こんにちは';
   box.appendChild(title);
 
   const subtitle = document.createElement('div');
@@ -55,6 +56,8 @@ export function renderGate(onUnlock: () => void): HTMLElement {
   input.type = 'password';
   input.className = 'gate-input';
   input.placeholder = '비밀번호';
+  input.setAttribute('aria-label', '비밀번호');
+  input.autocomplete = 'current-password';
   input.autofocus = true;
   box.appendChild(input);
 
@@ -103,7 +106,7 @@ export function renderPersonalGate(onSubmit: (password: string) => Promise<void>
 
   const title = document.createElement('div');
   title.className = 'gate-title';
-  title.textContent = '내 기록 열기 🔑';
+  title.textContent = '내 기록 열기';
   box.appendChild(title);
 
   const subtitle = document.createElement('div');
@@ -115,6 +118,8 @@ export function renderPersonalGate(onSubmit: (password: string) => Promise<void>
   input.type = 'password';
   input.className = 'gate-input';
   input.placeholder = '내 비밀번호';
+  input.setAttribute('aria-label', '내 비밀번호');
+  input.autocomplete = 'current-password';
   input.autofocus = true;
   box.appendChild(input);
 

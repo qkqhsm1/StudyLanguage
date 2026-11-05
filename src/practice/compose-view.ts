@@ -6,7 +6,9 @@ import {
   saveSentenceSrsStore,
 } from '../sentence-book/sentence-view';
 import { renderKanaKeyboard } from './keyboard';
+import { fillWithFurigana } from './furigana';
 import { nextHintChar, nextHintCombo } from './hint';
+import { formatPronunciation } from '../data/kana-romanize';
 import { NAV_HTML } from '../nav';
 import type { SentenceEntry, SrsGrade } from '../types';
 
@@ -26,8 +28,12 @@ export function renderComposePractice(rng: () => number = Math.random): HTMLElem
   const current = entries[Math.floor(rng() * entries.length)];
   container.dataset.currentId = current.id;
 
+  const heading = document.createElement('h2');
+  heading.textContent = '작문 연습';
+  container.appendChild(heading);
+
   const questionCard = document.createElement('div');
-  questionCard.className = 'card';
+  questionCard.className = 'card practice-card';
 
   const label = document.createElement('div');
   label.className = 'compose-label';
@@ -52,11 +58,15 @@ export function renderComposePractice(rng: () => number = Math.random): HTMLElem
 
   const answerField = document.createElement('div');
   answerField.className = 'compose-answer-field';
+  answerField.lang = 'ja';
+  answerField.setAttribute('aria-live', 'polite');
+  answerField.setAttribute('aria-label', '입력한 답');
   answerRow.appendChild(answerField);
 
   const hintBtn = document.createElement('button');
   hintBtn.className = 'compose-hint';
-  hintBtn.textContent = '💡 힌트';
+  hintBtn.type = 'button';
+  hintBtn.textContent = '힌트';
   answerRow.appendChild(hintBtn);
 
   container.appendChild(answerRow);
@@ -110,8 +120,8 @@ export function renderComposePractice(rng: () => number = Math.random): HTMLElem
     if (comboHint) {
       hintUsed = true;
       hintMessage.textContent = comboHint.needsDelete
-        ? `💡 ${comboHint.combo}는 한 키로 입력해요 — ⌫로 앞 글자를 지우고 반짝이는 ${comboHint.combo} 키를 눌러주세요`
-        : `💡 다음은 ${comboHint.combo}예요 — 한 키로 입력되니 반짝이는 키를 눌러주세요`;
+        ? `${comboHint.combo}는 한 키로 입력해요. ⌫로 앞 글자를 지우고 반짝이는 ${comboHint.combo} 키를 누르세요.`
+        : `다음은 ${comboHint.combo}예요. 한 키로 입력되니 반짝이는 키를 누르세요.`;
       hintMessage.classList.remove('hidden');
       setHighlight(comboHint.combo);
       return;
@@ -120,7 +130,7 @@ export function renderComposePractice(rng: () => number = Math.random): HTMLElem
     const hintChar = nextHintChar(current.reading, typed);
     if (!hintChar) return;
     hintUsed = true;
-    hintMessage.textContent = `💡 다음 글자는 ${hintChar}예요 — 아래에서 반짝이는 키를 눌러보세요`;
+    hintMessage.textContent = `다음 글자는 ${hintChar}예요. 아래에서 반짝이는 키를 누르세요.`;
     hintMessage.classList.remove('hidden');
     setHighlight(hintChar);
   });
@@ -136,10 +146,14 @@ export function renderComposePractice(rng: () => number = Math.random): HTMLElem
 
   const correctAnswer = document.createElement('div');
   correctAnswer.className = 'compose-correct-answer hidden';
-  correctAnswer.textContent =
-    current.japanese === current.reading
-      ? `정답: ${current.japanese}`
-      : `정답: ${current.japanese} (${current.reading})`;
+  const correctSentence = document.createElement('div');
+  correctSentence.className = 'compose-correct-sentence';
+  correctSentence.lang = 'ja';
+  fillWithFurigana(correctSentence, current.japanese, current.reading);
+  const correctSound = document.createElement('div');
+  correctSound.className = 'reading-pronunciation';
+  correctSound.textContent = formatPronunciation(current.spoken ?? current.reading);
+  correctAnswer.append(correctSentence, correctSound);
   container.appendChild(correctAnswer);
 
   const nextBtn = document.createElement('button');
@@ -151,12 +165,22 @@ export function renderComposePractice(rng: () => number = Math.random): HTMLElem
   container.appendChild(nextBtn);
 
   submitBtn.addEventListener('click', () => {
+    // 아무것도 안 쓰고 누른 건 답이 아니다. 오답으로 기록하면 복습 일정만 망가진다.
+    if (normalize(typed) === '') {
+      hintMessage.textContent = '답을 입력한 뒤 제출하세요.';
+      hintMessage.classList.remove('hidden');
+      return;
+    }
     const isCorrect = normalize(typed) === normalize(current.reading);
     feedback.textContent = isCorrect ? '정답!' : '오답';
+    feedback.classList.add(isCorrect ? 'is-correct' : 'is-wrong');
     correctAnswer.classList.remove('hidden');
     nextBtn.classList.remove('hidden');
     submitBtn.disabled = true;
     clearHint();
+    // 다 풀었으면 키보드를 접어 정답이 바로 보이게 한다.
+    container.classList.add('is-done');
+    nextBtn.focus();
 
     const store = loadSentenceSrsStore();
     const grade: SrsGrade = isCorrect ? (hintUsed ? 'confusing' : 'known') : 'unknown';

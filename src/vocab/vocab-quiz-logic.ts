@@ -18,6 +18,8 @@ function shuffled<T>(values: T[], rng: () => number): T[] {
 }
 
 function prepare(entry: VocabEntry) {
+  // 동음어 비교용 키. 비교에만 쓰고 화면에는 entry.reading을 그대로 보여준다 —
+  // 접은 값을 보여주면 コーヒー가 こーひー가 된다.
   const prompt = entry.reading.normalize('NFKC').trim()
     .replace(/[ァ-ヶ]/g, char => String.fromCharCode(char.charCodeAt(0) - 0x60));
   const meanings = entry.korean.split(/[,;\n]/).map(s => s.trim()).filter(Boolean);
@@ -47,20 +49,20 @@ export function buildVocabQuiz(
     const current = prepare(entry);
     const questionKey = reverse ? current.keys[0] : current.prompt;
     if (!isKana(current.prompt) || !current.keys[0] || usedPrompts.has(questionKey)) continue;
-    // A kana-only prompt cannot distinguish homophones; none of their meanings may be marked wrong.
+    // Choices are read by sound, so homophones stay excluded: none of their meanings may be marked wrong.
     const accepted = new Set(reverse ? current.keys : [...current.keys, ...(meaningsByReading.get(current.prompt) ?? [])]);
-    const options = [{ id: entry.id, label: reverse ? current.prompt : current.meanings[0] }];
+    const options = [{ id: entry.id, label: reverse ? entry.reading.trim() : current.meanings[0] }];
     const labels = new Set([reverse ? current.prompt : current.keys[0]]);
     for (const candidate of shuffled(candidates, rng)) {
       const optionKey = reverse ? candidate.prompt : candidate.keys[0];
       const optionMeanings = reverse ? [...meaningsByReading.get(candidate.prompt)!] : candidate.keys;
       if ((reverse && !isKana(candidate.prompt)) || optionMeanings.some(key => accepted.has(key)) || labels.has(optionKey)) continue;
-      options.push({ id: candidate.entry.id, label: reverse ? candidate.prompt : candidate.meanings[0] });
+      options.push({ id: candidate.entry.id, label: reverse ? candidate.entry.reading.trim() : candidate.meanings[0] });
       labels.add(optionKey);
       if (options.length === 5) break;
     }
     if (options.length !== 5) continue;
-    questions.push({ entry, prompt: reverse ? current.meanings[0] : current.prompt, options: shuffled(options, rng) });
+    questions.push({ entry, prompt: reverse ? current.meanings[0] : entry.japanese, options: shuffled(options, rng) });
     usedPrompts.add(questionKey);
     if (questions.length === 10) break;
   }

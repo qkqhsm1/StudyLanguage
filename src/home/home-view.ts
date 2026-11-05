@@ -6,10 +6,12 @@ import { updateStreak, type StreakState } from '../streak';
 import { describeSyncAge, getLastSyncAt, isSyncOn } from '../sync';
 import { isComplete, loadPhrases } from '../phrases/phrase-store';
 import { renderCaptureBox } from '../phrases/phrase-view';
-import { renderCardList } from '../vocab/vocab-view';
+import { entriesForDay, totalDays } from '../data/vocab-days';
+import { renderWord } from '../practice/furigana';
+import { pronunciationOf, renderCardList, renderAudioButton } from '../vocab/vocab-view';
 import { loadSentenceSrsStore, renderSentenceList } from '../sentence-book/sentence-view';
 import { NAV_HTML } from '../nav';
-import type { SrsStore, VocabData } from '../types';
+import type { SrsStore, VocabData, VocabEntry } from '../types';
 
 const VOCAB_SRS_KEY = 'srs-store';
 const STREAK_KEY = 'streak-state';
@@ -46,7 +48,7 @@ function renderColumnHeader(title: string, href: string): HTMLElement {
   const link = document.createElement('a');
   link.className = 'home-column-link';
   link.href = href;
-  link.textContent = '모두 보기 ›';
+  link.textContent = '모두 보기';
   header.appendChild(link);
 
   return header;
@@ -64,6 +66,82 @@ function renderMoreNote(hiddenCount: number): HTMLElement {
   more.className = 'home-column-more';
   more.textContent = `+ ${hiddenCount}개 더`;
   return more;
+}
+
+function findNextStop(entries: VocabEntry[], store: SrsStore): { day: number; word: VocabEntry; known: number; total: number } {
+  const days = totalDays(entries.length);
+  for (let day = 1; day <= days; day++) {
+    const dayEntries = entriesForDay(entries, day);
+    const word = dayEntries.find((e) => store[e.id]?.grade !== 'known');
+    if (word) {
+      return { day, word, known: dayEntries.filter((e) => store[e.id]?.grade === 'known').length, total: dayEntries.length };
+    }
+  }
+  // 전부 외웠다면 첫 역으로 돌아가 다시 훑는다.
+  const first = entriesForDay(entries, 1);
+  return { day: 1, word: first[0], known: first.length, total: first.length };
+}
+
+/** 첫 화면의 주인공: 다음에 외울 단어를 일본 역 표지판(駅名標) 모양으로 보여준다.
+ *  양옆은 앞뒤 Day, 띠 위의 점은 이 Day에서 온 만큼의 위치다. */
+function renderStationSign(store: SrsStore): HTMLElement {
+  const { day, word, known, total } = findNextStop(TYPED_VOCAB_DATA.entries, store);
+  const sign = document.createElement('section');
+  sign.className = 'station-sign';
+  sign.setAttribute('aria-label', `다음 단어, Day ${day}`);
+  sign.style.setProperty('--progress', `${(known / total) * 100}%`);
+
+  const head = document.createElement('div');
+  head.className = 'station-sign-head';
+  const title = document.createElement('span');
+  title.textContent = `Day ${day}에서 다음 단어`;
+  const count = document.createElement('span');
+  count.textContent = `${known} / ${total} 암기`;
+  head.append(title, count);
+  sign.appendChild(head);
+
+  const wordRow = document.createElement('div');
+  wordRow.className = 'station-sign-word';
+  const jp = document.createElement('div');
+  jp.className = 'station-sign-japanese has-furigana';
+  jp.lang = 'ja';
+  jp.appendChild(renderWord(word.japanese, word.reading));
+  wordRow.appendChild(jp);
+  if (word.audioUrl) wordRow.appendChild(renderAudioButton(word.audioUrl));
+  sign.appendChild(wordRow);
+
+  const meaning = document.createElement('div');
+  meaning.className = 'station-sign-meaning';
+  meaning.textContent = word.korean.split(', ').slice(0, 3).join(', ');
+  sign.appendChild(meaning);
+
+  const sound = document.createElement('div');
+  sound.className = 'station-sign-sound';
+  sound.textContent = pronunciationOf(word);
+  sign.appendChild(sound);
+
+  const band = document.createElement('div');
+  band.className = 'station-sign-band';
+  band.setAttribute('aria-hidden', 'true');
+  sign.appendChild(band);
+
+  const stops = document.createElement('div');
+  stops.className = 'station-sign-stops';
+  const prev = document.createElement(day > 1 ? 'a' : 'span');
+  prev.textContent = day > 1 ? `‹ Day ${day - 1}` : '출발역';
+  if (day > 1) (prev as HTMLAnchorElement).href = `#/vocab/day/${day - 1}`;
+  const go = document.createElement('a');
+  go.className = 'btn btn-primary station-sign-go';
+  go.href = `#/vocab/day/${day}`;
+  go.textContent = '이어서 외우기';
+  const days = totalDays(TYPED_VOCAB_DATA.entries.length);
+  const next = document.createElement(day < days ? 'a' : 'span');
+  next.textContent = day < days ? `Day ${day + 1} ›` : '종착역';
+  if (day < days) (next as HTMLAnchorElement).href = `#/vocab/day/${day + 1}`;
+  stops.append(prev, go, next);
+  sign.appendChild(stops);
+
+  return sign;
 }
 
 function renderCaptureSection(container: HTMLElement): HTMLElement {
@@ -93,7 +171,7 @@ function renderCaptureSection(container: HTMLElement): HTMLElement {
   for (const phrase of pending.slice(0, PREVIEW_LIMIT)) {
     const item = document.createElement('div');
     item.className = 'home-pending-item';
-    item.textContent = `· ${phrase.korean}`;
+    item.textContent = phrase.korean;
     pendingList.appendChild(item);
   }
   pendingBlock.appendChild(pendingList);
@@ -101,7 +179,7 @@ function renderCaptureSection(container: HTMLElement): HTMLElement {
   const manageLink = document.createElement('a');
   manageLink.className = 'home-column-link';
   manageLink.href = '#/phrases';
-  manageLink.textContent = '내 문장 관리 ›';
+  manageLink.textContent = '내 문장 관리';
   pendingBlock.appendChild(manageLink);
 
   box.appendChild(pendingBlock);
@@ -132,7 +210,8 @@ export function renderHomeView(today: Date = new Date()): HTMLElement {
   const intro = document.createElement('div');
   const greeting = document.createElement('div');
   greeting.className = 'home-greeting';
-  greeting.textContent = 'こんにちは 👋';
+  greeting.lang = 'ja';
+  greeting.textContent = 'こんにちは';
   intro.appendChild(greeting);
 
   const subtitle = document.createElement('div');
@@ -144,7 +223,7 @@ export function renderHomeView(today: Date = new Date()): HTMLElement {
   if (isSyncOn()) {
     const sync = document.createElement('div');
     sync.className = 'home-sync';
-    sync.textContent = `🔄 ${describeSyncAge(getLastSyncAt(), today)}`;
+    sync.textContent = describeSyncAge(getLastSyncAt(), today);
     intro.appendChild(sync);
   }
 
@@ -154,10 +233,11 @@ export function renderHomeView(today: Date = new Date()): HTMLElement {
   stats.className = 'home-stats';
   stats.appendChild(renderStat('vocab', String(vocabQueue.length), '단어 복습'));
   stats.appendChild(renderStat('sentence', String(sentenceQueue.length), '문장 복습'));
-  stats.appendChild(renderStat('streak', `🔥 ${streak.streak}`, '연속 학습일'));
+  stats.appendChild(renderStat('streak', `${streak.streak}일`, '연속 학습'));
   header.appendChild(stats);
 
   container.appendChild(header);
+  container.appendChild(renderStationSign(vocabSrsStore));
 
   const grid = document.createElement('div');
   grid.className = 'home-grid';
@@ -174,10 +254,10 @@ export function renderHomeView(today: Date = new Date()): HTMLElement {
   const links = document.createElement('div');
   links.className = 'home-links';
   links.innerHTML = `
-    <a class="home-link home-link-vocab" href="#/vocab"><span class="home-link-icon">📔</span><span class="home-link-title">단어장</span></a>
-    <a class="home-link home-link-kana" href="#/kana"><span class="home-link-icon">あ</span><span class="home-link-title">가나 퀴즈</span></a>
-    <a class="home-link home-link-sentences" href="#/sentences"><span class="home-link-icon">💬</span><span class="home-link-title">문어장</span></a>
-    <a class="home-link home-link-practice" href="#/practice"><span class="home-link-icon">✍️</span><span class="home-link-title">문장 연습</span></a>
+    <a class="home-link home-link-vocab" href="#/vocab/quiz"><span class="home-link-icon" lang="ja" aria-hidden="true">問</span><span class="home-link-title">단어 퀴즈</span></a>
+    <a class="home-link home-link-kana" href="#/kana"><span class="home-link-icon" lang="ja" aria-hidden="true">あ</span><span class="home-link-title">가나 퀴즈</span></a>
+    <a class="home-link home-link-sentences" href="#/sentences"><span class="home-link-icon" lang="ja" aria-hidden="true">文</span><span class="home-link-title">문어장</span></a>
+    <a class="home-link home-link-practice" href="#/practice"><span class="home-link-icon" lang="ja" aria-hidden="true">作</span><span class="home-link-title">문장 연습</span></a>
   `;
   actionColumn.appendChild(links);
   actionColumn.appendChild(renderCaptureSection(container));

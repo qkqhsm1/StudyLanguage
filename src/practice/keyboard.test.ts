@@ -63,7 +63,7 @@ describe('renderKanaKeyboard', () => {
     expect(onChar).toHaveBeenCalledWith('ー');
   });
 
-  it('covers every character needed to type all sentence readings (hiragana)', () => {
+  it('covers every character needed to type all sentence readings (hiragana and katakana)', () => {
     const { element } = renderKanaKeyboard({ onChar: vi.fn(), onBackspace: vi.fn(), onClear: vi.fn() });
     const keyTexts = Array.from(element.querySelectorAll<HTMLButtonElement>('.keyboard-key')).map(
       (b) => b.textContent ?? '',
@@ -77,8 +77,11 @@ describe('renderKanaKeyboard', () => {
       for (const ch of entry.reading) readingChars.add(ch);
     }
 
+    // コーヒー의 読み는 가타카나 그대로이므로 가타카나 글자판까지 합쳐서 본다.
+    element.querySelector<HTMLButtonElement>('.keyboard-toggle')!.click();
+    const katakanaKeyTexts = Array.from(element.querySelectorAll('.keyboard-key')).map((k) => k.textContent ?? '');
     const uncovered = [...readingChars].filter(
-      (ch) => !extraKeyChars.includes(ch) && !keyTexts.some((text) => text.includes(ch)),
+      (ch) => !extraKeyChars.includes(ch) && !keyTexts.some((text) => text.includes(ch)) && !katakanaKeyTexts.some((text) => text.includes(ch)),
     );
 
     expect(uncovered).toEqual([]);

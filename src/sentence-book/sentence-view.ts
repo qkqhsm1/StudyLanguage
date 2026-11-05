@@ -1,7 +1,8 @@
 import { allCategories, allSentences } from '../data/all-sentences';
 import { loadJSON, saveJSON } from '../storage';
 import { buildTodayQueue, describeReviewStatus, reviewEntry, toggleBookmark } from '../srs';
-import { categoryIcon, renderIconLinkList } from '../data/category-icons';
+import { categoryLabel, renderIconLinkList } from '../data/category-icons';
+import { paintBookmark } from '../icons';
 import { createReadingToggles } from '../practice/furigana';
 import { NAV_HTML } from '../nav';
 import type { SentenceEntry, SrsGrade, SrsState, SrsStore } from '../types';
@@ -25,7 +26,7 @@ export function renderSentenceBookmarkToggle(entryId: string): HTMLButtonElement
   btn.className = 'bookmark-toggle';
 
   function paint(): void {
-    btn.textContent = loadSentenceSrsStore()[entryId]?.bookmarked ? '🔖' : '📑';
+    paintBookmark(btn, loadSentenceSrsStore()[entryId]?.bookmarked ?? false);
   }
   paint();
 
@@ -42,6 +43,7 @@ export function renderSentenceBookmarkToggle(entryId: string): HTMLButtonElement
 export function renderSentenceCard(entry: SentenceEntry, srsState: SrsState | undefined, today: Date = new Date()): HTMLElement {
   const card = document.createElement('div');
   card.className = 'sentence-card card';
+  card.dataset.grade = srsState?.grade ?? 'new';
 
   // 문장과 발음을 한 줄에 — 발음은 문장 오른쪽에 붙는다.
   const sentenceGroup = document.createElement('div');
@@ -49,13 +51,14 @@ export function renderSentenceCard(entry: SentenceEntry, srsState: SrsState | un
 
   const jp = document.createElement('div');
   jp.className = 'sentence-japanese';
+  jp.lang = 'ja';
   jp.textContent = entry.japanese;
   sentenceGroup.appendChild(jp);
   card.appendChild(sentenceGroup);
 
   // 후리가나·발음 토글 (해석 연습과 동일한 동작).
   if (entry.reading) {
-    card.appendChild(createReadingToggles(jp, sentenceGroup, entry.japanese, entry.reading));
+    card.appendChild(createReadingToggles(jp, sentenceGroup, entry.japanese, entry.reading, entry.spoken));
   }
 
   const translation = document.createElement('div');
@@ -68,7 +71,7 @@ export function renderSentenceCard(entry: SentenceEntry, srsState: SrsState | un
 
   const categoryBadge = document.createElement('span');
   categoryBadge.className = 'badge badge-category';
-  categoryBadge.textContent = `${categoryIcon(entry.category)} ${entry.category}`;
+  categoryBadge.textContent = categoryLabel(entry.category);
   badges.appendChild(categoryBadge);
 
   const reviewBadge = describeReviewStatus(srsState, today);
@@ -87,13 +90,14 @@ export function renderSentenceCard(entry: SentenceEntry, srsState: SrsState | un
   revealBtn.className = 'sentence-reveal btn btn-secondary';
   revealBtn.textContent = '뜻 보기';
   revealBtn.addEventListener('click', () => {
-    translation.classList.toggle('hidden');
+    const shown = translation.classList.toggle('hidden') === false;
+    revealBtn.textContent = shown ? '뜻 숨기기' : '뜻 보기';
   });
   actions.appendChild(revealBtn);
 
   const bookmarkBtn = document.createElement('button');
   bookmarkBtn.className = 'bookmark-toggle';
-  bookmarkBtn.textContent = srsState?.bookmarked ? '🔖' : '📑';
+  paintBookmark(bookmarkBtn, srsState?.bookmarked ?? false);
   bookmarkBtn.dataset.entryId = entry.id;
   actions.appendChild(bookmarkBtn);
 
@@ -122,9 +126,10 @@ export function renderCategoryList(categories: string[]): HTMLElement {
 
 export function attachSentenceCardActions(list: HTMLElement, container: HTMLElement, refreshEvent: string): void {
   list.addEventListener('click', (event) => {
-    const target = event.target as HTMLElement;
-    const entryId = target.dataset.entryId;
-    if (!entryId) return;
+    // 아이콘(svg)을 눌러도 버튼으로 잡히도록 위로 올라가 찾는다.
+    const target = (event.target as Element).closest<HTMLElement>('button');
+    const entryId = target?.dataset.entryId;
+    if (!target || !entryId) return;
 
     const store = loadSentenceSrsStore();
 
@@ -171,15 +176,24 @@ export function renderSentenceBookHome(hash: string): HTMLElement {
     const heading = document.createElement('h2');
     heading.textContent = `오늘 복습할 문장 (${queue.length})`;
     container.appendChild(heading);
+    if (queue.length === 0) {
+      const empty = document.createElement('p');
+      empty.className = 'empty-state';
+      empty.textContent = '오늘 복습할 문장을 모두 끝냈어요. 문장 연습으로 새 문장을 풀어보세요.';
+      container.appendChild(empty);
+    }
     container.appendChild(renderSentenceList(queue, srsStore, container));
   } else if (hash.startsWith('#/sentences/category/')) {
     const categoryName = decodeURIComponent(hash.replace('#/sentences/category/', ''));
     const entries = allSentences().filter((e) => e.category === categoryName);
     const heading = document.createElement('h2');
-    heading.textContent = categoryName;
+    heading.textContent = categoryLabel(categoryName);
     container.appendChild(heading);
     container.appendChild(renderSentenceList(entries, srsStore, container));
   } else {
+    const heading = document.createElement('h2');
+    heading.textContent = '문어장';
+    container.appendChild(heading);
     container.appendChild(renderCategoryList(allCategories()));
   }
 

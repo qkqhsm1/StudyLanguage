@@ -1,5 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import { romanizeKana } from './kana-romanize';
+import { formatPronunciation, romanizeKana, spokenReading } from './kana-romanize';
+
+it('reads loanword combos as one sound', () => {
+  expect(romanizeKana('パーティー')).toEqual({ romaji: 'paatii', hangul: '파티' });
+  expect(romanizeKana('ファイル').hangul).toBe('파이루');
+});
+
+it('reads a particle by sound when the stored romaji says so, and drops punctuation from the display line', () => {
+  expect(spokenReading('こんにちは', 'konnichiwa')).toBe('こんにちわ');
+  expect(spokenReading('はは', 'haha')).toBe('はは');
+  expect(formatPronunciation('えきわどこですか。')).toBe('에키와도코데스카 · ekiwadokodesuka');
+});
 
 describe('romanizeKana', () => {
   it('converts plain kana to romaji and hangul', () => {

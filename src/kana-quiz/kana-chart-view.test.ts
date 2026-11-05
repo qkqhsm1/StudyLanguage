@@ -13,7 +13,7 @@ describe('renderKanaChartView', () => {
 
     // Each cell spells out how to say it — the point of the chart for a beginner.
     const first = view.querySelector('.kana-chart-cell .kana-chart-reading')!;
-    expect(first.textContent).toBe('아 · a');
+    expect(first.textContent).toBe('아a');
   });
 
   it('lists every section', () => {

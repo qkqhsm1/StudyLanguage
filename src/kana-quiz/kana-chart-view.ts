@@ -27,16 +27,17 @@ function renderChart(script: KanaScript): HTMLElement {
           continue;
         }
 
-        cell.className = 'kana-chart-cell card';
+        cell.className = 'kana-chart-cell';
 
         const char = document.createElement('div');
         char.className = 'kana-chart-char';
+        char.lang = 'ja';
         char.textContent = cellData.char;
         cell.appendChild(char);
 
         const reading = document.createElement('div');
         reading.className = 'kana-chart-reading';
-        reading.textContent = `${cellData.hangul} · ${cellData.romaji}`;
+        reading.innerHTML = `<span>${cellData.hangul}</span><span>${cellData.romaji}</span>`;
         cell.appendChild(reading);
 
         grid.appendChild(cell);

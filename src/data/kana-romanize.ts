@@ -8,6 +8,19 @@ for (const kana of buildKanaTable()) {
   }
 }
 
+// 가나표에는 없지만 외래어에 흔한 조합. 없으면 ティ가 '테ィ'처럼 깨진다.
+const LOANWORD_COMBOS: Array<[string, string, string]> = [
+  ['ティ', 'ti', '티'], ['ディ', 'di', '디'], ['トゥ', 'tu', '투'], ['ドゥ', 'du', '두'],
+  ['テュ', 'tyu', '튜'], ['デュ', 'dyu', '듀'], ['ファ', 'fa', '파'], ['フィ', 'fi', '피'],
+  ['フェ', 'fe', '페'], ['フォ', 'fo', '포'], ['フュ', 'fyu', '퓨'], ['ウィ', 'wi', '위'],
+  ['ウェ', 'we', '웨'], ['ウォ', 'wo', '워'], ['シェ', 'she', '셰'], ['ジェ', 'je', '제'],
+  ['チェ', 'che', '체'], ['ツァ', 'tsa', '차'], ['ツィ', 'tsi', '치'], ['ツェ', 'tse', '체'],
+  ['ツォ', 'tso', '초'], ['イェ', 'ye', '예'], ['クァ', 'kwa', '콰'], ['クィ', 'kwi', '퀴'],
+  ['クェ', 'kwe', '퀘'], ['クォ', 'kwo', '쿼'], ['ヴァ', 'va', '바'], ['ヴィ', 'vi', '비'],
+  ['ヴェ', 've', '베'], ['ヴォ', 'vo', '보'], ['ヴ', 'vu', '부'],
+];
+for (const [kana, romaji, hangul] of LOANWORD_COMBOS) READINGS.set(kana, { romaji, hangul });
+
 const SOKUON = 'っッ'; // 촉음: 다음 자음을 겹치게 한다
 const CHOONPU = 'ー'; // 장음부호: 앞 모음을 늘인다
 const HATSUON = 'んン'; // 발음(撥音): 단어 안에서는 앞 글자의 받침(ㄴ)이 된다
@@ -86,4 +99,38 @@ export function romanizeKana(reading: string): { romaji: string; hangul: string 
   }
 
   return { romaji, hangul };
+}
+
+/** 화면에 보여줄 발음 한 줄. 구두점은 소리가 아니므로 뺀다. */
+export function formatPronunciation(spoken: string): string {
+  const { hangul, romaji } = romanizeKana(spoken.replace(/[。、！？\s　]/g, ''));
+  return `${hangul} · ${romaji}`;
+}
+
+function comparableRomaji(romaji: string): string {
+  return romaji
+    .toLowerCase()
+    .replace(/ā/g, 'aa').replace(/ī/g, 'ii').replace(/ū/g, 'uu').replace(/ē/g, 'ee').replace(/ō/g, 'oo')
+    .replace(/[^a-z]/g, '')
+    .replace(/ou/g, 'oo').replace(/ei/g, 'ee').replace(/m(?=[pbm])/g, 'n').replace(/tch/g, 'cch');
+}
+
+/**
+ * 글자가 아니라 소리를 돌려준다. 조사 は·へ는 わ·え로 읽는데(こんにちは → 곤니치와)
+ * 가나만 봐서는 조사인지 알 수 없으므로, 함께 저장된 로마자에 맞는 읽기를 찾는다.
+ * 맞는 조합이 없으면 글자 그대로 옮긴다.
+ */
+export function spokenReading(reading: string, romaji: string): string {
+  const target = comparableRomaji(romaji);
+  const positions = [...reading].flatMap((char, i) => (char === 'は' || char === 'へ' ? [i] : []));
+  if (positions.length === 0 || positions.length > 6) return reading;
+  for (let mask = 1; mask < 1 << positions.length; mask++) {
+    const chars = [...reading];
+    positions.forEach((pos, bit) => {
+      if (mask & (1 << bit)) chars[pos] = chars[pos] === 'は' ? 'わ' : 'え';
+    });
+    const candidate = chars.join('');
+    if (comparableRomaji(romanizeKana(candidate).romaji) === target) return candidate;
+  }
+  return reading;
 }

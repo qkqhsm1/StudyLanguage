@@ -20,6 +20,8 @@ export function renderCaptureBox(container: HTMLElement): HTMLElement {
   input.type = 'text';
   input.className = 'phrase-capture-input';
   input.placeholder = '집에 가고 싶은데…';
+  input.setAttribute('aria-label', '담아둘 한국어 문장');
+  input.enterKeyHint = 'done';
   box.appendChild(input);
 
   function submitPhrase(): void {
@@ -69,13 +71,17 @@ function renderPendingRow(phrase: CapturedPhrase, container: HTMLElement): HTMLE
   japaneseInput.type = 'text';
   japaneseInput.className = 'phrase-japanese-input';
   japaneseInput.placeholder = '일본어 (예: 家に帰りたいです)';
+  japaneseInput.lang = 'ja';
+  japaneseInput.setAttribute('aria-label', '일본어');
   japaneseInput.value = phrase.japanese;
   row.appendChild(japaneseInput);
 
   const readingInput = document.createElement('input');
   readingInput.type = 'text';
   readingInput.className = 'phrase-reading-input';
-  readingInput.placeholder = '읽기 — 선택 (예: いえにかえりたいです)';
+  readingInput.placeholder = '읽기, 선택 입력 (예: いえにかえりたいです)';
+  readingInput.lang = 'ja';
+  readingInput.setAttribute('aria-label', '읽기');
   readingInput.value = phrase.reading;
   row.appendChild(readingInput);
 
@@ -148,12 +154,12 @@ function renderBackupBox(container: HTMLElement): HTMLElement {
 
   const label = document.createElement('div');
   label.className = 'phrase-backup-label';
-  label.textContent = '백업 · 기기 간 이동';
+  label.textContent = '백업과 기기 간 이동';
   box.appendChild(label);
 
   const note = document.createElement('div');
   note.className = 'phrase-backup-note';
-  note.textContent = '담아둔 문장은 이 브라우저에만 저장됩니다. 파일로 내보내 두면 브라우저 데이터를 지워도 되살릴 수 있고, 다른 기기에서 가져올 수 있어요.';
+  note.textContent = '담아둔 문장은 내 기록과 함께 기기 간에 연동됩니다. 파일로도 내보내 두면 연동 없이 다른 기기로 옮기거나 언제든 되살릴 수 있어요.';
   box.appendChild(note);
 
   const actions = document.createElement('div');

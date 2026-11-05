@@ -30,6 +30,19 @@ export function renderKanaQuizView(rng: () => number = Math.random): HTMLElement
   nav.innerHTML = NAV_HTML;
   container.appendChild(nav);
 
+  const heading = document.createElement('h2');
+  heading.textContent = '가나 퀴즈';
+  container.appendChild(heading);
+
+  const score = document.createElement('p');
+  score.className = 'page-help kana-score';
+  let solved = 0;
+  function paintScore(): void {
+    score.textContent = solved === 0 ? '글자의 발음을 한글이나 로마자로 입력하세요.' : `이번에 ${solved}개 맞혔어요.`;
+  }
+  paintScore();
+  container.appendChild(score);
+
   const questionArea = document.createElement('div');
   questionArea.className = 'kana-question-area card';
   container.appendChild(questionArea);
@@ -48,6 +61,7 @@ export function renderKanaQuizView(rng: () => number = Math.random): HTMLElement
 
     const question = document.createElement('div');
     question.className = 'kana-question';
+    question.lang = 'ja';
     question.textContent = current.char;
     questionArea.appendChild(question);
 
@@ -56,7 +70,10 @@ export function renderKanaQuizView(rng: () => number = Math.random): HTMLElement
     const input = document.createElement('input');
     input.type = 'text';
     input.className = 'kana-answer-input';
-    input.placeholder = '발음을 입력하고 엔터';
+    input.placeholder = '발음을 입력하고 Enter';
+    input.setAttribute('aria-label', '발음 입력');
+    input.autocomplete = 'off';
+    input.autocapitalize = 'off';
     input.autofocus = true;
     form.appendChild(input);
     questionArea.appendChild(form);
@@ -82,6 +99,8 @@ export function renderKanaQuizView(rng: () => number = Math.random): HTMLElement
       questionArea.classList.add('kana-correct');
 
       feedback.textContent = '정답!';
+      solved += 1;
+      paintScore();
       // 넘어가는 사이에 또 입력해서 다음 문제까지 채점되는 걸 막는다.
       input.disabled = true;
       window.setTimeout(renderQuestion, ADVANCE_DELAY_MS);

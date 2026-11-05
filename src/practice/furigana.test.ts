@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildFurigana } from './furigana';
+import { buildFurigana, restoreSurfaceKana } from './furigana';
 
 describe('buildFurigana', () => {
   it('puts the reading only over the kanji run, leaving kana as-is', () => {
@@ -24,6 +24,27 @@ describe('buildFurigana', () => {
       { base: 'を', ruby: null },
       { base: '旅行', ruby: 'りょこう' },
     ]);
+  });
+
+  it('backtracks when the first matching kana is a trap', () => {
+    expect(buildFurigana('昨日の夜', 'きのうのよる')).toEqual([
+      { base: '昨日', ruby: 'きのう' },
+      { base: 'の', ruby: null },
+      { base: '夜', ruby: 'よる' },
+    ]);
+    expect(buildFurigana('五つ', 'いつつ')).toEqual([{ base: '五', ruby: 'いつ' }, { base: 'つ', ruby: null }]);
+    expect(buildFurigana('黄色い', 'きいろい')).toEqual([{ base: '黄色', ruby: 'きいろ' }, { base: 'い', ruby: null }]);
+  });
+
+  it('annotates letters with their sound but not when the reading repeats them', () => {
+    expect(buildFurigana('Tシャツ', 'ティーシャツ')).toEqual([{ base: 'T', ruby: 'ティー' }, { base: 'シャツ', ruby: null }]);
+    expect(buildFurigana('ATM', 'ATM')).toEqual([{ base: 'ATM', ruby: null }]);
+  });
+
+  it('restores surface katakana into a reading', () => {
+    expect(restoreSurfaceKana('何番ホーム', 'なんばんほーむ')).toBe('なんばんホーム');
+    expect(restoreSurfaceKana('コーヒー', 'こーひー')).toBe('コーヒー');
+    expect(restoreSurfaceKana('猫です', 'ねこだ')).toBe('ねこだ');
   });
 
   it('leaves katakana unannotated even though the reading spells it in hiragana', () => {

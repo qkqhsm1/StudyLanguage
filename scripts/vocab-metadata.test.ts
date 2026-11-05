@@ -2,6 +2,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import type { IpadicFeatures, Tokenizer } from 'kuromoji';
 import { buildStudyGroupIndex, createVocabTokenizer, enrichVocabulary } from './vocab-metadata';
 import vocabData from '../src/data/vocabulary.json';
+import { buildFurigana } from '../src/practice/furigana';
 import type { VocabEntry } from '../src/types';
 
 let tokenizer: Tokenizer<IpadicFeatures>;
@@ -28,7 +29,7 @@ describe('vocabulary metadata', () => {
     const result = enrichVocabulary(inputs, tokenizer);
     expect(result.map(e => e.id)).toEqual(inputs.map(e => e.id));
     expect(result.map(e => e.japanese)).toEqual(inputs.map(e => e.japanese));
-    expect(result.map(e => e.reading)).toEqual(['みます', 'きます', 'こない', 'たなか', 'めーるをよみます', 'ぎゅうにく']);
+    expect(result.map(e => e.reading)).toEqual(['みます', 'きます', 'こない', 'たなか', 'メールをよみます', 'ぎゅうにく']);
     expect(result.every(e => e.romaji.length > 0)).toBe(true);
     expect(inputs.every(e => e.reading === '')).toBe(true);
   });
@@ -44,9 +45,54 @@ describe('vocabulary metadata', () => {
 
   it('reads mixed-script compounds and counters as whole expressions', () => {
     const words = ['一人ぐらしをします', 'かさ立て', '一週間に', '一か月間', 'ゲーム会社'];
-    const expected = ['ひとりぐらしをします', 'かさたて', 'いっしゅうかんに', 'いっかげつかん', 'げーむがいしゃ'];
+    const expected = ['ひとりぐらしをします', 'かさたて', 'いっしゅうかんに', 'いっかげつかん', 'ゲームがいしゃ'];
     expect(enrichVocabulary(words.map(word => entry(word)), tokenizer).map(e => e.reading)).toEqual(expected);
     expect(words.map(word => vocabData.entries.find(e => e.japanese === word)?.reading)).toEqual(expected);
+  });
+
+  it('keeps katakana as katakana in every shipped reading', () => {
+    const entries = vocabData.entries as VocabEntry[];
+    for (const e of entries) {
+      for (const run of e.japanese.match(/[ァ-ヺー]{2,}/g) ?? []) expect(e.reading, e.japanese).toContain(run);
+    }
+    expect(entries.find(e => e.japanese === '何番ホーム')?.reading).toBe('なんばんホーム');
+    expect(entries.find(e => e.japanese === 'コーヒー')?.reading).toBe('コーヒー');
+  });
+
+  it('aligns furigana for every word and never places it over kana', () => {
+    for (const e of vocabData.entries as VocabEntry[]) {
+      const segments = buildFurigana(e.japanese, e.reading);
+      expect(segments, e.japanese).not.toBeNull();
+      for (const seg of segments!) {
+        if (seg.ruby) expect(seg.base, e.japanese).toMatch(/[\p{Script=Han}々〇ヶ0-9０-９A-Za-z]/u);
+      }
+    }
+  });
+
+  it('reads words by their meaning rather than the first dictionary reading', () => {
+    const expected = {
+      本: 'ほん', 人: 'ひと', 秋: 'あき', 風: 'かぜ', 空: 'そら', 東: 'ひがし', 象: 'ぞう', 角: 'かど', 万: 'まん', 本屋: 'ほんや',
+      一日: 'ついたち', 他の人: 'ほかのひと', Tシャツ: 'ティーシャツ', BGM: 'ビージーエム',
+    };
+    for (const [word, reading] of Object.entries(expected)) expect(vocabData.entries.find(e => e.japanese === word)?.reading, word).toBe(reading);
+  });
+
+  it('corrects mis-converted spellings without changing the id that holds learning records', () => {
+    const byId = (id: string) => vocabData.entries.find(e => e.id === id);
+    expect(byId('73-５日')?.japanese).toBe('いつか');
+    expect(byId('109-紅')?.japanese).toBe('くれない');
+    expect(byId('129-icカード')?.japanese).toBe('ICカード');
+  });
+
+  it('ships plain romaji with no pinyin and reads topic particles by sound', () => {
+    const entries = vocabData.entries as VocabEntry[];
+    for (const e of entries) expect(e.romaji, e.japanese).toMatch(/^[a-z'、。 ,-]*$/i);
+    const romaji = (word: string) => entries.find(e => e.japanese === word)?.romaji;
+    expect(romaji('お母さん')).toBe('okaasan');
+    expect(romaji('その時')).toBe('sonotoki');
+    expect(romaji('こんにちは')).toBe('konnichiwa');
+    expect(romaji('本当は')).toBe('hontouwa');
+    expect(romaji('はる')).toBe('haru');
   });
 
   it('groups nouns, predicates and expressions by their role, including noun phrases with verbs', () => {

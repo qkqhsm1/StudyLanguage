@@ -54,7 +54,17 @@ describe('renderWordCard', () => {
   it('shows a separate reading line for kanji words', () => {
     const card = renderWordCard(KANJI_ENTRY, undefined);
     expect(card.querySelector('.word-reading')?.textContent).toBe('みせ');
-    expect(card.querySelector('.word-japanese')?.textContent).toBe('店');
+    expect(card.querySelector<HTMLElement>('.word-japanese')?.dataset.japanese).toBe('店');
+  });
+
+  it('places furigana only over the kanji of a mixed word', () => {
+    const card = renderWordCard({ ...KANJI_ENTRY, japanese: 'お茶', reading: 'おちゃ' }, undefined);
+    expect(card.querySelector('ruby')?.childNodes[0].textContent).toBe('茶');
+    expect(card.querySelector('.word-reading')?.textContent).toBe('ちゃ');
+    expect(card.querySelector('.word-japanese')?.firstChild?.textContent).toBe('お');
+
+    const loanword = renderWordCard({ ...KANJI_ENTRY, japanese: 'ゲーム機', reading: 'ゲームき' }, undefined);
+    expect(loanword.querySelector('.word-reading')?.textContent).toBe('き');
   });
 
   it('omits the reading line when it duplicates the word itself', () => {
@@ -70,7 +80,7 @@ describe('renderWordCard', () => {
       dueDate: '2026-01-01',
       bookmarked: true,
     });
-    expect(card.querySelector<HTMLButtonElement>('.bookmark-toggle')?.textContent).toBe('🔖');
+    expect(card.querySelector<HTMLButtonElement>('.bookmark-toggle')?.getAttribute('aria-pressed')).toBe('true');
   });
 
   it('omits the audio button when there is no audio URL', () => {
@@ -78,14 +88,21 @@ describe('renderWordCard', () => {
     expect(card.querySelector('.audio-play')).toBeNull();
   });
 
-  it('combines romaji and korean meaning into one meta line', () => {
+  it('shows the meaning and the hangul and romaji sound', () => {
     const card = renderWordCard(KANJI_ENTRY, undefined);
-    expect(card.querySelector('.word-meta')?.textContent).toBe('mise · 가게');
+    expect(card.querySelector('.word-meaning')?.textContent).toBe('가게');
+    expect(card.querySelector('.word-sound')?.textContent).toBe('미세 · mise');
   });
 
-  it('shows a category badge with the mapped icon', () => {
+  it('folds long meaning lists', () => {
+    const card = renderWordCard({ ...KANJI_ENTRY, korean: '가, 나, 다, 라, 마, 바' }, undefined);
+    expect(card.querySelector('.word-meaning')?.textContent).toBe('가, 나, 다, 라');
+    expect(card.querySelector('.word-more summary')?.textContent).toBe('뜻 2개 더 보기');
+  });
+
+  it('shows the skill name as a quiet badge', () => {
     const card = renderWordCard(KANJI_ENTRY, undefined);
-    expect(card.querySelector('.badge-category')?.textContent).toBe('☕ Cafe');
+    expect(card.querySelector('.badge-skill')?.textContent).toBe('Cafe');
   });
 
   it('shows an urgent review badge when due today, and an ok badge when due later', () => {
@@ -140,7 +157,7 @@ describe('renderCardGroups', () => {
   it('groups words by grade into softly-worded sections, skipping empty ones', () => {
     const view = threeGroupView();
     const labels = Array.from(view.querySelectorAll('.vocab-group-label')).map((t) => t.textContent);
-    expect(labels).toEqual(['아직 안 본 단어 (2)', '잘 모르는 단어 (1)', '외운 단어 (1)']);
+    expect(labels).toEqual(['아직 안 본 단어', '잘 모르는 단어', '외운 단어']);
 
     const sections = view.querySelectorAll('.card-list');
     expect(sections[0].querySelectorAll('.word-card')).toHaveLength(2); // ungraded first
@@ -191,7 +208,7 @@ describe('renderCardGroups with WRONG_GROUPS', () => {
 
     const view = renderCardGroups(entries, store, document.createElement('div'), WRONG_GROUPS);
     const labels = Array.from(view.querySelectorAll('.vocab-group-label')).map((t) => t.textContent);
-    expect(labels).toEqual(['모르는 단어 (1)', '헷갈리는 단어 (1)', '북마크한 단어 (1)']);
+    expect(labels).toEqual(['모르는 단어', '헷갈리는 단어', '북마크한 단어']);
   });
 
   it('lists a bookmarked wrong word once, under the grade rather than twice', () => {
@@ -202,7 +219,7 @@ describe('renderCardGroups with WRONG_GROUPS', () => {
 
     const view = renderCardGroups(entries, store, document.createElement('div'), WRONG_GROUPS);
     expect(view.querySelectorAll('.word-card')).toHaveLength(1);
-    expect(view.querySelector('.vocab-group-label')?.textContent).toBe('모르는 단어 (1)');
+    expect(view.querySelector('.vocab-group-label')?.textContent).toBe('모르는 단어');
   });
 });
 
@@ -225,8 +242,8 @@ describe('renderDayList', () => {
     const list = renderDayList(entries, store);
     const subs = Array.from(list.querySelectorAll('.skill-list-sub')).map((s) => s.textContent);
 
-    expect(subs[0]).toBe(`${WORDS_PER_DAY}단어 · 2개 암기`);
-    expect(subs[1]).toBe('5단어 · 0개 암기');
+    expect(subs[0]).toBe(`2 / ${WORDS_PER_DAY}`);
+    expect(subs[1]).toBe('0 / 5');
   });
 });
 
@@ -256,7 +273,7 @@ describe('renderVocabHome integration', () => {
       expect(cards).toHaveLength(expected.length);
       expect(cards.length).toBeGreaterThan(0);
       for (const [i, card] of cards.entries()) {
-        expect(card.querySelector('.word-japanese')?.textContent).toBe(expected[i].japanese);
+        expect(card.querySelector<HTMLElement>('.word-japanese')?.dataset.japanese).toBe(expected[i].japanese);
         if (/\p{Script=Han}/u.test(expected[i].japanese)) expect(card.querySelector('rt')?.textContent).toBeTruthy();
       }
       const button = cards[0].querySelector<HTMLButtonElement>('.srs-grade-known')!;
@@ -265,7 +282,7 @@ describe('renderVocabHome integration', () => {
       const day = Math.floor(entries.findIndex(e => e.id === button.dataset.entryId) / WORDS_PER_DAY) + 1;
       const dayView = renderVocabHome(`#/vocab/day/${day}`);
       expect(dayView.querySelector(`.srs-grade-known[data-entry-id="${button.dataset.entryId}"]`)?.classList.contains('btn-primary')).toBe(true);
-      expect(dayView.querySelector(`.bookmark-toggle[data-entry-id="${button.dataset.entryId}"]`)?.textContent).toBe('🔖');
+      expect(dayView.querySelector(`.bookmark-toggle[data-entry-id="${button.dataset.entryId}"]`)?.getAttribute('aria-pressed')).toBe('true');
     }
   });
 
@@ -325,7 +342,7 @@ describe('renderVocabHome integration', () => {
     for (const bad of ['#/vocab/day/', '#/vocab/day/abc', '#/vocab/day/0', '#/vocab/day/999']) {
       const view = renderVocabHome(bad);
       // No "Day NaN"/empty card view — it shows the day list (links to real days) instead.
-      expect(view.querySelector('h2')).toBeNull();
+      expect(view.querySelector('h2')?.textContent).toBe('단어장');
       expect(view.querySelector('a.skill-list-item[href="#/vocab/day/1"]')).not.toBeNull();
     }
   });

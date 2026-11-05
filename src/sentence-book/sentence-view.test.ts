@@ -15,6 +15,7 @@ const KANJI_ENTRY: SentenceEntry = {
   id: 'directions-1',
   japanese: '駅はどこですか。',
   reading: 'えきはどこですか。',
+  spoken: 'えきわどこですか。',
   korean: '역은 어디예요?',
   english: 'Where is the station?',
   category: 'Directions',
@@ -31,20 +32,19 @@ describe('renderSentenceCard', () => {
     expect(translation.textContent).toContain('Good morning.');
   });
 
-  it('toggles furigana over the kanji on and back off', () => {
+  it('shows furigana by default and hides it with the toggle', () => {
+    localStorage.clear();
     const card = renderSentenceCard(KANJI_ENTRY, undefined);
     const jp = card.querySelector('.sentence-japanese')!;
     const btn = card.querySelector<HTMLButtonElement>('.reading-toggle-furigana')!;
-    expect(jp.querySelector('rt')).toBeNull();
-
-    btn.click();
     expect(Array.from(jp.querySelectorAll('rt')).map((rt) => rt.textContent)).toEqual(['えき']);
-    expect(jp.textContent).toContain('駅');
 
-    // Pressing again must restore the plain sentence — it used to be one-way.
     btn.click();
-    expect(jp.querySelector('rt')).toBeNull();
-    expect(jp.textContent).toBe('駅はどこですか。');
+    expect(document.documentElement.classList.contains('hide-furigana')).toBe(true);
+    btn.click();
+    expect(document.documentElement.classList.contains('hide-furigana')).toBe(false);
+    // Hidden by CSS, so the sentence keeps its reading and its height.
+    expect(jp.querySelector('rt')).not.toBeNull();
   });
 
   it('toggles the hangul/romaji pronunciation independently of the furigana', () => {
@@ -55,9 +55,9 @@ describe('renderSentenceCard', () => {
 
     btn.click();
     expect(pron.classList.contains('hidden')).toBe(false);
-    expect(pron.textContent).toBe('에키하도코데스카。 · ekihadokodesuka。');
+    expect(pron.textContent).toBe('에키와도코데스카 · ekiwadokodesuka');
     // The furigana is untouched by the pronunciation toggle.
-    expect(card.querySelector('.sentence-japanese rt')).toBeNull();
+    expect(card.querySelector('.sentence-japanese rt')).not.toBeNull();
 
     btn.click();
     expect(pron.classList.contains('hidden')).toBe(true);
@@ -81,7 +81,7 @@ describe('renderSentenceCard', () => {
 
   it('shows a category badge with the mapped icon', () => {
     const card = renderSentenceCard(ENTRY, undefined);
-    expect(card.querySelector('.badge-category')?.textContent).toBe('👋 Greetings');
+    expect(card.querySelector('.badge-category')?.textContent).toBe('인사');
   });
 
   it('shows korean / english for a built-in entry with both fields', () => {
@@ -102,7 +102,7 @@ describe('renderCategoryList', () => {
     const links = list.querySelectorAll('a.skill-list-item');
     expect(links).toHaveLength(2);
     expect(links[1].getAttribute('href')).toBe('#/sentences/category/Cafe');
-    expect(links[1].querySelector('.skill-list-icon')?.textContent).toBe('☕');
+    expect(links[1].querySelector('.skill-list-icon')?.textContent).toBe('茶');
   });
 });
 

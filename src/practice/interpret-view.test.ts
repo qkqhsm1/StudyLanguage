@@ -7,6 +7,7 @@ import type { CapturedPhrase } from '../types';
 describe('renderInterpretPractice', () => {
   beforeEach(() => {
     localStorage.clear();
+    document.documentElement.classList.remove('hide-furigana');
   });
 
   it('hides the answer and grade buttons until reveal is clicked, then shows the correct translation', () => {
@@ -70,7 +71,7 @@ describe('renderInterpretPractice', () => {
     expect(answer.textContent).toBe(captured.korean);
   });
 
-  it('toggles furigana over the kanji, and back off again', () => {
+  it('shows furigana over the kanji by default and hides it with the toggle, remembering the choice', () => {
     const captured: CapturedPhrase = {
       id: 'my-kanji',
       korean: '집에 가고 싶어요',
@@ -84,19 +85,32 @@ describe('renderInterpretPractice', () => {
 
     const btn = view.querySelector<HTMLButtonElement>('.reading-toggle-furigana')!;
     const question = view.querySelector('.interpret-question')!;
-    expect(question.querySelector('rt')).toBeNull(); // no furigana until revealed
-
-    btn.click();
 
     // Reading sits only over the kanji runs, not over the kana.
     expect(Array.from(question.querySelectorAll('rt')).map((rt) => rt.textContent)).toEqual(['いえ', 'かえ']);
-    expect(question.textContent).toContain('家');
-    expect(question.textContent).toContain('りたいです');
+    expect(document.documentElement.classList.contains('hide-furigana')).toBe(false);
+    expect(btn.textContent).toBe('읽기 숨기기');
 
-    // Pressing again restores the plain sentence — it used to be a one-way reveal.
     btn.click();
-    expect(question.querySelector('rt')).toBeNull();
-    expect(question.textContent).toBe('家に帰りたいです');
+    expect(document.documentElement.classList.contains('hide-furigana')).toBe(true);
+    expect(btn.textContent).toBe('읽기 보기');
+
+    // The next question opens with the same preference.
+    const next = renderInterpretPractice(() => 0.999999);
+    expect(next.querySelector('.reading-toggle-furigana')?.textContent).toBe('읽기 보기');
+
+    btn.click();
+    expect(document.documentElement.classList.contains('hide-furigana')).toBe(false);
+  });
+
+  it('accepts Space to reveal and number keys to grade', () => {
+    const view = renderInterpretPractice(() => 0);
+    document.body.appendChild(view);
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' }));
+    expect(view.querySelector('.interpret-answer')!.classList.contains('hidden')).toBe(false);
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: '3' }));
+    expect(JSON.parse(localStorage.getItem('srs-store-sentences')!)[view.dataset.currentId!].grade).toBe('known');
+    view.remove();
   });
 
   it('toggles the pronunciation separately, beside the sentence', () => {
@@ -115,7 +129,7 @@ describe('renderInterpretPractice', () => {
     btn.click();
     expect(pron.classList.contains('hidden')).toBe(false);
     expect(pron.textContent).toBe('이에니카에리타이데스 · ienikaeritaidesu');
-    expect(view.querySelector('.interpret-question rt')).toBeNull(); // furigana untouched
+    expect(view.querySelector('.interpret-question rt')).not.toBeNull(); // furigana untouched
 
     btn.click();
     expect(pron.classList.contains('hidden')).toBe(true);
@@ -137,17 +151,17 @@ describe('renderInterpretPractice', () => {
     const currentId = view.dataset.currentId!;
 
     const bookmark = view.querySelector<HTMLButtonElement>('.bookmark-toggle')!;
-    expect(bookmark.textContent).toBe('📑');
+    expect(bookmark.getAttribute('aria-pressed')).toBe('false');
 
     bookmark.click();
-    expect(bookmark.textContent).toBe('🔖');
+    expect(bookmark.getAttribute('aria-pressed')).toBe('true');
     expect(view.dataset.currentId).toBe(currentId); // did not advance
 
     const store = JSON.parse(localStorage.getItem('srs-store-sentences') ?? '{}');
     expect(store[currentId].bookmarked).toBe(true);
 
     bookmark.click();
-    expect(bookmark.textContent).toBe('📑');
+    expect(bookmark.getAttribute('aria-pressed')).toBe('false');
     expect(JSON.parse(localStorage.getItem('srs-store-sentences')!)[currentId].bookmarked).toBe(false);
   });
 });

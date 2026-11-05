@@ -2,12 +2,26 @@ import kuromoji, { type IpadicFeatures, type Tokenizer } from 'kuromoji';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import { romanizeKana } from '../src/data/kana-romanize';
+import { restoreSurfaceKana } from '../src/practice/furigana';
 import type { VocabEntry, VocabStudyGroup } from '../src/types';
 import overridesData from './vocabulary-overrides.json';
 import type { JmdictWord } from './kanji-forms';
 
-const overrides: Record<string, { reading?: string; studyGroup?: VocabStudyGroup }> = overridesData as Record<string, { reading?: string; studyGroup?: VocabStudyGroup }>;
+// `japanese`는 잘못 들어온 표기만 바로잡는다. id는 그대로라 학습 기록이 유지된다.
+// `spoken`은 조사 は·へ를 소리대로 적은 값이다. 가나만 봐서는 조사인지 알 수 없어 검토해서 적는다.
+type VocabOverride = { japanese?: string; reading?: string; spoken?: string; studyGroup?: VocabStudyGroup };
+const overrides: Record<string, VocabOverride> = overridesData as Record<string, VocabOverride>;
 const HAN = /\p{Script=Han}/u;
+
+/** 표기에 드러난 조사 は·へ를 소리대로: 前は → まえわ, は入っています → わはいっています. */
+function spokenFromSurface(japanese: string, reading: string): string {
+  let spoken = reading;
+  if (/[^はへ]は$/.test(japanese)) spoken = `${spoken.slice(0, -1)}わ`;
+  if (/[^はへ]へ$/.test(japanese)) spoken = `${spoken.slice(0, -1)}え`;
+  if (/^は\p{Script=Han}/u.test(japanese)) spoken = `わ${spoken.slice(1)}`;
+  if (/^へ\p{Script=Han}/u.test(japanese)) spoken = `え${spoken.slice(1)}`;
+  return spoken;
+}
 
 export function buildStudyGroupIndex(words: JmdictWord[]): Map<string, VocabStudyGroup> {
   const tagsByForm = new Map<string, Set<string>>();
@@ -64,13 +78,19 @@ export function enrichVocabulary(
     const override = overrides[entry.japanese];
     const generated = tokens.map(token => HAN.test(token.surface_form) ? token.reading ?? token.surface_form : token.surface_form).join('')
       .replace(/[ァ-ヶ]/g, char => String.fromCharCode(char.charCodeAt(0) - 0x60));
-    const reading = override?.reading ?? (entry.reading || generated);
-    if (!reading || HAN.test(reading)) throw new Error(`Missing kana reading for ${entry.japanese}`);
+    const japanese = override?.japanese ?? entry.japanese;
+    const rawReading = override?.reading ?? (entry.reading || generated);
+    if (!rawReading || HAN.test(rawReading)) throw new Error(`Missing kana reading for ${entry.japanese}`);
+    const reading = restoreSurfaceKana(japanese, rawReading);
+    // duome의 로마자는 한자가 낀 표기에서 병음이 섞여 있고(o mǔsan, sono shí) 조사도 글자대로
+    // 옮겨져 있다(konnichiha). 그래서 전부 검증된 읽기에서 다시 만들어 표기를 통일한다.
+    const spoken = override?.spoken ?? spokenFromSurface(japanese, reading);
     return {
       ...entry,
+      japanese,
       reading,
-      romaji: reading !== entry.reading ? romanizeKana(reading).romaji : entry.romaji || romanizeKana(reading).romaji,
-      studyGroup: override?.studyGroup ?? groups.get(entry.japanese) ?? studyGroup(tokens),
+      romaji: romanizeKana(spoken).romaji,
+      studyGroup: override?.studyGroup ?? groups.get(japanese) ?? studyGroup(tokens),
     };
   });
 }

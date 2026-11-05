@@ -9,9 +9,9 @@ function word(id: string, reading: string, korean: string): VocabEntry {
 const foods = [word('寿司', 'スシ', '스시, 초밥'), word('水', 'みず', '물'), word('飯', 'めし', '밥'), word('肉', 'にく', '고기'), word('魚', 'さかな', '생선'), word('茶', 'ちゃ', '차')];
 
 describe('buildVocabQuiz', () => {
-  it('asks in hiragana with exactly five distinct Korean choices and one correct answer', () => {
+  it('asks with the real spelling and exactly five distinct Korean choices and one correct answer', () => {
     const [question] = buildVocabQuiz([foods[0]], foods, () => 0.2);
-    expect(question.prompt).toBe('すし');
+    expect(question.prompt).toBe('寿司');
     expect(question.options).toHaveLength(5);
     expect(new Set(question.options.map(o => o.label)).size).toBe(5);
     expect(question.options.filter(o => o.id === foods[0].id)).toHaveLength(1);
@@ -49,14 +49,23 @@ describe('buildVocabQuiz', () => {
     expect(buildVocabQuiz([word('bad', '', '뜻'), word('latin', 'WiFi', '와이파이'), word('missing', 'あ', '')], foods)).toEqual([]);
   });
 
-  it('asks Korean meanings with five distinct hiragana choices in the reverse direction', () => {
+  it('never turns a katakana word into hiragana in either direction', () => {
+    const coffee = word('コーヒー', 'コーヒー', '커피');
+    const pool = [coffee, ...foods];
+    expect(buildVocabQuiz([coffee], pool, () => 0.3)[0].prompt).toBe('コーヒー');
+    const [reverse] = buildVocabQuiz([coffee], pool, () => 0.3, 'ko-ja');
+    expect(reverse.options.find(o => o.id === 'コーヒー')?.label).toBe('コーヒー');
+    expect(buildVocabQuiz([foods[1]], pool, () => 0, 'ko-ja')[0].options.map(o => o.label)).not.toContain('こーひー');
+  });
+
+  it('asks Korean meanings with five distinct kana choices in the reverse direction', () => {
     const target = word('雨', 'あめ', '비, 빗물');
     const pool = [target, word('飴', 'アメ', '사탕'), word('동의어', 'れいん', '빗물'), ...foods];
     const [question] = buildVocabQuiz([target], pool, () => 0.4, 'ko-ja');
     expect(question.prompt).toBe('비');
     expect(question.options).toHaveLength(5);
     expect(new Set(question.options.map(o => o.label)).size).toBe(5);
-    expect(question.options.every(o => /^[ぁ-ゖー・、。！？「」『』（）\s]+$/u.test(o.label))).toBe(true);
+    expect(question.options.every(o => /^[ぁ-ゖァ-ヺー・、。！？「」『』（）\s]+$/u.test(o.label))).toBe(true);
     expect(question.options.find(o => o.id === target.id)?.label).toBe('あめ');
     expect(question.options.map(o => o.id)).not.toContain('飴');
     expect(question.options.map(o => o.id)).not.toContain('동의어');

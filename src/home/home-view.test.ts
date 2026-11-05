@@ -42,7 +42,7 @@ describe('renderHomeView', () => {
   it('renders one entry-point link per feature', () => {
     const view = renderHomeView(TODAY);
     const hrefs = Array.from(view.querySelectorAll<HTMLAnchorElement>('.home-link')).map((a) => a.getAttribute('href'));
-    expect(hrefs).toEqual(['#/vocab', '#/kana', '#/sentences', '#/practice']);
+    expect(hrefs).toEqual(['#/vocab/quiz', '#/kana', '#/sentences', '#/practice']);
   });
 
   it('previews due word cards with working grade buttons', () => {

@@ -63,7 +63,8 @@ describe('renderComposePractice', () => {
     view.querySelector<HTMLButtonElement>('.compose-submit')!.click();
 
     expect(view.querySelector('.compose-feedback')!.textContent).toBe('오답');
-    expect(view.querySelector('.compose-correct-answer')!.textContent).toContain(current.japanese);
+    expect(view.querySelector('.compose-correct-sentence')!.textContent).toContain(current.japanese);
+    expect(view.classList.contains('is-done')).toBe(true);
     const stored = JSON.parse(localStorage.getItem('srs-store-sentences') ?? '{}');
     expect(stored[currentId].grade).toBe('unknown');
   });
@@ -152,7 +153,7 @@ describe('renderComposePractice', () => {
 
   it('highlights the combo key and explains deleting the last char when the hint is a small youon kana', () => {
     // Find a sentence whose reading has a youon (small ゃゅょ) combo somewhere after its first char.
-    const smallKana = ['ゃ', 'ゅ', 'ょ', 'ャ', 'ュ', 'ョ'];
+    const smallKana = ['ゃ', 'ゅ', 'ょ'];
     const entryIndex = SENTENCES.entries.findIndex((e) =>
       smallKana.some((k) => {
         const i = e.reading.indexOf(k);
@@ -183,7 +184,7 @@ describe('renderComposePractice', () => {
   });
 
   it('hints the whole combo up front with no deletion wording when the base char has not been typed yet', () => {
-    const smallKana = ['ゃ', 'ゅ', 'ょ', 'ャ', 'ュ', 'ョ'];
+    const smallKana = ['ゃ', 'ゅ', 'ょ'];
     const entryIndex = SENTENCES.entries.findIndex((e) =>
       smallKana.some((k) => {
         const i = e.reading.indexOf(k);
@@ -216,7 +217,7 @@ describe('renderComposePractice', () => {
   it('keeps the highlight and hint message visible after backspace, since that is how a combo hint is followed', () => {
     // Regression test: Fix A (clear hint on any typing) used to fire on backspace too,
     // wiping the very hint that told the user to press backspace.
-    const smallKana = ['ゃ', 'ゅ', 'ょ', 'ャ', 'ュ', 'ョ'];
+    const smallKana = ['ゃ', 'ゅ', 'ょ'];
     const entryIndex = SENTENCES.entries.findIndex((e) =>
       smallKana.some((k) => {
         const i = e.reading.indexOf(k);
@@ -247,6 +248,38 @@ describe('renderComposePractice', () => {
     expect(view.querySelector('.compose-hint-message')!.classList.contains('hidden')).toBe(false);
   });
 
+  it('does not grade an empty answer as wrong', () => {
+    const view = renderComposePractice(() => 0);
+    view.querySelector<HTMLButtonElement>('.compose-submit')!.click();
+    expect(view.querySelector('.compose-feedback')!.textContent).toBe('');
+    expect(localStorage.getItem('srs-store-sentences')).toBeNull();
+  });
+
+  it('requires katakana for a katakana word and moves the keyboard to it when hinting', () => {
+    const index = SENTENCES.entries.findIndex((e) => e.id === 'cafe-1');
+    const view = renderComposePractice(() => index / SENTENCES.entries.length);
+    expect(view.dataset.currentId).toBe('cafe-1');
+
+    clickKey(view, 'こ');
+    expect(view.querySelector('.compose-answer-field')!.classList.contains('compose-answer-field-error')).toBe(true);
+    view.querySelector<HTMLButtonElement>('.keyboard-clear')!.click();
+
+    view.querySelector<HTMLButtonElement>('.compose-hint')!.click();
+    expect(view.querySelector('.keyboard-key.hint-highlight')?.textContent).toBe('コ');
+    expect(view.querySelector('.keyboard-toggle')?.textContent).toBe('ひらがな');
+    clickKey(view, 'コ');
+    expect(view.querySelector('.compose-answer-field')!.classList.contains('compose-answer-field-error')).toBe(false);
+  });
+
+  it('shows the correct sentence with furigana and particle pronunciation', () => {
+    const index = SENTENCES.entries.findIndex((e) => e.id === 'directions-1');
+    const view = renderComposePractice(() => index / SENTENCES.entries.length);
+    clickKey(view, 'あ');
+    view.querySelector<HTMLButtonElement>('.compose-submit')!.click();
+    expect(view.querySelector('.compose-correct-sentence rt')?.textContent).toBe('えき');
+    expect(view.querySelector('.compose-correct-answer .reading-pronunciation')?.textContent).toBe('에키와도코데스카 · ekiwadokodesuka');
+  });
+
   it('never asks a captured phrase that has no kana reading', () => {
     // Composition practice is graded by exact match against `reading`, typed on a
     // kana-only keyboard. A phrase filled in with kanji but no reading is therefore
@@ -275,10 +308,10 @@ describe('renderComposePractice', () => {
     const currentId = view.dataset.currentId!;
 
     const bookmark = view.querySelector<HTMLButtonElement>('.bookmark-toggle')!;
-    expect(bookmark.textContent).toBe('📑');
+    expect(bookmark.getAttribute('aria-pressed')).toBe('false');
 
     bookmark.click();
-    expect(bookmark.textContent).toBe('🔖');
+    expect(bookmark.getAttribute('aria-pressed')).toBe('true');
     expect(view.dataset.currentId).toBe(currentId); // did not advance
 
     const store = JSON.parse(localStorage.getItem('srs-store-sentences') ?? '{}');

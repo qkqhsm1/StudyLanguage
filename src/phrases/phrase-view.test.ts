@@ -98,7 +98,7 @@ describe('renderPhraseView', () => {
 
     expect(view.querySelector('.phrase-pending')).toBeNull();
     expect(view.querySelector('.sentence-card')).not.toBeNull();
-    expect(view.querySelector('.sentence-japanese')?.textContent).toBe('家に帰りたいです');
+    expect(view.querySelector('.sentence-japanese')?.textContent).toBe('家いえに帰かえりたいです');
   });
 
   it('marks a completed phrase with no reading as interpretation-only', () => {

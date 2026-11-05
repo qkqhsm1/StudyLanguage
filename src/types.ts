@@ -57,6 +57,8 @@ export interface SentenceEntry {
   id: string;
   japanese: string;
   reading: string;
+  /** 조사 は·へ를 소리대로 적은 읽기. 없으면 reading을 그대로 발음한다. */
+  spoken?: string;
   korean: string;
   english: string;
   category: string;

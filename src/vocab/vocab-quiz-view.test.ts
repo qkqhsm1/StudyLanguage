@@ -27,9 +27,15 @@ describe('vocabulary quiz', () => {
     for (const scope of ['all', 'group/noun', 'group/predicate', 'group/expression']) expect(picker.querySelector(`a[href="#/vocab/quiz/${scope}"]`)).not.toBeNull();
   });
 
-  it('shows a hiragana-only question and five choices without revealing the answer', () => {
+  it('shows the real spelling with furigana only over kanji, and five choices without revealing the answer', () => {
     const view = render();
-    expect(view.querySelector('.vocab-quiz-question')?.textContent).toMatch(/^[ぁ-ゖー・、。！？「」『』（）\s]+$/u);
+    const entry = entries.find(e => e.id === view.dataset.currentId)!;
+    const question = view.querySelector('.vocab-quiz-question')!;
+    const base = question.cloneNode(true) as HTMLElement;
+    base.querySelectorAll('rt').forEach(rt => rt.remove());
+    expect(base.textContent).toBe(entry.japanese);
+    for (const rt of question.querySelectorAll('rt')) expect(rt.parentElement?.textContent).toMatch(/[\p{Script=Han}A-Za-z0-9]/u);
+    expect(question.querySelector('rt')?.textContent ?? '').not.toBe(entry.japanese);
     expect(view.querySelectorAll('.vocab-quiz-option')).toHaveLength(5);
     expect(view.querySelector('.vocab-quiz-feedback')?.textContent).toBe('');
     expect(view.querySelector<HTMLButtonElement>('.vocab-quiz-next')?.hidden).toBe(true);
@@ -47,7 +53,9 @@ describe('vocabulary quiz', () => {
     expect(store[id].grade).toBe('unknown');
     expect(store[id].bookmarked).toBe(true);
     expect(store.unrelated).toEqual(bookmarked);
-    expect(view.querySelector('.vocab-quiz-feedback')?.textContent).toContain('정답:');
+    expect(view.querySelector('.vocab-quiz-feedback')?.textContent).toContain('정답은');
+    expect(view.querySelector('.vocab-quiz-detail .quiz-word')).not.toBeNull();
+    expect(view.querySelector('.vocab-quiz-detail .quiz-detail-sound')?.textContent).toContain('·');
     expect([...view.querySelectorAll<HTMLButtonElement>('.vocab-quiz-option')].every(b => b.disabled)).toBe(true);
     answer(view, true).click();
     expect(localStorage.getItem('srs-store')).toBe(saved);
@@ -102,6 +110,15 @@ describe('vocabulary quiz', () => {
       expect(allowed.some(e => e.id === view.dataset.currentId)).toBe(true);
       expect(view.querySelector('.vocab-quiz-feedback')?.textContent).toBe('');
     }
+  });
+
+  it('lists wrong words with their furigana on the result screen', () => {
+    const view = render('#/vocab/quiz/day/1');
+    while (!view.querySelector('.vocab-quiz-result')) {
+      answer(view, false).click();
+      view.querySelector<HTMLButtonElement>('.vocab-quiz-next')!.click();
+    }
+    expect(view.querySelectorAll('.quiz-wrong-list li').length).toBeGreaterThan(0);
   });
 
   it('falls back to the picker on invalid scopes and out-of-range batches', () => {
