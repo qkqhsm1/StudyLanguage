@@ -14,6 +14,11 @@ const SYNC_KEY_STORAGE = 'sync-key';
 /** 마지막으로 서버와 주고받기에 성공한 시각. saveJSON을 안 거쳐야 올리기가 다시 안 돈다. */
 const LAST_SYNC_STORAGE = 'sync-last-at';
 
+/** 공부 기록을 모두 처음부터 다시 시작한 횟수. 올리면 모든 기기와 서버의 기록이 한 번씩 지워진다. */
+const PROGRESS_RESET_ID = 1;
+/** 이 브라우저가 어느 초기화까지 적용했는지. */
+const RESET_STORAGE = 'progress-reset-id';
+
 const EMPTY_STREAK: StreakState = { lastDate: '', streak: 0 };
 
 export function readLocalSnapshot(): ProgressSnapshot {
@@ -46,6 +51,25 @@ export function clearLocalSnapshot(): void {
   for (const key of [SRS_KEY, SRS_SENTENCES_KEY, SRS_KANJI_KEY, PHRASES_KEY, STREAK_KEY]) {
     localStorage.removeItem(key);
   }
+}
+
+/**
+ * 앱을 열 때 먼저 부른다. 기록은 기기마다 있고 연동은 양쪽을 합치므로, 서버만 지우면
+ * 다른 기기의 옛 기록이 되살아난다. 그래서 기기마다 한 번 지우고, 서버 쪽은 syncNow가
+ * 표시(resetId)를 보고 지운다. 비밀번호와 직접 담아 둔 문장은 그대로 둔다.
+ */
+export function applyProgressReset(): void {
+  if (localStorage.getItem(RESET_STORAGE) === String(PROGRESS_RESET_ID)) return;
+  for (const key of [SRS_KEY, SRS_SENTENCES_KEY, SRS_KANJI_KEY, STREAK_KEY]) {
+    localStorage.removeItem(key);
+  }
+  localStorage.setItem(RESET_STORAGE, String(PROGRESS_RESET_ID));
+}
+
+/** 표시가 없는 서버 기록은 초기화 전 것이다. 표시가 있으면 다른 기기에서 초기화 뒤에 공부한 기록이니 살린다. */
+function withoutOldProgress(remote: ProgressSnapshot): ProgressSnapshot {
+  if (remote.resetId === PROGRESS_RESET_ID) return remote;
+  return { ...remote, srs: {}, srsSentences: {}, srsKanji: {}, streak: EMPTY_STREAK };
 }
 
 /** 채점 시각이 늦은 쪽이 이긴다. 시각이 없는 옛 기록끼리는 복습일이 먼 쪽 — 그쪽이
@@ -174,7 +198,10 @@ export async function syncNow(): Promise<boolean> {
   const local = readLocalSnapshot();
   try {
     const remote = await callRpc('get_progress', { p_key: key });
-    const merged = isProgressSnapshot(remote) ? mergeSnapshots(local, remote) : local;
+    const merged: ProgressSnapshot = {
+      ...(isProgressSnapshot(remote) ? mergeSnapshots(local, withoutOldProgress(remote)) : local),
+      resetId: PROGRESS_RESET_ID,
+    };
     writeLocalSnapshot(merged);
     await callRpc('put_progress', { p_key: key, p_data: merged });
     localStorage.setItem(LAST_SYNC_STORAGE, new Date().toISOString());

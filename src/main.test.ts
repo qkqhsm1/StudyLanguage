@@ -2,7 +2,7 @@ import { expect, it, vi } from 'vitest';
 
 vi.mock('./gate', () => ({ isUnlocked: () => true, renderGate: vi.fn(), renderPersonalGate: vi.fn() }));
 vi.mock('./sync-config', () => ({ isSyncConfigured: () => false }));
-vi.mock('./sync', () => ({ getSyncKey: () => null, openProgress: vi.fn(), schedulePush: vi.fn(), syncNow: async () => false }));
+vi.mock('./sync', () => ({ applyProgressReset: vi.fn(), getSyncKey: () => null, openProgress: vi.fn(), schedulePush: vi.fn(), syncNow: async () => false }));
 
 window.scrollTo = vi.fn();
 

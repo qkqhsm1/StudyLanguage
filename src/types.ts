@@ -53,6 +53,8 @@ export interface ProgressSnapshot {
   srsKanji?: SrsStore;
   phrases: CapturedPhrase[];
   streak: StreakState;
+  /** 어느 초기화 뒤의 기록인지. 없으면 첫 초기화 전 기록이다. */
+  resetId?: number;
 }
 
 export interface SentenceEntry {

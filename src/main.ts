@@ -3,7 +3,7 @@ import { renderVocabQuizHome } from './vocab/vocab-quiz-view';
 import { renderKanaQuizView } from './kana-quiz/kana-quiz-view';
 import { renderKanaChartView } from './kana-quiz/kana-chart-view';
 import { isUnlocked, renderGate, renderPersonalGate } from './gate';
-import { getSyncKey, openProgress, schedulePush, syncNow } from './sync';
+import { applyProgressReset, getSyncKey, openProgress, schedulePush, syncNow } from './sync';
 import { isSyncConfigured } from './sync-config';
 import { onStorageSave } from './storage';
 import { renderSentenceBookHome } from './sentence-book/sentence-view';
@@ -152,6 +152,7 @@ window.addEventListener('hashchange', () => {
   window.scrollTo(0, 0);
 });
 window.addEventListener('DOMContentLoaded', route);
+applyProgressReset();
 // 채점·북마크 등 무엇이든 저장되면 잠시 뒤 서버로 올린다.
 onStorageSave(schedulePush);
 route();

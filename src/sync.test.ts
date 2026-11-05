@@ -1,5 +1,6 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  applyProgressReset,
   clearLocalSnapshot,
   describeSyncAge,
   getSyncKey,
@@ -7,6 +8,7 @@ import {
   mergeSnapshots,
   openProgress,
   readLocalSnapshot,
+  syncNow,
   writeLocalSnapshot,
 } from './sync';
 import { saveJSON } from './storage';
@@ -186,5 +188,80 @@ describe('openProgress', () => {
     await openProgress('남의거');
 
     expect(readLocalSnapshot().srs).toEqual({});
+  });
+});
+
+describe('progress reset', () => {
+  let server: unknown;
+  const old = state({ grade: 'known', reviewedAt: '2026-11-01T00:00:00.000Z' });
+  const phrase = { id: 'my-1', korean: '내 문장', japanese: '', reading: '', createdAt: '2026-01-10' };
+
+  beforeEach(() => {
+    localStorage.clear();
+    localStorage.setItem('sync-key', 'k'.repeat(64));
+    vi.stubGlobal('fetch', vi.fn(async (url: string, init: RequestInit) => {
+      const body = JSON.parse(String(init.body)) as { p_data?: unknown };
+      if (url.endsWith('/put_progress')) { server = body.p_data; return new Response(''); }
+      return new Response(JSON.stringify(server ?? null));
+    }));
+  });
+
+  afterEach(() => vi.unstubAllGlobals());
+
+  function oldDevice(): void {
+    localStorage.clear();
+    localStorage.setItem('sync-key', 'k'.repeat(64));
+    writeLocalSnapshot(snapshot({ srs: { 水: old }, srsSentences: { s1: old }, srsKanji: { 'r:日': old }, phrases: [phrase], streak: { lastDate: '2026-11-01', streak: 9 } }));
+  }
+
+  it('clears this device once, keeping passwords and phrases', () => {
+    oldDevice();
+    applyProgressReset();
+    const local = readLocalSnapshot();
+    expect(local).toEqual(snapshot({ phrases: [phrase] }));
+    expect(getSyncKey()).toBe('k'.repeat(64));
+    // 초기화 뒤에 공부한 기록은 다음에 앱을 열어도 지우지 않는다.
+    writeLocalSnapshot(snapshot({ srs: { 水: state() } }));
+    applyProgressReset();
+    expect(readLocalSnapshot().srs).toHaveProperty('水');
+  });
+
+  it('removes old records from the server and keeps phrases there', async () => {
+    server = snapshot({ srs: { 水: old }, srsKanji: { 'r:日': old }, phrases: [phrase], streak: { lastDate: '2026-11-01', streak: 9 } });
+    localStorage.clear();
+    localStorage.setItem('sync-key', 'k'.repeat(64));
+    applyProgressReset();
+    expect(await syncNow()).toBe(true);
+    expect(server).toEqual({ ...snapshot({ phrases: [phrase] }), resetId: 1 });
+    expect(readLocalSnapshot().srs).toEqual({});
+  });
+
+  it('does not bring old records back from a second device or lose new study', async () => {
+    server = snapshot({ srs: { 水: old }, phrases: [phrase] });
+    oldDevice();
+    applyProgressReset();
+    await syncNow();
+    const fresh = state({ grade: 'unknown', reviewedAt: '2026-11-06T00:00:00.000Z' });
+    writeLocalSnapshot(snapshot({ srs: { 山: fresh }, phrases: [phrase] }));
+    await syncNow();
+
+    oldDevice();
+    applyProgressReset();
+    await syncNow();
+    const local = readLocalSnapshot();
+    expect(local.srs).toEqual({ 山: fresh });
+    expect(local.srsKanji).toEqual({});
+    expect((server as ProgressSnapshot).srs).toEqual({ 山: fresh });
+  });
+
+  it('still clears the server when the first sync after the reset was offline', async () => {
+    server = snapshot({ srs: { 水: old } });
+    localStorage.clear();
+    localStorage.setItem('sync-key', 'k'.repeat(64));
+    applyProgressReset();
+    vi.mocked(fetch).mockRejectedValueOnce(new Error('offline'));
+    expect(await syncNow()).toBe(false);
+    expect(await syncNow()).toBe(true);
+    expect((server as ProgressSnapshot).srs).toEqual({});
   });
 });
