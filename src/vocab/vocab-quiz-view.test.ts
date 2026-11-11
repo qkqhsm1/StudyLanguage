@@ -3,6 +3,7 @@ import { renderVocabQuizHome } from './vocab-quiz-view';
 import { renderVocabHome } from './vocab-view';
 import vocab from '../data/vocabulary.json';
 import type { VocabEntry } from '../types';
+import { entriesForDay } from '../data/vocab-days';
 
 const entries = vocab.entries as VocabEntry[];
 const render = (hash = '#/vocab/quiz/all') => renderVocabQuizHome(hash, () => 0.31);
@@ -25,6 +26,44 @@ describe('vocabulary quiz', () => {
     expect(renderVocabHome('#/vocab/group/predicate/2').querySelector('a[href="#/vocab/quiz/group/predicate/2"]')).not.toBeNull();
     const picker = render('#/vocab/quiz');
     for (const scope of ['all', 'group/noun', 'group/predicate', 'group/expression']) expect(picker.querySelector(`a[href="#/vocab/quiz/${scope}"]`)).not.toBeNull();
+  });
+
+  it('offers whole-Day and unknown/confusing rounds, with the Day pager above the cards', () => {
+    const dayView = renderVocabHome('#/vocab/day/1');
+    expect(dayView.querySelector('a[href="#/vocab/quiz/day/1?count=all"]')).not.toBeNull();
+    expect(dayView.querySelector('a[href*="only=weak"]')).toBeNull();
+    const pager = dayView.querySelector('.pager')!;
+    expect(pager.compareDocumentPosition(dayView.querySelector('.word-card')!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+    const day = entriesForDay(entries, 1);
+    const all = render('#/vocab/quiz/day/1?count=all');
+    expect(Number(/\/ (\d+)문제/.exec(all.querySelector('.quiz-progress p')!.textContent!)![1])).toBeGreaterThan(10);
+    expect(all.querySelector('a[href="#/vocab/quiz/day/1?count=all&direction=ko-ja"]')).not.toBeNull();
+
+    const state = { grade: 'confusing', easeFactor: 2.5, intervalDays: 1, dueDate: '2099-01-01' };
+    const weakIds = day.slice(0, 3).map(e => e.id);
+    localStorage.setItem('srs-store', JSON.stringify(Object.fromEntries(weakIds.map(id => [id, state]))));
+    expect(renderVocabHome('#/vocab/day/1').querySelector('a[href="#/vocab/quiz/day/1?only=weak&count=all"]')).not.toBeNull();
+    expect(render('#/vocab/quiz').querySelector('a[href="#/vocab/quiz/all?only=weak"]')).not.toBeNull();
+    const weak = render('#/vocab/quiz/day/1?only=weak&count=all');
+    const seen: string[] = [];
+    while (weak.dataset.currentId) {
+      seen.push(weak.dataset.currentId);
+      // 첫 문제만 틀린다. 틀린 단어는 '틀린 단어 퀴즈'로 따로 모인다.
+      answer(weak, seen.length !== 1).click();
+      weak.querySelector<HTMLButtonElement>('.vocab-quiz-next')!.click();
+    }
+    expect(seen.length).toBeGreaterThan(0);
+    for (const id of seen) expect(weakIds).toContain(id);
+    // 맞혀도 내가 고른 헷갈림 표시는 그대로다.
+    expect(JSON.parse(localStorage.getItem('srs-store')!)[seen[1] ?? seen[0]].grade).toBe('confusing');
+    expect(renderVocabHome('#/vocab/day/1').querySelector('a[href="#/vocab/quiz/day/1?only=missed&count=all"]')).not.toBeNull();
+    const missed = render('#/vocab/quiz/day/1?only=missed&count=all');
+    expect(missed.dataset.currentId).toBe(seen[0]);
+    answer(missed, true).click();
+    missed.querySelector<HTMLButtonElement>('.vocab-quiz-next')!.click();
+    missed.querySelector<HTMLButtonElement>('.vocab-quiz-restart')!.click();
+    expect(missed.querySelector('.vocab-quiz-result')?.textContent).toContain('퀴즈에서 틀린 단어가 없어요');
   });
 
   it('shows the real spelling with furigana only over kanji, and five choices without revealing the answer', () => {
@@ -50,7 +89,9 @@ describe('vocabulary quiz', () => {
     answer(view, false).click();
     const saved = localStorage.getItem('srs-store');
     const store = JSON.parse(saved!);
-    expect(store[id].grade).toBe('unknown');
+    // 암기됨이라 해 둔 단어를 틀리면 헷갈림으로 내리고, 틀린 기록은 따로 남긴다.
+    expect(store[id].grade).toBe('confusing');
+    expect(store[id].missed).toBe(true);
     expect(store[id].bookmarked).toBe(true);
     expect(store.unrelated).toEqual(bookmarked);
     expect(view.querySelector('.vocab-quiz-feedback')?.textContent).toContain('정답은');
@@ -62,12 +103,20 @@ describe('vocabulary quiz', () => {
     expect(renderVocabHome('#/vocab/wrong').querySelector(`[data-entry-id="${id}"]`)).not.toBeNull();
   });
 
-  it('supports number keys, records a correct answer, and advances only on next', () => {
+  it('supports number keys once the choices are shown, records a correct answer, and advances only on next', () => {
     const view = render();
     const id = view.dataset.currentId;
     const correct = answer(view, true);
-    view.dispatchEvent(new KeyboardEvent('keydown', { key: String(Number(correct.dataset.index) + 1), bubbles: true }));
-    expect(JSON.parse(localStorage.getItem('srs-store')!)[id!].grade).toBe('known');
+    const key = String(Number(correct.dataset.index) + 1);
+    // 보기를 열기 전에는 숫자 키가 보기를 고르지 않는다(입력칸에 칠 수도 있다).
+    view.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true }));
+    expect(localStorage.getItem('srs-store')).toBeNull();
+    view.querySelector<HTMLButtonElement>('.vocab-quiz-reveal')!.click();
+    view.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true }));
+    // 보기에서 맞힌 건 기록하되, 표시 안 한 단어를 암기됨으로 올리지는 않는다.
+    const saved = JSON.parse(localStorage.getItem('srs-store')!)[id!];
+    expect(saved.grade).toBeUndefined();
+    expect(saved.missed).toBeUndefined();
     expect(view.dataset.currentId).toBe(id);
     expect(view.querySelector('.vocab-quiz-feedback')?.textContent).toContain('정답!');
     view.querySelector<HTMLButtonElement>('.vocab-quiz-next')!.click();
@@ -142,6 +191,66 @@ describe('vocabulary quiz', () => {
     expect(entry.studyGroup).toBe('predicate');
     answer(view, true).click();
     expect(JSON.parse(localStorage.getItem('srs-store')!)[entry.id].grade).toBe('known');
+  });
+
+  it('shows kanji spellings in Korean-to-Japanese choices with readings hidden until asked or answered', () => {
+    const kanjiWord = entries.find(e => /\p{Script=Han}/u.test(e.japanese) && e.studyGroup === 'noun')!;
+    const view = renderVocabQuizHome('#/vocab/quiz/all?direction=ko-ja', () => 0.31, { title: 't', pool: entries, scope: [kanjiWord], label: 't', backHref: '#/vocab' });
+    const card = view.querySelector('.quiz-card')!;
+    const right = answer(view, true);
+    const base = right.querySelector('span')!.cloneNode(true) as HTMLElement;
+    base.querySelectorAll('rt').forEach(rt => rt.remove());
+    expect(base.textContent).toBe(kanjiWord.japanese);
+    expect(card.classList.contains('readings-hidden')).toBe(true);
+    const toggle = view.querySelector<HTMLButtonElement>('.vocab-quiz-reading-toggle')!;
+    toggle.click();
+    expect(card.classList.contains('readings-hidden')).toBe(false);
+    toggle.click();
+    right.click();
+    expect(card.classList.contains('readings-hidden')).toBe(false);
+    expect(view.querySelector('.vocab-quiz-reading-toggle')).toBeNull();
+  });
+
+  it('grades a typed meaning leniently, lets me overrule a strict miss, and links to the next Day', () => {
+    const view = render('#/vocab/quiz/day/1');
+    const entry = entries.find(e => e.id === view.dataset.currentId)!;
+    const input = view.querySelector<HTMLInputElement>('.vocab-quiz-input')!;
+    expect(view.querySelector<HTMLElement>('.vocab-quiz-options')!.hidden).toBe(true);
+    // 여러 뜻 중 아무거나, 끝말이 달라도 맞다.
+    const meanings = entry.korean.split(', ');
+    input.value = meanings[meanings.length - 1] + '요';
+    view.querySelector('form')!.dispatchEvent(new Event('submit', { cancelable: true }));
+    expect(view.querySelector('.vocab-quiz-feedback')?.textContent).toBe('정답!');
+    // 보기 없이 직접 써서 맞혔으니 암기됨.
+    expect(JSON.parse(localStorage.getItem('srs-store')!)[entry.id].grade).toBe('known');
+    view.querySelector<HTMLButtonElement>('.vocab-quiz-next')!.click();
+
+    const second = entries.find(e => e.id === view.dataset.currentId)!;
+    view.querySelector<HTMLInputElement>('.vocab-quiz-input')!.value = '전혀 다른 말';
+    view.querySelector('form')!.dispatchEvent(new Event('submit', { cancelable: true }));
+    expect(view.querySelector('.vocab-quiz-feedback')?.textContent).toContain('전혀 다른 말');
+    expect(JSON.parse(localStorage.getItem('srs-store')!)[second.id]).toMatchObject({ grade: 'unknown', missed: true });
+    view.querySelector<HTMLButtonElement>('.vocab-quiz-accept')!.click();
+    expect(JSON.parse(localStorage.getItem('srs-store')!)[second.id].missed).toBeUndefined();
+    expect(view.querySelector('.quiz-progress')?.textContent).toContain('정답 2개');
+
+    while (!view.querySelector('.vocab-quiz-result')) {
+      if (view.querySelector<HTMLButtonElement>('.vocab-quiz-next')!.hidden) answer(view, true).click();
+      view.querySelector<HTMLButtonElement>('.vocab-quiz-next')!.click();
+    }
+    expect(view.querySelector('a.vocab-quiz-next-scope')?.getAttribute('href')).toBe('#/vocab/quiz/day/2');
+  });
+
+  it('types Korean-to-Japanese answers in romaji', () => {
+    const view = render('#/vocab/quiz/day/1?direction=ko-ja&count=all');
+    const entry = entries.find(e => e.id === view.dataset.currentId)!;
+    const input = view.querySelector<HTMLInputElement>('.vocab-quiz-input')!;
+    input.value = 'ka';
+    input.dispatchEvent(new Event('input'));
+    expect(input.value).toBe('か');
+    input.value = entry.reading;
+    view.querySelector('form')!.dispatchEvent(new Event('submit', { cancelable: true }));
+    expect(view.querySelector('.vocab-quiz-feedback')?.textContent).toBe('정답!');
   });
 
   it('keeps Korean-to-Japanese direction through wrong retry and restart', () => {

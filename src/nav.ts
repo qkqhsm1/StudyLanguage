@@ -31,6 +31,7 @@ export const NAV_HTML =
     ['#/kanji/read', '읽기'],
     ['#/kanji/write', '쓰기'],
     ['#/kanji/today', '오늘 복습'],
+    ['#/kanji/wrong', '오답노트'],
   ]) +
   tab('jlpt', '#/jlpt', ICONS.jlpt, 'JLPT', [
     ['#/jlpt', '전체'],

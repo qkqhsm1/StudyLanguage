@@ -32,3 +32,26 @@ export function allCategories(): string[] {
   const hasCaptured = loadPhrases().some(isComplete);
   return hasCaptured ? [...SENTENCES.categories, MY_PHRASES_CATEGORY] : [...SENTENCES.categories];
 }
+
+// 이번 세션에 연습 화면별로 이미 낸 문장. 후보를 한 바퀴 다 돌기 전에는 같은 문장을 다시 내지 않는다.
+// ponytail: 메모리에만 둔다. 새로고침하면 처음부터 다시 돈다.
+const seenByMode = new Map<string, Set<string>>();
+
+/** preferred(오늘 복습할 문장 등)에서 아직 안 낸 것을 먼저, 없으면 나머지에서 고른다. 다 냈으면 새 바퀴. */
+export function pickUnseenSentence(mode: string, preferred: SentenceEntry[], all: SentenceEntry[], rng: () => number): SentenceEntry {
+  const seen = seenByMode.get(mode) ?? new Set<string>();
+  seenByMode.set(mode, seen);
+  let pool = preferred.filter((e) => !seen.has(e.id));
+  if (pool.length === 0) pool = all.filter((e) => !seen.has(e.id));
+  if (pool.length === 0) {
+    seen.clear();
+    pool = preferred.length > 0 ? preferred : all;
+  }
+  const pick = pool[Math.floor(rng() * pool.length)];
+  seen.add(pick.id);
+  return pick;
+}
+
+export function resetSeenSentences(): void {
+  seenByMode.clear();
+}

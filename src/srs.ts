@@ -9,7 +9,27 @@ function addDays(date: Date, days: number): string {
   return d.toISOString().slice(0, 10);
 }
 
+/** 내가 직접 등급을 고른다. 퀴즈에서 틀린 기록(missed)은 퀴즈에서 다시 맞혀야 지워진다. */
 export function reviewEntry(prev: SrsState | undefined, grade: SrsGrade, today: Date = new Date()): SrsState {
+  const next = schedule(prev, grade, today);
+  if (prev?.missed) next.missed = true;
+  return next;
+}
+
+/** 퀴즈 결과. 틀리면 missed로 따로 담고, 내 표시는 이렇게만 바꾼다:
+ *  암기됨이었으면 헷갈림, 아직 표시 안 한 단어면 모름. 모름·헷갈림은 그대로 둔다.
+ *  표시 안 한 단어를 맞혔을 때는 보기 없이 직접 써서(recalled) 맞혔을 때만 암기됨으로 둔다 — 보기에서 찍어 맞힌 건 외운 게 아니다.
+ *  맞히면 missed를 지운다. */
+export function recordQuizAnswer(prev: SrsState | undefined, correct: boolean, today: Date = new Date(), recalled = false): SrsState {
+  const next = schedule(prev, correct ? 'known' : 'unknown', today);
+  const grade = correct ? prev?.grade ?? (recalled ? 'known' : undefined) : prev?.grade === 'known' ? 'confusing' : prev?.grade ?? 'unknown';
+  if (grade) next.grade = grade;
+  else delete next.grade;
+  if (!correct) next.missed = true;
+  return next;
+}
+
+function schedule(prev: SrsState | undefined, grade: SrsGrade, today: Date): SrsState {
   const bookmarked = prev?.bookmarked ?? false;
   const easeBefore = prev?.easeFactor ?? DEFAULT_EASE;
   const intervalBefore = prev?.intervalDays ?? 0;
@@ -34,7 +54,9 @@ export function reviewEntry(prev: SrsState | undefined, grade: SrsGrade, today: 
 
 export function toggleBookmark(prev: SrsState | undefined, today: Date = new Date()): SrsState {
   return {
-    grade: prev?.grade ?? 'unknown',
+    // 북마크만 했다고 모름이 되지는 않는다.
+    ...(prev?.grade ? { grade: prev.grade } : {}),
+    ...(prev?.missed ? { missed: true } : {}),
     easeFactor: prev?.easeFactor ?? DEFAULT_EASE,
     intervalDays: prev?.intervalDays ?? 0,
     dueDate: prev?.dueDate ?? addDays(today, 0),

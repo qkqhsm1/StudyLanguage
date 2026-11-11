@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { allCategories, allSentences, composableSentences, MY_PHRASES_CATEGORY, toSentenceEntry } from './all-sentences';
+import { allCategories, allSentences, composableSentences, MY_PHRASES_CATEGORY, pickUnseenSentence, resetSeenSentences, toSentenceEntry } from './all-sentences';
 import { SENTENCES } from './sentences-data';
 import { savePhrases } from '../phrases/phrase-store';
 import type { CapturedPhrase } from '../types';
@@ -88,5 +88,18 @@ describe('allCategories', () => {
 
     savePhrases([COMPLETE_WITH_READING]);
     expect(allCategories()).toContain(MY_PHRASES_CATEGORY);
+  });
+});
+
+describe('pickUnseenSentence', () => {
+  it('does not repeat a sentence until every candidate has been shown, preferring due ones first', () => {
+    resetSeenSentences();
+    const all = SENTENCES.entries;
+    const due = all.slice(0, 2);
+    const picks = all.map(() => pickUnseenSentence('test', due, all, () => 0).id);
+    expect(picks.slice(0, 2)).toEqual(due.map((e) => e.id));
+    expect(new Set(picks).size).toBe(all.length);
+    // 한 바퀴를 다 돌면 다시 복습할 문장부터.
+    expect(due.map((e) => e.id)).toContain(pickUnseenSentence('test', due, all, () => 0).id);
   });
 });

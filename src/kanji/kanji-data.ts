@@ -2,6 +2,7 @@ import kanjiData from '../data/kanji.json';
 import vocabData from '../data/vocabulary.json';
 import { loadJSON, saveJSON } from '../storage';
 import { buildTodayQueue, reviewEntry } from '../srs';
+import { buildFurigana } from '../practice/furigana';
 import type { SrsGrade, SrsStore, VocabData, VocabEntry } from '../types';
 
 export interface KanjiEntry {
@@ -58,8 +59,16 @@ export function skillGrade(store: SrsStore, skill: KanjiSkill, char: string): Sr
 export function recordKanji(skill: KanjiSkill, char: string, grade: SrsGrade): void {
   const store = loadKanjiStore();
   const id = skillId(skill, char);
-  store[id] = reviewEntry(store[id], grade);
+  const next = reviewEntry(store[id], grade);
+  // 칸지 등급은 전부 퀴즈 결과다. 못 읽었거나 혼자 못 쓴 글자는 오답노트에 담고, 혼자 해내면 뺀다.
+  if (grade === 'unknown') next.missed = true;
+  else if (grade === 'known') delete next.missed;
+  store[id] = next;
   saveJSON(SRS_KEY, store);
+}
+
+export function missedKanji(store: SrsStore, skill: KanjiSkill, list: KanjiEntry[] = KANJI): KanjiEntry[] {
+  return list.filter((entry) => store[skillId(skill, entry.id)]?.missed === true);
 }
 
 export function isMastered(store: SrsStore, char: string): boolean {
@@ -130,22 +139,94 @@ const readingKeys = (entry: KanjiEntry) => new Set([...entry.on, ...entry.kun.ma
 
 const foldKana = (reading: string) => reading.replace(/[ァ-ヶ]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0x60));
 
+const VOICED: Record<string, string> = Object.fromEntries(
+  [...'かきくけこさしすせそたちつてとはひふへほ'].map((c) => [c, String.fromCharCode(c.charCodeAt(0) + 1)]),
+);
+
+/** 한 글자의 읽기 후보: 음독·훈독 어간과, 단어 안에서 바뀌는 꼴(学 がく → がっこう의 がっ, 人 ひと → びと). */
+function charReadings(char: string): string[] {
+  const entry = findKanji(char);
+  if (!entry) return [];
+  const base = [...readingKeys(entry)];
+  const variants = base.flatMap((r) => [
+    r,
+    ...(/[くつきち]$/.test(r) ? [`${r.slice(0, -1)}っ`] : []),
+    ...(VOICED[r[0]] ? [VOICED[r[0]] + r.slice(1)] : []),
+  ]);
+  return [...new Set(variants)].filter(Boolean);
+}
+
+/** 이어 쓴 칸지(学生)의 읽기(がくせい)를 글자마다 나눈다: [がく, せい]. 나눌 수 없으면(今日 = きょう) null. */
+function splitReading(chars: string[], reading: string): string[] | null {
+  if (chars.length === 0) return reading === '' ? [] : null;
+  for (const r of charReadings(chars[0])) {
+    if (!reading.startsWith(r)) continue;
+    const rest = splitReading(chars.slice(1), reading.slice(r.length));
+    if (rest) return [r, ...rest];
+  }
+  return null;
+}
+
+/** 이 글자를 다르게 읽은 가짜 읽기: 学生(がくせい) → まなせい, 食べます(たべます) → しょくべます.
+ *  첫 글자만 보고 고를 수 없게, 그 칸지를 실제로 어떻게 읽는지 알아야 맞힐 수 있는 보기다. */
+function misreadings(word: VocabEntry, char: string): string[] {
+  // 한 글자짜리 단어(生 = せい, なま)는 따로 읽어도 맞는 읽기가 여럿이라 가짜 읽기를 만들지 않는다.
+  if (word.japanese === char) return [];
+  const segments = buildFurigana(word.japanese, foldKana(word.reading));
+  if (!segments) return [];
+  const parts: string[][] = [];
+  let target = -1;
+  for (const segment of segments) {
+    if (!segment.ruby) {
+      parts.push([segment.base]);
+      continue;
+    }
+    const chars = [...segment.base];
+    const split = chars.length === 1 ? [segment.ruby] : splitReading(chars, segment.ruby);
+    if (!split) {
+      if (chars.includes(char)) return [];
+      parts.push([segment.ruby]);
+      continue;
+    }
+    chars.forEach((c, i) => {
+      if (c === char && target === -1) target = parts.length;
+      parts.push([split[i], c]);
+    });
+  }
+  if (target === -1) return [];
+  const [current, c] = parts[target];
+  return charReadings(c).filter((r) => r !== current && !r.endsWith('っ'))
+    .map((r) => parts.map((part, i) => (i === target ? r : part[0])).join(''));
+}
+
 /** 일본어에서 칸지를 읽는다는 건 단어 안에서 읽는 것이다. 食은 食事에서 しょく, 食べる에서 た로
- *  소리가 달라진다. 비슷한 길이의 읽기를 오답으로 둬 글자 수만 보고 고를 수 없게 한다. */
+ *  소리가 달라진다. 오답은 그 칸지를 다르게 읽은 가짜 읽기를 먼저 두고, 나머지는 첫 소리와 길이가 비슷한 다른 단어로 채운다.
+ *  단어는 이 묶음까지 배운 칸지로만 된 쉬운 단어를 먼저 고른다(1묶음에 一人称이 나오지 않게). */
 function buildWordQuiz(scope: KanjiEntry[], rng: () => number, limit: number): KanjiQuizQuestion[] {
   const questions: KanjiQuizQuestion[] = [];
   const pool = words.filter((word) => /\p{Script=Han}/u.test(word.japanese) && /^[ぁ-ゖァ-ヺー]+$/.test(word.reading));
   const inPool = new Set(pool);
+  const lastCore = Math.max(-1, ...scope.map((entry) => KANJI.findIndex((k) => k.id === entry.id)));
+  const learned = new Set([...scope.map((entry) => entry.id), ...KANJI.slice(0, lastCore + 1).map((entry) => entry.id)]);
+  const easy = (word: VocabEntry) => [...word.japanese].every((c) => !/\p{Script=Han}/u.test(c) || learned.has(c));
   for (const entry of shuffled(scope, rng)) {
     const candidates = wordsWith(entry.id, 30).filter((word) => inPool.has(word));
     if (candidates.length === 0) continue;
-    const word = candidates[Math.floor(rng() * candidates.length)];
+    const preferred = candidates.filter(easy);
+    const choices = (preferred.length > 0 ? preferred : candidates).slice(0, 6);
+    const word = choices[Math.floor(rng() * choices.length)];
     const answer = foldKana(word.reading);
     const options = [{ id: entry.id, label: word.reading }];
     // 같은 표기의 다른 읽기(何 = なに, なん)를 오답으로 두면 맞는 답을 틀렸다고 하게 된다.
     const seen = new Set([answer, ...pool.filter((other) => other.japanese === word.japanese).map((other) => foldKana(other.reading))]);
+    for (const fake of shuffled(misreadings(word, entry.id), rng).slice(0, 2)) {
+      if (seen.has(fake)) continue;
+      options.push({ id: `misread:${fake}`, label: fake });
+      seen.add(fake);
+    }
     const near = pool.filter((other) => Math.abs(other.reading.length - word.reading.length) <= 1);
-    for (const other of shuffled(near, rng)) {
+    const sameStart = near.filter((other) => foldKana(other.reading)[0] === answer[0]);
+    for (const other of [...shuffled(sameStart, rng), ...shuffled(near, rng)]) {
       if (options.length === 5) break;
       const key = foldKana(other.reading);
       // 같은 소리를 다른 표기로 쓰는 단어도 있으니 뜻이 아니라 소리로 거른다.

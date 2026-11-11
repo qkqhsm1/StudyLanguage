@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import type { IpadicFeatures, Tokenizer } from 'kuromoji';
-import { buildStudyGroupIndex, createVocabTokenizer, enrichVocabulary } from './vocab-metadata';
+import { buildStudyGroupIndex, cleanKorean, createVocabTokenizer, enrichVocabulary } from './vocab-metadata';
 import vocabData from '../src/data/vocabulary.json';
 import { buildFurigana } from '../src/practice/furigana';
 import type { VocabEntry } from '../src/types';
@@ -138,5 +138,28 @@ describe('vocabulary metadata', () => {
     for (const [group, words] of Object.entries(expected)) {
       for (const word of words) expect(vocabData.entries.find(e => e.japanese === word)?.studyGroup, word).toBe(group);
     }
+  });
+});
+
+describe('cleanKorean', () => {
+  it('drops trailing full stops and duplicates, and keeps only dictionary forms of predicates', () => {
+    expect(cleanKorean('읽습니다., 읽습니다')).toBe('읽습니다');
+    expect(cleanKorean('유머러스하, 재미있습니까, 재미있다, 컸지만, 즐거운', true, '面白い')).toBe('재미있다, 유머러스하다, 즐겁다, 컸지만');
+    expect(cleanKorean('크다, 컸지만, 큰, 크다는', true, '大きい')).toBe('크다');
+    // ~ます 단어는 공손형이 맞는 번역이고, 잘려 온 의문형만 뺀다. 묻는 말(~か)은 의문형이 뜻이다.
+    expect(cleanKorean('돌아갑니까, 돌아갑니다', true, 'かえります')).toBe('돌아갑니다');
+    expect(cleanKorean('좋아합니까?', true, 'はすきですか')).toBe('좋아합니까?');
+    // 부사는 부사로 둔다.
+    expect(cleanKorean('침착하게', true, '落ち着いて')).toBe('침착하게');
+    // 명사는 순서를 바꾸지 않는다(바다도 다로 끝난다).
+    expect(cleanKorean('해변, 바다')).toBe('해변, 바다');
+  });
+
+  it('ships reviewed meanings instead of Duolingo sentence fragments', () => {
+    const byJapanese = new Map((vocabData.entries as VocabEntry[]).map(entry => [entry.japanese, entry]));
+    expect(byJapanese.get('と')?.korean).not.toContain('케이팝');
+    expect(byJapanese.get('は')?.korean).toBe('~은, ~는 (주제)');
+    expect(byJapanese.get('面白い')?.korean.split(', ')[0]).toBe('재미있다');
+    expect(byJapanese.get('ます')?.quiz).toBe(false);
   });
 });

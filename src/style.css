@@ -43,7 +43,7 @@
   --unknown-wash: #fde3df;
 
   --font: 'Pretendard Variable', Pretendard, -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, sans-serif;
-  --font-ja: 'Zen Maru Gothic', 'Hiragino Maru Gothic ProN', 'Yu Gothic', var(--font);
+  --font-ja: 'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic', var(--font);
 
   --gutter: clamp(16px, 2.2vw, 44px);
   --gap: clamp(10px, 1vw, 18px);
@@ -981,6 +981,11 @@ ruby {
   margin-left: auto;
 }
 
+/* 단어장 Day 화면은 다음 Day로 가는 길을 제목 바로 아래에 둔다. */
+.pager-top {
+  margin: 0 0 16px;
+}
+
 /* ─── 첫 화면 ────────────────────────────────────────── */
 
 .home-header {
@@ -992,6 +997,12 @@ ruby {
   font-weight: 900;
   line-height: 1.2;
   letter-spacing: -0.01em;
+}
+
+.home-streak {
+  color: var(--ink);
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 .home-subtitle {
@@ -1149,7 +1160,7 @@ ruby {
 
 .home-stats {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: var(--gap);
 }
 
@@ -1611,6 +1622,27 @@ ruby {
   }
 }
 
+/* 퀴즈의 독음은 '독음 보기'를 누르거나 답을 고르기 전까지 가린다. 높이가 흔들리지 않게 visibility로. */
+.readings-hidden .vocab-quiz-question rt,
+.readings-hidden .vocab-quiz-option rt {
+  visibility: hidden;
+}
+
+/* 한국어→일본어 보기의 칸지와 독음. 독음도 14px 아래로 내리지 않는다. */
+.vocab-quiz-option .has-furigana {
+  font-size: 24px;
+  line-height: 2;
+}
+
+.vocab-quiz-option .has-furigana rt {
+  font-size: 14px;
+}
+
+.vocab-quiz-reading-toggle.btn {
+  align-self: center;
+  margin-top: 12px;
+}
+
 .vocab-quiz-option.btn:disabled {
   opacity: 1;
   color: var(--ink-faint);
@@ -2025,8 +2057,14 @@ ruby {
   overflow-wrap: anywhere;
 }
 
+/* 실제 키보드로 치는 중인, 아직 가나가 되지 않은 로마자. */
+.compose-pending {
+  color: var(--ink-faint);
+  text-decoration: underline;
+}
+
 .compose-answer-field:empty::after {
-  content: '키보드로 입력하세요';
+  content: '로마자로 치면 가나로 바뀌어요 (kasa → かさ)';
   color: var(--ink-faint);
   font-family: var(--font);
   font-size: 17px;
@@ -3249,5 +3287,160 @@ ruby {
   .writing-pad .pad-demo {
     opacity: 1;
     stroke-dashoffset: 0;
+  }
+}
+
+/* 칸지 상세의 자유 쓰기 칸. 기록하지 않으니 몇 번이든 쓴다. */
+.kanji-free-pad {
+  margin-top: 24px;
+}
+
+.kanji-free-pad .writing-pad {
+  width: min(100%, 420px);
+}
+
+.kanji-free-pad .kanji-write-controls {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  max-width: 420px;
+}
+
+.kanji-free-count {
+  font-size: 19px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ─── 뜻 가리기 (단어 카드) ─────────────────────────── */
+.card-mode {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  margin: 4px 0 14px;
+}
+
+.card-mode-toggle.segment {
+  border: 0;
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.card-mode-toggle[aria-pressed='true'] {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.card-mode-help {
+  color: var(--ink-soft);
+  font-size: 14px;
+}
+
+.word-reveal.btn {
+  display: none;
+}
+
+/* 가린 카드: 뜻·발음은 '뜻 보기' 버튼 자리로, 후리가나는 자리만 남기고 숨긴다. */
+.vocab-cards-hidden .word-card:not(.is-revealed) .word-reveal.btn {
+  display: flex;
+  width: 100%;
+  min-height: 64px;
+  margin-top: 4px;
+  background: var(--paper);
+  color: var(--ink-soft);
+  font-size: 16px;
+}
+
+.vocab-cards-hidden .word-card:not(.is-revealed) .word-meta {
+  display: none;
+}
+
+.vocab-cards-hidden .word-card:not(.is-revealed) .word-japanese rt {
+  visibility: hidden;
+}
+
+.vocab-cards-hidden .word-card {
+  cursor: pointer;
+}
+
+/* ─── 단어 퀴즈: 직접 쓰기 ──────────────────────────── */
+.vocab-quiz-type {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--gap);
+  margin-top: 14px;
+}
+
+.vocab-quiz-input {
+  min-width: 0;
+  min-height: 54px;
+  padding: 10px 16px;
+  border: 0;
+  border-radius: var(--radius-m);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 2px var(--rule);
+  color: var(--ink);
+  font: 600 20px var(--font);
+}
+
+.vocab-quiz-input:lang(ja) {
+  font-family: var(--font-ja);
+}
+
+.vocab-quiz-input:focus {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--ai);
+}
+
+.vocab-quiz-check.btn {
+  min-height: 54px;
+  padding-inline: 22px;
+}
+
+.vocab-quiz-reveal.btn {
+  grid-column: 1 / -1;
+  min-height: 46px;
+  background: var(--surface);
+}
+
+.vocab-quiz-accept.btn {
+  align-self: flex-start;
+  margin-top: 8px;
+  background: var(--surface);
+}
+
+.quiz-result-actions a.btn {
+  text-decoration: none;
+}
+
+/* 폰: 보기를 연 뒤 다섯 개가 아래 탭에 가리지 않게 문제 칸과 보기를 줄인다. */
+@media (max-width: 999px) {
+  .quiz-stage {
+    min-height: 120px;
+    padding: 16px 20px;
+  }
+
+  .vocab-quiz-options {
+    gap: 6px;
+    margin-top: 10px;
+    scroll-margin-bottom: calc(var(--tabbar) + env(safe-area-inset-bottom) + 12px);
+  }
+
+  .vocab-quiz-option.btn {
+    min-height: 46px;
+    padding-block: 6px;
+  }
+
+  .vocab-quiz-option .has-furigana {
+    font-size: 21px;
+    line-height: 1.8;
+  }
+}
+
+/* 폰에서는 복습 칸 네 개를 2×2로. */
+@media (max-width: 599px) {
+  .home-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

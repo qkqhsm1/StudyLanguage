@@ -3,9 +3,11 @@ import { renderInterpretPractice } from './interpret-view';
 import { SENTENCES } from '../data/sentences-data';
 import { savePhrases } from '../phrases/phrase-store';
 import type { CapturedPhrase } from '../types';
+import { resetSeenSentences } from '../data/all-sentences';
 
 describe('renderInterpretPractice', () => {
   beforeEach(() => {
+    resetSeenSentences();
     localStorage.clear();
     document.documentElement.classList.remove('hide-furigana');
   });

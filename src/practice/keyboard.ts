@@ -10,6 +10,8 @@ export interface KeyboardHandlers {
 export interface KanaKeyboardHandle {
   element: HTMLElement;
   setHighlight: (char: string | null) => void;
+  /** 실제 키보드로 친 로마자를 가타카나로 바꿀지. 글자판의 カタカナ 전환을 따른다. */
+  isKatakana: () => boolean;
 }
 
 const TABLE = buildKanaTable();
@@ -169,5 +171,5 @@ export function renderKanaKeyboard(handlers: KeyboardHandlers): KanaKeyboardHand
     controlMatch?.classList.add('hint-highlight');
   }
 
-  return { element: wrap, setHighlight };
+  return { element: wrap, setHighlight, isKatakana: () => script === 'katakana' };
 }

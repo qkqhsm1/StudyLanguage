@@ -9,6 +9,17 @@ const ALL_STROKES = strokes as Record<string, string[]>;
 const one = ALL_STROKES['一'];
 const ten = ALL_STROKES['十'];
 
+/** 포인터로 획을 차례대로 긋는다. jsdom은 칸 크기가 0이라 좌표가 그대로 KanjiVG 좌표가 된다. */
+function writeAll(pad: HTMLElement, paths: string[]): void {
+  for (const d of paths) {
+    const [first, ...rest] = samplePath(d);
+    const at = ([x, y]: Point) => ({ clientX: x, clientY: y, bubbles: true });
+    pad.dispatchEvent(new MouseEvent('pointerdown', at(first)));
+    for (const point of rest) pad.dispatchEvent(new MouseEvent('pointermove', at(point)));
+    pad.dispatchEvent(new MouseEvent('pointerup', at(rest[rest.length - 1] ?? first)));
+  }
+}
+
 describe('kanji data', () => {
   it('has meaning, reading and strokes for every kanji', () => {
     expect(KANJI.length).toBeGreaterThan(1300);
@@ -138,6 +149,26 @@ describe('kanji quiz', () => {
     }
   });
 
+  it('offers misreadings of the kanji itself so the first kana does not give the answer away', () => {
+    const study = KANJI.find((k) => k.id === '学')!;
+    let fakes = 0;
+    for (let i = 0; i < 20; i++) {
+      const [question] = buildKanjiQuiz([study], KANJI, 'word', () => (i * 0.37) % 1);
+      const misread = question.options.filter((o) => o.id.startsWith('misread:'));
+      if (question.word!.japanese === '学') expect(misread).toHaveLength(0);
+      for (const option of misread) expect(option.label).not.toBe(question.word!.reading);
+      fakes += misread.length;
+    }
+    expect(fakes).toBeGreaterThan(0);
+  });
+
+  it('asks the first set with words made of kanji learned so far', () => {
+    const set = KANJI.slice(0, 20);
+    const learned = new Set(set.map((k) => k.id));
+    const easy = buildKanjiQuiz(set, KANJI, 'word').filter((q) => [...q.word!.japanese].every((c) => !/\p{Script=Han}/u.test(c) || learned.has(c)));
+    expect(easy.length).toBeGreaterThanOrEqual(8);
+  });
+
   it('shows at most ten questions per round', () => {
     expect(buildKanjiQuiz(KANJI, KANJI, 'meaning')).toHaveLength(10);
   });
@@ -145,6 +176,20 @@ describe('kanji quiz', () => {
 
 describe('kanji screens', () => {
   beforeEach(() => localStorage.clear());
+
+  it('collects kanji missed in quizzes into the wrong-answer notes until answered again', () => {
+    recordKanji('read', '一', 'unknown');
+    recordKanji('write', '十', 'unknown');
+    recordKanji('write', '一', 'confusing');
+    const page = renderKanjiView('#/kanji/wrong');
+    expect(page.querySelector('a[href="#/kanji/read?scope=missed"]')).not.toBeNull();
+    expect(page.querySelector('a[href="#/kanji/write?scope=missed"]')).not.toBeNull();
+    const round = renderKanjiView('#/kanji/read?scope=missed', () => 0);
+    expect(round.dataset.currentId).toBe('一');
+    recordKanji('read', '一', 'known');
+    recordKanji('write', '十', 'known');
+    expect(renderKanjiView('#/kanji/wrong').querySelector('.empty-state')).not.toBeNull();
+  });
 
   it('keeps reading and writing progress apart', () => {
     recordKanji('read', '一', 'known');
@@ -187,12 +232,39 @@ describe('kanji screens', () => {
     expect(renderKanjiView('#/kanji/read?set=2').querySelector('.kanji-prompt-word-big')).not.toBeNull();
   });
 
-  it('hides the answer kanji in the writing prompt until it is finished', async () => {
-    const view = renderKanjiView(`#/kanji/write?char=${encodeURIComponent('金')}`, () => 0.3);
+  it('writes a kanji three times, tracing, copying, then from memory, and records only the last', async () => {
+    const view = renderKanjiView(`#/kanji/write?char=${encodeURIComponent('十')}`, () => 0.3);
     await vi.waitFor(() => expect(view.querySelector('.writing-pad')).not.toBeNull());
-    expect(view.querySelector('.kanji-prompt-word')?.textContent).not.toContain('金');
+    const label = () => view.querySelector('.compose-label')?.textContent ?? '';
+    const finishStep = () => {
+      writeAll(view.querySelector<HTMLElement>('.writing-pad')!, ten);
+      view.querySelector<HTMLButtonElement>('.vocab-quiz-next')!.click();
+    };
+    expect(label()).toContain('1/3 따라 쓰기');
+    expect(view.querySelector<SVGElement>('.pad-trace')!.style.display).toBe('');
+    finishStep();
+    expect(label()).toContain('2/3 보고 쓰기');
+    expect(view.querySelector<HTMLElement>('.kanji-prompt-answer')?.hidden).toBe(false);
+    expect(localStorage.getItem('srs-store-kanji')).toBeNull();
+    finishStep();
+    expect(label()).toContain('3/3 안 보고 쓰기');
     expect(view.querySelector<HTMLElement>('.kanji-prompt-answer')?.hidden).toBe(true);
-    expect(view.querySelector('.kanji-prompt-hun')?.textContent).toBe('쇠 금');
+    expect(view.querySelector('.kanji-prompt-word')?.textContent ?? '').not.toContain('十');
+    finishStep();
+    expect(JSON.parse(localStorage.getItem('srs-store-kanji')!)['w:十'].grade).toBe('known');
+    expect(view.querySelector('.vocab-quiz-result')?.textContent).toBe('1자 중 1개 정답');
+  });
+
+  it('lets the detail page be written on again and again without recording', async () => {
+    const view = renderKanjiView(`#/kanji/char/${encodeURIComponent('十')}`);
+    await vi.waitFor(() => expect(view.querySelector('.kanji-free-pad .writing-pad')).not.toBeNull());
+    const pad = () => view.querySelector<HTMLElement>('.kanji-free-pad .writing-pad')!;
+    writeAll(pad(), ten);
+    await vi.waitFor(() => expect(view.querySelector('.kanji-free-count')?.textContent).toBe('1번 썼어요'));
+    await vi.waitFor(() => expect(pad().querySelectorAll('.pad-ink path')).toHaveLength(0));
+    writeAll(pad(), ten);
+    await vi.waitFor(() => expect(view.querySelector('.kanji-free-count')?.textContent).toBe('2번 썼어요'));
+    expect(localStorage.getItem('srs-store-kanji')).toBeNull();
   });
 
   it('shows meaning, readings and words on the detail page', () => {

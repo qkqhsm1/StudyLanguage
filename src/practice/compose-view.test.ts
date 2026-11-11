@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { renderComposePractice } from './compose-view';
 import { SENTENCES } from '../data/sentences-data';
 import { savePhrases } from '../phrases/phrase-store';
+import { resetSeenSentences } from '../data/all-sentences';
 
 function clickKey(root: HTMLElement, text: string): void {
   const btn = Array.from(root.querySelectorAll<HTMLButtonElement>('.keyboard-key')).find(
@@ -13,6 +14,7 @@ function clickKey(root: HTMLElement, text: string): void {
 
 describe('renderComposePractice', () => {
   beforeEach(() => {
+    resetSeenSentences();
     localStorage.clear();
   });
 
@@ -33,6 +35,26 @@ describe('renderComposePractice', () => {
     expect(view.querySelector('.compose-feedback')!.textContent).toBe('정답!');
     const stored = JSON.parse(localStorage.getItem('srs-store-sentences') ?? '{}');
     expect(stored[currentId].grade).toBe('known');
+  });
+
+  it('types romaji on a physical keyboard, ignores punctuation and accepts は written as わ', () => {
+    // greetings-1: おはようございます。
+    const view = renderComposePractice(() => 0);
+    document.body.appendChild(view);
+    for (const key of 'ohayougozaimasu') document.dispatchEvent(new KeyboardEvent('keydown', { key }));
+    expect(view.querySelector('.compose-answer-field')!.textContent).toBe('おはようございます');
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+    expect(view.querySelector('.compose-feedback')!.textContent).toBe('정답!');
+    view.remove();
+
+    // greetings-2: こんにちは。 — 소리대로 konnichiwa로 쳐도 맞다.
+    const second = renderComposePractice(() => 0);
+    expect(second.dataset.currentId).toBe('greetings-2');
+    document.body.appendChild(second);
+    for (const key of 'konnichiwa') document.dispatchEvent(new KeyboardEvent('keydown', { key }));
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+    expect(second.querySelector('.compose-feedback')!.textContent).toBe('정답!');
+    second.remove();
   });
 
   it('marks the answer correct when typed reading matches a kanji-bearing sentence', () => {

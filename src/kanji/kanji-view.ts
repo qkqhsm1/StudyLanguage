@@ -5,12 +5,19 @@ import { pronunciationOf, renderAudioButton } from '../vocab/vocab-view';
 import type { SrsStore } from '../types';
 import {
   buildKanjiQuiz, currentSet, dueKanji, findKanji, formatKun, isMastered, KANJI, KANJI_PER_SET, kanjiInSet, loadKanjiStore,
-  recordKanji, readingsLabel, setsIn, skillGrade, wordsWith, type KanjiEntry, type KanjiQuizMode, type KanjiSkill,
+  missedKanji, recordKanji, readingsLabel, setsIn, skillGrade, wordsWith, type KanjiEntry, type KanjiQuizMode, type KanjiSkill,
 } from './kanji-data';
 import { gradeWriting } from './stroke-check';
 import { renderStrokes, renderWritingPad } from './writing-pad';
 
 const TRACE_KEY = 'kanji-trace';
+
+type WriteStep = 'trace' | 'copy' | 'recall';
+const WRITE_STEPS: Record<WriteStep, { label: string; help: string }> = {
+  trace: { label: '따라 쓰기', help: '회색 밑글씨 위로 획순대로 따라 쓰세요' },
+  copy: { label: '보고 쓰기', help: '옆의 글자를 보면서 써 보세요' },
+  recall: { label: '안 보고 쓰기', help: '이 칸지를 기억해서 써 보세요' },
+};
 /** 급수 전체 테스트의 문제 수. */
 const LEVEL_TEST_QUESTIONS = 30;
 
@@ -87,8 +94,9 @@ function renderHome(container: HTMLElement, store: SrsStore, ctx: KanjiContext):
   const shortcuts = el('div', 'shortcut-grid');
   shortcuts.append(
     shortcut(`${base}/read?set=${set}`, '読', '읽기 퀴즈', `지금 묶음 ${set}의 칸지를 일본어로 읽기`),
-    shortcut(`${base}/write?set=${set}`, '書', '쓰기 연습', `지금 묶음 ${set}을 획순대로 직접 쓰기`),
+    shortcut(`${base}/write?set=${set}`, '書', '쓰기 연습', `묶음 ${set}을 따라 쓰기, 보고 쓰기, 안 보고 쓰기로 세 번씩`),
     shortcut(`${base}/today`, '復', '오늘 복습', `읽기 ${dueKanji(store, 'read', undefined, list).length}자, 쓰기 ${dueKanji(store, 'write', undefined, list).length}자`),
+    shortcut(`${base}/wrong`, '誤', '오답노트', `틀린 읽기 ${missedKanji(store, 'read', list).length}자, 쓰기 ${missedKanji(store, 'write', list).length}자`),
   );
   if (ctx.level) shortcuts.prepend(shortcut(`${base}/read?scope=all`, '試', `${ctx.level} 칸지 테스트`, `전체 ${list.length}자에서 ${Math.min(LEVEL_TEST_QUESTIONS, list.length)}문제`));
   container.appendChild(shortcuts);
@@ -149,6 +157,75 @@ function renderToday(container: HTMLElement, store: SrsStore, ctx: KanjiContext)
   const grid = el('div', 'kanji-grid kanji-grid-spaced');
   for (const entry of list.filter((k) => read.includes(k) || write.includes(k))) grid.appendChild(kanjiTile(entry, store, base));
   container.appendChild(grid);
+}
+
+/** 기록 없이 몇 번이든 쓰는 칸. 다 쓰면 잠깐 보여준 뒤 비워서 바로 다시 쓰게 한다. */
+function renderFreePad(paths: string[]): HTMLElement {
+  const wrap = el('section', 'kanji-free-pad');
+  wrap.appendChild(el('h3', 'section-title', '자유롭게 쓰기'));
+  const status = el('div', 'kanji-write-status');
+  status.setAttribute('role', 'status');
+  const count = el('span', 'kanji-free-count', '몇 번이든 써 보세요');
+  const message = el('span', 'kanji-stroke-message', '첫 획부터 차례대로');
+  status.append(count, message);
+  let written = 0;
+  const pad = renderWritingPad(paths, {
+    onStroke: (result, done) => {
+      message.textContent = result === 'correct' ? `${done} / ${paths.length}획` : result === 'out-of-order' ? `획순이 달라요. ${done + 1}번째 획부터` : '다시 써 보세요';
+      message.className = `kanji-stroke-message ${result === 'correct' ? 'is-correct' : 'is-wrong'}`;
+    },
+    onComplete: () => {
+      written += 1;
+      count.textContent = `${written}번 썼어요`;
+      message.textContent = '좋아요! 한 번 더';
+      window.setTimeout(() => pad.reset(), 600);
+    },
+  });
+  let trace = localStorage.getItem(TRACE_KEY) === 'on';
+  pad.setTrace(trace);
+  const controls = el('div', 'kanji-write-controls');
+  const traceBtn = el('button', 'btn btn-plain', '따라 쓰기');
+  traceBtn.type = 'button';
+  traceBtn.setAttribute('aria-pressed', String(trace));
+  traceBtn.addEventListener('click', () => {
+    trace = !trace;
+    localStorage.setItem(TRACE_KEY, trace ? 'on' : 'off');
+    traceBtn.setAttribute('aria-pressed', String(trace));
+    pad.setTrace(trace);
+  });
+  const order = el('button', 'btn btn-plain', '필순 보기');
+  order.type = 'button';
+  order.addEventListener('click', () => pad.playOrder());
+  const clear = el('button', 'btn btn-plain', '지우기');
+  clear.type = 'button';
+  clear.addEventListener('click', () => pad.reset());
+  controls.append(order, traceBtn, clear);
+  wrap.append(status, pad.element, controls);
+  return wrap;
+}
+
+/** 퀴즈에서 못 읽었거나 혼자 못 쓴 칸지. 다시 맞히면 빠진다. */
+function renderWrong(container: HTMLElement, store: SrsStore, ctx: KanjiContext): void {
+  const { list, base } = ctx;
+  const read = missedKanji(store, 'read', list);
+  const write = missedKanji(store, 'write', list);
+  container.appendChild(link(base, 'back-link', `‹ ${ctx.title}`));
+  container.appendChild(pageHead(`${ctx.title} 오답노트`));
+  if (read.length + write.length === 0) {
+    container.appendChild(el('p', 'empty-state', '틀린 칸지가 없어요. 읽기 퀴즈에서 틀리거나 쓰기에서 도움을 많이 받은 글자가 여기에 모입니다.'));
+    return;
+  }
+  const shortcuts = el('div', 'shortcut-grid');
+  if (read.length) shortcuts.appendChild(shortcut(`${base}/read?scope=missed`, '読', `틀린 읽기 ${read.length}자 다시 풀기`, '한 번에 최대 10문제'));
+  if (write.length) shortcuts.appendChild(shortcut(`${base}/write?scope=missed`, '書', `틀린 쓰기 ${write.length}자 다시 쓰기`, '기억해서 쓰기, 한 번에 최대 10자'));
+  container.appendChild(shortcuts);
+  for (const [title, entries] of [['읽기에서 틀린 칸지', read], ['쓰기에서 틀린 칸지', write]] as const) {
+    if (entries.length === 0) continue;
+    container.appendChild(el('h3', 'section-title', `${title} ${entries.length}자`));
+    const grid = el('div', 'kanji-grid kanji-grid-spaced');
+    for (const entry of entries) grid.appendChild(kanjiTile(entry, store, base));
+    container.appendChild(grid);
+  }
 }
 
 function renderChar(container: HTMLElement, entry: KanjiEntry, ctx: KanjiContext): void {
@@ -228,6 +305,7 @@ function renderChar(container: HTMLElement, entry: KanjiEntry, ctx: KanjiContext
     play();
     replay.classList.remove('hidden');
     replay.addEventListener('click', play);
+    steps.before(renderFreePad(paths));
     steps.appendChild(el('h3', 'section-title', `필순 ${paths.length}획`));
     const strip = el('div', 'kanji-step-strip');
     paths.forEach((_, i) => {
@@ -254,6 +332,7 @@ function resolveScope(params: URLSearchParams, skill: KanjiSkill, store: SrsStor
   const entry = char ? findKanji(char, list) : undefined;
   if (entry) return { entries: [entry], label: entry.id, back: `${base}/char/${encodeURIComponent(entry.id)}`, query: `char=${encodeURIComponent(entry.id)}` };
   if (params.get('scope') === 'today') return { entries: dueKanji(store, skill, undefined, list), label: '오늘 복습', back: `${base}/today`, query: 'scope=today' };
+  if (params.get('scope') === 'missed') return { entries: missedKanji(store, skill, list), label: '오답노트', back: `${base}/wrong`, query: 'scope=missed' };
   if (ctx.level && params.get('scope') === 'all') return { entries: list, label: `${ctx.level} 테스트`, back: base, query: 'scope=all', limit: LEVEL_TEST_QUESTIONS };
   const asked = Number(params.get('set'));
   const set = Number.isInteger(asked) && asked >= 1 && asked <= setsIn(list) ? asked : currentSet(store, list);
@@ -315,7 +394,7 @@ function renderReadQuiz(container: HTMLElement, params: URLSearchParams, store: 
   }
   container.appendChild(pageHead(`${ctx.level ? `${ctx.level} ` : ''}칸지 읽기`, [segments, link(scope.back, 'back-link', '‹ 목록으로')]));
   if (scope.entries.length === 0) {
-    container.appendChild(el('p', 'empty-state', '오늘 읽기 복습할 칸지가 없어요.'));
+    container.appendChild(el('p', 'empty-state', scope.query === 'scope=missed' ? '읽기에서 틀린 칸지가 없어요.' : '오늘 읽기 복습할 칸지가 없어요.'));
     return;
   }
   const session = el('section', 'vocab-quiz-session');
@@ -433,7 +512,7 @@ function renderWriteSession(container: HTMLElement, params: URLSearchParams, sto
   const scope = resolveScope(params, 'write', store, ctx);
   container.appendChild(pageHead(`${ctx.level ? `${ctx.level} ` : ''}칸지 쓰기`, [link(scope.back, 'back-link', '‹ 목록으로')]));
   if (scope.entries.length === 0) {
-    container.appendChild(el('p', 'empty-state', '오늘 쓰기 복습할 칸지가 없어요.'));
+    container.appendChild(el('p', 'empty-state', scope.query === 'scope=missed' ? '쓰기에서 틀린 칸지가 없어요.' : '오늘 쓰기 복습할 칸지가 없어요.'));
     return;
   }
   const session = el('section', 'vocab-quiz-session');
@@ -468,112 +547,135 @@ function renderWriteSession(container: HTMLElement, params: URLSearchParams, sto
       }
       if (deck[index] !== entry) return;
 
-      let misses = 0;
-      let hints = 0;
-      let watched = false;
-      let traced = trace;
-      let finished = false;
+      // 배우는 범위에서는 한 글자를 세 번 쓴다: 따라 쓰기 → 보고 쓰기 → 안 보고 쓰기. 마지막 한 번만 기록한다.
+      // 복습은 기억해서 쓰는지만 본다.
+      const steps: WriteStep[] = scope.query === 'scope=today' || scope.query === 'scope=missed' ? ['recall'] : ['trace', 'copy', 'recall'];
+      renderStep(0);
 
-      const board = el('div', 'practice-board kanji-write-board');
-      const stage = el('div', 'practice-stage kanji-prompt');
-      stage.appendChild(el('div', 'compose-label', '이 칸지를 써 보세요'));
-      const readings = el('div', 'kanji-prompt-readings', readingsLabel(entry));
-      readings.lang = 'ja';
-      stage.appendChild(readings);
-      stage.appendChild(el('div', 'kanji-prompt-hun', entry.hun));
-      const example = wordsWith(entry.id, 1)[0];
-      const exampleLine = el('div', 'kanji-prompt-word');
-      if (example) {
-        // 답이 보이면 안 되므로 해당 글자만 가린다.
-        const masked = el('span', '', example.japanese.split(entry.id).join('○'));
-        masked.lang = 'ja';
-        const reading = el('span', '', example.reading);
-        reading.lang = 'ja';
-        exampleLine.append(masked, reading, el('span', '', example.korean.split(', ')[0]));
-        stage.appendChild(exampleLine);
-      }
-      const revealed = el('div', 'kanji-prompt-answer');
-      revealed.lang = 'ja';
-      revealed.hidden = true;
-      revealed.textContent = entry.id;
-      stage.appendChild(revealed);
+      function renderStep(stepIndex: number): void {
+        const step = steps[stepIndex];
+        const isLast = stepIndex === steps.length - 1;
+        let misses = 0;
+        let hints = 0;
+        let watched = false;
+        let traced = step === 'recall' && trace;
+        let finished = false;
 
-      const panel = el('div', 'practice-panel kanji-write-panel');
-      const status = el('div', 'kanji-write-status');
-      status.setAttribute('role', 'status');
-      const count = el('span', 'kanji-stroke-count', `0 / ${paths.length}획`);
-      const message = el('span', 'kanji-stroke-message', '첫 획부터 차례대로 쓰세요');
-      status.append(count, message);
+        const board = el('div', 'practice-board kanji-write-board');
+        const stage = el('div', 'practice-stage kanji-prompt');
+        const stepLabel = steps.length > 1 ? `${stepIndex + 1}/${steps.length} ${WRITE_STEPS[step].label}: ` : '';
+        stage.appendChild(el('div', 'compose-label', stepLabel + WRITE_STEPS[step].help));
+        const readings = el('div', 'kanji-prompt-readings', readingsLabel(entry));
+        readings.lang = 'ja';
+        stage.appendChild(readings);
+        stage.appendChild(el('div', 'kanji-prompt-hun', entry.hun));
+        const example = wordsWith(entry.id, 1)[0];
+        const exampleLine = el('div', 'kanji-prompt-word');
+        if (example) {
+          // 답이 보이면 안 되므로 해당 글자만 가린다.
+          const masked = el('span', '', step === 'recall' ? example.japanese.split(entry.id).join('○') : example.japanese);
+          masked.lang = 'ja';
+          const reading = el('span', '', example.reading);
+          reading.lang = 'ja';
+          exampleLine.append(masked, reading, el('span', '', example.korean.split(', ')[0]));
+          stage.appendChild(exampleLine);
+        }
+        const revealed = el('div', 'kanji-prompt-answer');
+        revealed.lang = 'ja';
+        // 보고 쓰기는 글자를 옆에 둔 채로 쓴다.
+        revealed.hidden = step !== 'copy';
+        revealed.textContent = entry.id;
+        stage.appendChild(revealed);
 
-      const pad = renderWritingPad(paths, {
-        onStroke: (result, done) => {
-          count.textContent = `${done} / ${paths.length}획`;
-          if (result === 'correct') {
-            message.textContent = done === paths.length ? '' : '좋아요';
-            message.className = 'kanji-stroke-message is-correct';
-          } else {
-            misses += 1;
-            message.textContent = result === 'out-of-order' ? `획순이 달라요. ${done + 1}번째 획을 먼저 쓰세요` : '다시 써 보세요';
-            message.className = 'kanji-stroke-message is-wrong';
-          }
-        },
-        onHint: () => { hints += 1; },
-        onComplete: () => {
-          finished = true;
-          const grade = gradeWriting({ strokes: paths.length, misses, hints, watched, traced });
-          recordKanji('write', entry.id, grade);
-          if (grade === 'known') clean += 1;
-          else wrong.push(entry);
-          message.textContent = grade === 'known' ? '혼자서 잘 썼어요!' : grade === 'confusing' ? '완성! 도움 없이 한 번 더 써 보세요' : '완성! 내일 다시 복습해요';
-          message.className = `kanji-stroke-message ${grade === 'known' ? 'is-correct' : 'is-wrong'}`;
-          exampleLine.remove();
-          revealed.hidden = false;
-          controls.hidden = true;
-          next.hidden = false;
-          next.focus();
-        },
-      });
-      pad.setTrace(trace);
+        const panel = el('div', 'practice-panel kanji-write-panel');
+        const status = el('div', 'kanji-write-status');
+        status.setAttribute('role', 'status');
+        const count = el('span', 'kanji-stroke-count', `0 / ${paths.length}획`);
+        const message = el('span', 'kanji-stroke-message', '첫 획부터 차례대로 쓰세요');
+        status.append(count, message);
 
-      const controls = el('div', 'kanji-write-controls');
-      const button = (label: string, handler: () => void): HTMLButtonElement => {
-        const b = el('button', 'btn btn-plain', label);
-        b.type = 'button';
-        b.addEventListener('click', handler);
-        return b;
-      };
-      const traceBtn = button('따라 쓰기', () => {
-        trace = !trace;
-        localStorage.setItem(TRACE_KEY, trace ? 'on' : 'off');
+        const pad = renderWritingPad(paths, {
+          onStroke: (result, done) => {
+            count.textContent = `${done} / ${paths.length}획`;
+            if (result === 'correct') {
+              message.textContent = done === paths.length ? '' : '좋아요';
+              message.className = 'kanji-stroke-message is-correct';
+            } else {
+              misses += 1;
+              message.textContent = result === 'out-of-order' ? `획순이 달라요. ${done + 1}번째 획을 먼저 쓰세요` : '다시 써 보세요';
+              message.className = 'kanji-stroke-message is-wrong';
+            }
+          },
+          onHint: () => { hints += 1; },
+          onComplete: () => {
+            finished = true;
+            controls.hidden = true;
+            next.hidden = false;
+            if (!isLast) {
+              message.textContent = '좋아요! 다음 단계로 넘어가요';
+              message.className = 'kanji-stroke-message is-correct';
+              next.focus();
+              return;
+            }
+            const grade = gradeWriting({ strokes: paths.length, misses, hints, watched, traced });
+            recordKanji('write', entry.id, grade);
+            if (grade === 'known') clean += 1;
+            else wrong.push(entry);
+            message.textContent = grade === 'known' ? '혼자서 잘 썼어요!' : grade === 'confusing' ? '완성! 도움 없이 한 번 더 써 보세요' : '완성! 내일 다시 복습해요';
+            message.className = `kanji-stroke-message ${grade === 'known' ? 'is-correct' : 'is-wrong'}`;
+            exampleLine.remove();
+            revealed.hidden = false;
+            next.focus();
+          },
+        });
+        pad.setTrace(step === 'trace' || traced);
+
+        const controls = el('div', 'kanji-write-controls');
+        const button = (label: string, handler: () => void): HTMLButtonElement => {
+          const b = el('button', 'btn btn-plain', label);
+          b.type = 'button';
+          b.addEventListener('click', handler);
+          return b;
+        };
+        const traceBtn = button('따라 쓰기', () => {
+          trace = !trace;
+          localStorage.setItem(TRACE_KEY, trace ? 'on' : 'off');
+          traceBtn.setAttribute('aria-pressed', String(trace));
+          pad.setTrace(trace);
+          if (trace) traced = true;
+        });
         traceBtn.setAttribute('aria-pressed', String(trace));
-        pad.setTrace(trace);
-        if (trace) traced = true;
-      });
-      traceBtn.setAttribute('aria-pressed', String(trace));
-      controls.append(
-        button('다음 획 힌트', () => pad.showHint()),
-        button('필순 보기', () => { watched = true; pad.playOrder(); }),
-        traceBtn,
-        button('처음부터', () => {
+        controls.append(
+          button('다음 획 힌트', () => pad.showHint()),
+          button('필순 보기', () => { watched = true; pad.playOrder(); }),
+        );
+        // 따라 쓰기 단계는 늘 밑글씨가 있고, 보고 쓰기는 글자가 옆에 있으니 이 버튼은 마지막 단계에만 둔다.
+        if (step === 'recall') controls.appendChild(traceBtn);
+        controls.appendChild(button('처음부터', () => {
           pad.reset();
           count.textContent = `0 / ${paths.length}획`;
           message.textContent = '첫 획부터 차례대로 쓰세요';
           message.className = 'kanji-stroke-message';
-        }),
-      );
+        }));
 
-      const next = el('button', 'vocab-quiz-next btn btn-primary', index + 1 === deck.length ? '결과 보기' : '다음 글자');
-      next.type = 'button';
-      next.hidden = true;
-      next.addEventListener('click', () => {
-        if (!finished) return;
-        index += 1;
-        void show();
-      });
+        const nextLabel = !isLast ? '다음 단계' : index + 1 === deck.length ? '결과 보기' : '다음 글자';
+        const next = el('button', 'vocab-quiz-next btn btn-primary', nextLabel);
+        next.type = 'button';
+        next.hidden = true;
+        next.addEventListener('click', () => {
+          if (!finished) return;
+          if (!isLast) {
+            renderStep(stepIndex + 1);
+            return;
+          }
+          index += 1;
+          void show();
+        });
 
-      panel.append(status, pad.element, controls, next);
-      board.append(stage, panel);
-      session.replaceChildren(progressBar(scope.label, index, deck.length, `혼자 쓴 글자 ${clean}개`).root, board);
+        panel.append(status, pad.element, controls, next);
+        board.append(stage, panel);
+        session.replaceChildren(progressBar(scope.label, index, deck.length, `혼자 쓴 글자 ${clean}개`).root, board);
+      }
     }
     void show();
   }
@@ -603,6 +705,8 @@ export function renderKanjiView(hash: string, rng: () => number = Math.random, c
     renderWriteSession(container, params, store, rng, ctx);
   } else if (path === '/today') {
     renderToday(container, store, ctx);
+  } else if (path === '/wrong') {
+    renderWrong(container, store, ctx);
   } else if (setMatch && Number(setMatch[1]) <= setsIn(ctx.list)) {
     renderSet(container, Number(setMatch[1]), store, ctx);
   } else if (entry) {

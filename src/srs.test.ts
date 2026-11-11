@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildTodayQueue, describeReviewStatus, reviewEntry, toggleBookmark } from './srs';
+import { buildTodayQueue, describeReviewStatus, reviewEntry, toggleBookmark, recordQuizAnswer } from './srs';
 import type { SrsStore, VocabEntry } from './types';
 
 const TODAY = new Date('2026-01-01T00:00:00Z');
@@ -42,7 +42,26 @@ describe('toggleBookmark', () => {
   it('bookmarks an entry with no prior state', () => {
     const state = toggleBookmark(undefined, TODAY);
     expect(state.bookmarked).toBe(true);
-    expect(state.grade).toBe('unknown');
+    // 북마크만 했다고 모름이 되지는 않는다.
+    expect(state.grade).toBeUndefined();
+  });
+
+  it('records quiz answers apart from my own marks', () => {
+    const known = reviewEntry(undefined, 'known', TODAY);
+    const missedKnown = recordQuizAnswer(known, false, TODAY);
+    expect(missedKnown).toMatchObject({ grade: 'confusing', missed: true });
+    expect(recordQuizAnswer(undefined, false, TODAY)).toMatchObject({ grade: 'unknown', missed: true });
+    expect(recordQuizAnswer(reviewEntry(undefined, 'unknown', TODAY), false, TODAY).grade).toBe('unknown');
+    // 보기에서 골라 맞힌 건 표시를 바꾸지 않고, 직접 써서 맞혀야 암기됨이 된다.
+    expect(recordQuizAnswer(undefined, true, TODAY).grade).toBeUndefined();
+    expect(recordQuizAnswer(undefined, true, TODAY, true).grade).toBe('known');
+    // 내가 고른 표시를 바꿔도 퀴즈에서 틀린 기록은 남고, 퀴즈에서 맞혀야 지워진다.
+    const remarked = reviewEntry(missedKnown, 'known', TODAY);
+    expect(remarked.missed).toBe(true);
+    const cleared = recordQuizAnswer(remarked, true, TODAY);
+    expect(cleared.missed).toBeUndefined();
+    expect(cleared.grade).toBe('known');
+    expect(toggleBookmark(missedKnown, TODAY)).toMatchObject({ grade: 'confusing', missed: true, bookmarked: true });
   });
 
   it('un-bookmarks a previously bookmarked entry without touching its grade', () => {

@@ -128,6 +128,13 @@ export function renderWordCard(entry: VocabEntry, srsState: SrsState | undefined
 
   card.appendChild(top);
 
+  // '뜻 가리기'를 켰을 때만 보인다. 누르면 이 카드의 뜻·읽기·발음이 드러난다.
+  const reveal = document.createElement('button');
+  reveal.type = 'button';
+  reveal.className = 'word-reveal btn btn-plain';
+  reveal.textContent = '뜻 보기';
+  card.appendChild(reveal);
+
   const meta = document.createElement('div');
   meta.className = 'word-meta';
   const meanings = entry.korean.split(', ');
@@ -165,6 +172,14 @@ export function renderWordCard(entry: VocabEntry, srsState: SrsState | undefined
   categoryBadge.className = 'badge badge-skill';
   categoryBadge.textContent = entry.skillName;
   badges.appendChild(categoryBadge);
+
+  if (srsState?.missed) {
+    // 내 표시(모름·헷갈림·암기됨)와 별개로, 퀴즈에서 틀렸다는 사실을 따로 알린다.
+    const missed = document.createElement('span');
+    missed.className = 'badge badge-urgent';
+    missed.textContent = '퀴즈에서 틀림';
+    badges.appendChild(missed);
+  }
 
   const reviewBadge = describeReviewStatus(srsState, today);
   if (reviewBadge) {
@@ -245,14 +260,80 @@ export function renderDayList(entries: VocabEntry[], srsStore: SrsStore, group?:
 
 /** 카드 안의 발음 재생·북마크·채점 버튼을 위임으로 처리한다. 카드 목록이 여러
  *  개로 나뉜 화면(Day의 등급별 하위 섹션)에서는 바깥 컨테이너에 한 번만 붙인다. */
+// 채점한 카드는 이 화면을 떠날 때까지 원래 구역에 둔다. 누르자마자 맨 아래 '외운 단어'로 사라지면
+// 잘못 눌렀을 때 찾아서 되돌리기 어렵다. 주소가 바뀌면(다른 Day로 가면) 새로 나눈다.
+const stayPut = new Map<string, string>();
+let stayPutHash = '';
+
+function currentHash(): string {
+  return typeof location === 'undefined' ? '' : location.hash;
+}
+
+export function resetStayPut(): void {
+  stayPut.clear();
+}
+
+const HIDE_CARDS_KEY = 'vocab-cards-hidden';
+
+function cardsHidden(): boolean {
+  try {
+    return localStorage.getItem(HIDE_CARDS_KEY) === 'yes';
+  } catch {
+    return false;
+  }
+}
+
+/** 카드의 뜻·후리가나·발음을 가리고 스스로 떠올려 본 뒤 눌러서 확인하는 모드. 이 기기에서 기억한다. */
+function renderCardModeToggle(): HTMLElement {
+  const bar = document.createElement('div');
+  bar.className = 'card-mode';
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'card-mode-toggle segment';
+  const paint = () => {
+    const hidden = cardsHidden();
+    document.documentElement.classList.toggle('vocab-cards-hidden', hidden);
+    button.textContent = hidden ? '뜻 가리기 켜짐' : '뜻 가리기';
+    button.setAttribute('aria-pressed', String(hidden));
+  };
+  button.addEventListener('click', () => {
+    try {
+      localStorage.setItem(HIDE_CARDS_KEY, cardsHidden() ? 'no' : 'yes');
+    } catch {
+      // 저장이 막혀도 이번 화면에서는 바뀌게 한다.
+      document.documentElement.classList.toggle('vocab-cards-hidden');
+      return;
+    }
+    paint();
+  });
+  paint();
+  const help = document.createElement('span');
+  help.className = 'card-mode-help';
+  help.textContent = '뜻과 읽기를 가리고 떠올려 본 뒤 카드를 눌러 확인해요';
+  bar.append(button, help);
+  return bar;
+}
+
 function attachVocabCardActions(root: HTMLElement, container: HTMLElement): void {
   root.addEventListener('click', (event) => {
+    // 가린 카드는 단어 부분을 눌러도 뜻이 드러난다.
+    const card = (event.target as Element).closest<HTMLElement>('.word-card');
+    const button = (event.target as Element).closest<HTMLElement>('button');
+    if (card && (!button || button.classList.contains('word-reveal'))) {
+      if (document.documentElement.classList.contains('vocab-cards-hidden')) card.classList.toggle('is-revealed');
+      return;
+    }
     // 아이콘(svg)을 눌러도 버튼으로 잡히도록 위로 올라가 찾는다.
-    const target = (event.target as Element).closest<HTMLElement>('button');
+    const target = button;
     const entryId = target?.dataset.entryId;
     if (!target || !entryId) return;
 
     const store = loadSrsStore();
+    const section = target.closest<HTMLElement>('.vocab-group');
+    if (section?.dataset.label) {
+      stayPutHash = currentHash();
+      stayPut.set(entryId, section.dataset.label);
+    }
 
     if (target.classList.contains('bookmark-toggle')) {
       store[entryId] = toggleBookmark(store[entryId]);
@@ -271,13 +352,16 @@ function attachVocabCardActions(root: HTMLElement, container: HTMLElement): void
 }
 
 export function renderCardList(entries: VocabEntry[], srsStore: SrsStore, container: HTMLElement): HTMLElement {
+  const wrap = document.createElement('div');
+  if (entries.length > 0) wrap.appendChild(renderCardModeToggle());
   const list = document.createElement('div');
   list.className = 'card-list';
+  wrap.appendChild(list);
   for (const entry of entries) {
     list.appendChild(renderWordCard(entry, srsStore[entry.id]));
   }
   attachVocabCardActions(list, container);
-  return list;
+  return wrap;
 }
 
 /** 한 화면 안에서 단어를 나눠 담는 접이식 섹션. 앞쪽 조건이 먼저 가져가므로
@@ -290,7 +374,8 @@ interface CardGroup {
 // Day 화면: 채점 전 단어가 맨 위, 다 외운 단어가 맨 아래.
 // 라벨은 채점 버튼(모름/헷갈림/암기됨)보다 부드럽게.
 const DAY_GROUPS: CardGroup[] = [
-  { label: '아직 안 본 단어', match: (state) => state === undefined },
+  { label: '퀴즈에서 틀린 단어', match: (state) => state?.missed === true },
+  { label: '아직 표시 안 한 단어', match: (state) => !state?.grade },
   { label: '잘 모르는 단어', match: (state) => state?.grade === 'unknown' },
   { label: '헷갈리는 단어', match: (state) => state?.grade === 'confusing' },
   { label: '외운 단어', match: (state) => state?.grade === 'known' },
@@ -299,6 +384,7 @@ const DAY_GROUPS: CardGroup[] = [
 // 오답노트: 틀린 순서대로. 북마크는 맨 뒤 — 외웠는데 표시만 해둔 단어가 여기 온다.
 // (모르는데 북마크까지 한 단어는 앞의 '모르는 단어'가 먼저 가져간다.)
 export const WRONG_GROUPS: CardGroup[] = [
+  { label: '퀴즈에서 틀린 단어', match: (state) => state?.missed === true },
   { label: '모르는 단어', match: (state) => state?.grade === 'unknown' },
   { label: '헷갈리는 단어', match: (state) => state?.grade === 'confusing' },
   { label: '북마크한 단어', match: (state) => state?.bookmarked === true },
@@ -310,7 +396,7 @@ export function collectWrongNotes(entries: VocabEntry[], srsStore: SrsStore): Vo
   return entries.filter((entry) => {
     const state = srsStore[entry.id];
     if (!state) return false;
-    return state.bookmarked || state.grade === 'unknown' || state.grade === 'confusing';
+    return state.bookmarked || state.missed === true || state.grade === 'unknown' || state.grade === 'confusing';
   });
 }
 
@@ -327,15 +413,21 @@ export function renderCardGroups(
 ): HTMLElement {
   const wrap = document.createElement('div');
   wrap.className = 'vocab-day-groups';
+  if (entries.length > 0) wrap.appendChild(renderCardModeToggle());
+  if (currentHash() !== stayPutHash) stayPut.clear();
 
+  // 다른 화면의 구역에 묶어 둔 카드는 이 화면 구역으로 새로 나눈다.
+  const labels = new Set(groups.map((group) => group.label));
+  const pinnedHere = (id: string) => labels.has(stayPut.get(id) ?? "");
   const taken = new Set<string>();
   for (const group of groups) {
-    const groupEntries = entries.filter((e) => !taken.has(e.id) && group.match(srsStore[e.id]));
+    const groupEntries = entries.filter((e) => !taken.has(e.id) && (pinnedHere(e.id) ? stayPut.get(e.id) === group.label : group.match(srsStore[e.id])));
     for (const entry of groupEntries) taken.add(entry.id);
     if (groupEntries.length === 0) continue;
 
     const section = document.createElement('div');
     section.className = 'vocab-group';
+    section.dataset.label = group.label;
     section.classList.toggle('collapsed', collapsedGroups.has(group.label));
 
     const header = document.createElement('button');
@@ -422,8 +514,42 @@ export function renderVocabLink(href: string, symbol: string, label: string, des
   return list;
 }
 
+/** 퀴즈에서 틀리고 아직 다시 맞히지 않은 단어. 내가 고른 모름·헷갈림과는 따로 센다. */
+export function isMissed(state: SrsState | undefined): boolean {
+  return state?.missed === true;
+}
+
+/** 모름·헷갈림으로 채점한 단어. 북마크만 한 단어는 퀴즈 대상이 아니다. */
+export function isWeak(state: SrsState | undefined): boolean {
+  return state?.grade === 'unknown' || state?.grade === 'confusing';
+}
+
+/** Day·묶음 화면의 퀴즈 버튼: 무작위 10문제, 전체 단어, 모름·헷갈림만. */
+export function renderQuizLinks(href: string, entries: VocabEntry[], srsStore: SrsStore): HTMLElement {
+  const grid = document.createElement('div');
+  grid.className = 'shortcut-grid';
+  grid.appendChild(renderVocabLink(href, '問', '10문제 퀴즈', '이 단어들 중 무작위 10문제'));
+  grid.appendChild(renderVocabLink(`${href}?count=all`, '全', '전체 단어 퀴즈', `${entries.length}단어 모두 무작위 순서로`));
+  const weak = entries.filter((e) => isWeak(srsStore[e.id])).length;
+  if (weak > 0) grid.appendChild(renderVocabLink(`${href}?only=weak&count=all`, '迷', '모름·헷갈림 퀴즈', `내가 표시해 둔 ${weak}단어만`));
+  const missed = entries.filter((e) => isMissed(srsStore[e.id])).length;
+  if (missed > 0) grid.appendChild(renderVocabLink(`${href}?only=missed&count=all`, '誤', '틀린 단어 퀴즈', `퀴즈에서 틀린 ${missed}단어만`));
+  return grid;
+}
+
+/** 오답노트의 퀴즈 버튼. 내가 표시한 것과 퀴즈에서 틀린 것을 따로 푼다. */
+export function renderWrongQuizLinks(href: string, entries: VocabEntry[], srsStore: SrsStore, limit = 10): HTMLElement {
+  const grid = document.createElement('div');
+  grid.className = 'shortcut-grid';
+  const missed = entries.filter((e) => isMissed(srsStore[e.id])).length;
+  const weak = entries.filter((e) => isWeak(srsStore[e.id])).length;
+  if (missed > 0) grid.appendChild(renderVocabLink(`${href}?only=missed`, '誤', '틀린 단어 퀴즈', `퀴즈에서 틀린 ${missed}단어에서 최대 ${limit}문제`));
+  if (weak > 0) grid.appendChild(renderVocabLink(`${href}?only=weak`, '迷', '모름·헷갈림 퀴즈', `내가 표시한 ${weak}단어에서 최대 ${limit}문제`));
+  return grid;
+}
+
 export function renderWrongNotesLink(entries: VocabEntry[], srsStore: SrsStore): HTMLElement {
-  return renderVocabLink('#/vocab/wrong', '誤', '오답노트', `모름, 헷갈림, 북마크 ${collectWrongNotes(entries, srsStore).length}단어`);
+  return renderVocabLink('#/vocab/wrong', '誤', '오답노트', `퀴즈에서 틀림, 모름, 헷갈림, 북마크 ${collectWrongNotes(entries, srsStore).length}단어`);
 }
 
 function renderStudyGroups(srsStore: SrsStore): HTMLElement {
@@ -483,7 +609,7 @@ export function renderDayProgress(entries: VocabEntry[], srsStore: SrsStore): HT
 
 export function renderPager(prev: { href: string; label: string } | null, next: { href: string; label: string } | null): HTMLElement {
   const pager = document.createElement('div');
-  pager.className = 'pager';
+  pager.className = 'pager pager-top';
   for (const [target, className, prefix, suffix] of [[prev, 'pager-prev', '‹ ', ''], [next, 'pager-next', '', ' ›']] as const) {
     if (!target) continue;
     const link = document.createElement('a');
@@ -527,15 +653,18 @@ export function renderVocabHome(hash: string): HTMLElement {
       const heading = document.createElement('h2');
       heading.textContent = batch === null ? STUDY_GROUPS[group].label : `${STUDY_GROUPS[group].label} · 묶음 ${batch}`;
       container.appendChild(heading);
-      container.appendChild(renderVocabLink(`#/vocab/quiz/group/${group}${batch === null ? '' : `/${batch}`}`, '問', '이 단어들로 퀴즈', '무작위 최대 10문제'));
+      const quizHref = `#/vocab/quiz/group/${group}${batch === null ? '' : `/${batch}`}`;
       if (batch === null) {
+        container.appendChild(renderVocabLink(quizHref, '問', '이 단어들로 퀴즈', '무작위 최대 10문제'));
         container.appendChild(renderDayList(entries, srsStore, group));
       } else {
-        container.appendChild(renderCardGroups(entriesForDay(entries, batch), srsStore, container));
         container.appendChild(renderPager(
           batch > 1 ? { href: `#/vocab/group/${group}/${batch - 1}`, label: `묶음 ${batch - 1}` } : null,
           batch < totalDays(entries.length) ? { href: `#/vocab/group/${group}/${batch + 1}`, label: `묶음 ${batch + 1}` } : null,
         ));
+        const batchEntries = entriesForDay(entries, batch);
+        container.appendChild(renderQuizLinks(quizHref, batchEntries, srsStore));
+        container.appendChild(renderCardGroups(batchEntries, srsStore, container));
       }
     }
   } else if (hash === '#/vocab/today') {
@@ -551,25 +680,26 @@ export function renderVocabHome(hash: string): HTMLElement {
     heading.textContent = `오답노트 (${wrong.length})`;
     container.appendChild(heading);
     if (wrong.length === 0) container.appendChild(renderEmptyState('아직 담긴 단어가 없어요. 모름이나 헷갈림으로 표시하거나 퀴즈에서 틀린 단어가 여기에 모입니다.'));
+    container.appendChild(renderWrongQuizLinks('#/vocab/quiz/all', wrong, srsStore));
     container.appendChild(renderCardGroups(wrong, srsStore, container, WRONG_GROUPS));
   } else if (day !== null) {
     const heading = document.createElement('h2');
     heading.textContent = `Day ${day}`;
     container.appendChild(heading);
-    container.appendChild(renderDayProgress(dayEntries, srsStore));
-    container.appendChild(renderVocabLink(`#/vocab/quiz/day/${day}`, '問', '이 Day로 단어 퀴즈', '무작위 최대 10문제'));
-    container.appendChild(renderCardGroups(dayEntries, srsStore, container));
     container.appendChild(renderPager(
       day > 1 ? { href: `#/vocab/day/${day - 1}`, label: `Day ${day - 1}` } : null,
       day < totalDays(TYPED_VOCAB_DATA.entries.length) ? { href: `#/vocab/day/${day + 1}`, label: `Day ${day + 1}` } : null,
     ));
+    container.appendChild(renderDayProgress(dayEntries, srsStore));
+    container.appendChild(renderQuizLinks(`#/vocab/quiz/day/${day}`, dayEntries, srsStore));
+    container.appendChild(renderCardGroups(dayEntries, srsStore, container));
   } else {
     const heading = document.createElement('h2');
     heading.textContent = '단어장';
     container.appendChild(heading);
     const shortcuts = document.createElement('div');
     shortcuts.className = 'shortcut-grid';
-    shortcuts.appendChild(renderVocabLink('#/vocab/quiz', '問', '단어 퀴즈', '보기 5개 중에서 고르기'));
+    shortcuts.appendChild(renderVocabLink('#/vocab/quiz', '問', '단어 퀴즈', '뜻을 직접 쓰고, 막히면 보기'));
     shortcuts.appendChild(renderVocabLink('#/vocab/groups', '類', '품사별 암기장', '비슷한 말을 50개씩 모아 외우기'));
     shortcuts.appendChild(renderWrongNotesLink(TYPED_VOCAB_DATA.entries, srsStore));
     container.appendChild(shortcuts);

@@ -12,6 +12,8 @@ export interface VocabEntry {
   skillName: string;
   skillIndex: number;
   studyGroup?: VocabStudyGroup;
+  /** 어미·접두어 조각처럼 낱말 퀴즈로 묻기 어려운 항목. 단어장에는 보이되 문제와 보기에서 뺀다. */
+  quiz?: false;
 }
 
 export interface VocabData {
@@ -33,7 +35,10 @@ export interface KanaChar {
 export type SrsGrade = 'unknown' | 'confusing' | 'known';
 
 export interface SrsState {
-  grade: SrsGrade;
+  /** 내가 직접 고른 등급. 퀴즈만 풀고 표시한 적 없는 단어에는 없다. */
+  grade?: SrsGrade;
+  /** 퀴즈에서 틀렸고 아직 다시 맞히지 않았다. 내 표시(grade)와 따로 둔다. */
+  missed?: boolean;
   intervalDays: number;
   easeFactor: number;
   dueDate: string;

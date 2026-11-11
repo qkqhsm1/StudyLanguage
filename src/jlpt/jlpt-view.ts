@@ -6,8 +6,8 @@ import { buildTodayQueue } from '../srs';
 import type { VocabEntry } from '../types';
 import { renderVocabQuizHome } from '../vocab/vocab-quiz-view';
 import {
-  collectWrongNotes, loadSrsStore, renderCardGroups, renderCardList, renderDayList, renderDayProgress, renderEmptyState,
-  renderPager, renderVocabLink, WRONG_GROUPS,
+  collectWrongNotes, isMissed, isWeak, loadSrsStore, renderCardGroups, renderCardList, renderDayList, renderDayProgress, renderEmptyState,
+  renderPager, renderQuizLinks, renderVocabLink, renderWrongQuizLinks, WRONG_GROUPS,
 } from '../vocab/vocab-view';
 
 export const JLPT_LEVELS = ['N5', 'N4', 'N3', 'N2', 'N1'];
@@ -74,6 +74,9 @@ function renderLevel(container: HTMLElement, level: string, entries: VocabEntry[
   shortcuts.className = 'shortcut-grid';
   shortcuts.append(
     renderVocabLink(`${base}/quiz`, '試', `${level} 단어 테스트`, `전체 ${entries.length}단어에서 ${LEVEL_TEST_QUESTIONS}문제`),
+    renderVocabLink(`${base}/quiz?count=all`, '全', `${level} 전체 단어 테스트`, `${entries.length}단어 모두 무작위 순서로`),
+    renderVocabLink(`${base}/quiz?only=missed`, '誤', `${level} 틀린 단어 테스트`, `퀴즈에서 틀린 ${entries.filter((e) => isMissed(store[e.id])).length}단어에서 최대 ${LEVEL_TEST_QUESTIONS}문제`),
+    renderVocabLink(`${base}/quiz?only=weak`, '迷', `${level} 모름·헷갈림 테스트`, `내가 표시한 ${entries.filter((e) => isWeak(store[e.id])).length}단어에서 최대 ${LEVEL_TEST_QUESTIONS}문제`),
     renderVocabLink(`${base}/kanji/read?scope=all`, '読', `${level} 칸지 테스트`, `전체 ${kanji.length}자에서 ${Math.min(LEVEL_TEST_QUESTIONS, kanji.length)}문제`),
     renderVocabLink(`${base}/kanji`, '字', `${level} 칸지`, `${kanji.length}자를 읽고 직접 쓰기`),
   );
@@ -91,13 +94,13 @@ function renderDay(container: HTMLElement, level: string, entries: VocabEntry[],
   const dayEntries = entriesForDay(entries, day);
   container.appendChild(backLink(base, `‹ ${level} 목록`));
   container.appendChild(heading(`${level} Day ${day}`));
-  container.appendChild(renderDayProgress(dayEntries, store));
-  container.appendChild(renderVocabLink(`${base}/day/${day}/quiz`, '問', '이 Day로 단어 퀴즈', '무작위 최대 10문제'));
-  container.appendChild(renderCardGroups(dayEntries, store, container));
   container.appendChild(renderPager(
     day > 1 ? { href: `${base}/day/${day - 1}`, label: `Day ${day - 1}` } : null,
     day < totalDays(entries.length) ? { href: `${base}/day/${day + 1}`, label: `Day ${day + 1}` } : null,
   ));
+  container.appendChild(renderDayProgress(dayEntries, store));
+  container.appendChild(renderQuizLinks(`${base}/day/${day}/quiz`, dayEntries, store));
+  container.appendChild(renderCardGroups(dayEntries, store, container));
 }
 
 export function renderJlptView(hash: string, rng: () => number = Math.random): HTMLElement {
@@ -131,7 +134,8 @@ export function renderJlptView(hash: string, rng: () => number = Math.random): H
     const dayNumber = day ? Number(day[1]) : 0;
     if (day && dayNumber <= totalDays(entries.length)) {
       if (day[2]) {
-        return renderVocabQuizHome(hash, rng, { title: `${level} Day ${dayNumber} 퀴즈`, pool: entries, scope: entriesForDay(entries, dayNumber), label: `Day ${dayNumber}`, backHref: `${base}/day/${dayNumber}` });
+        return renderVocabQuizHome(hash, rng, { title: `${level} Day ${dayNumber} 퀴즈`, pool: entries, scope: entriesForDay(entries, dayNumber), label: `Day ${dayNumber}`, backHref: `${base}/day/${dayNumber}`,
+          next: dayNumber < totalDays(entries.length) ? { href: `${base}/day/${dayNumber + 1}/quiz`, label: `Day ${dayNumber + 1}` } : undefined });
       }
       renderDay(container, level, entries, dayNumber);
     } else {
@@ -143,11 +147,14 @@ export function renderJlptView(hash: string, rng: () => number = Math.random): H
     container.appendChild(heading(`오늘 복습할 JLPT 단어 (${queue.length})`));
     if (queue.length === 0) container.appendChild(renderEmptyState('오늘 복습할 JLPT 단어가 없어요. 급수를 골라 단어를 외워 보세요.'));
     container.appendChild(renderCardList(queue, store, container));
+  } else if (path === '#/jlpt/wrong/quiz') {
+    return renderVocabQuizHome(hash, rng, { title: 'JLPT 오답 퀴즈', pool: words, scope: words, label: 'JLPT 전체', backHref: '#/jlpt/wrong' });
   } else if (path === '#/jlpt/wrong') {
     const store = loadSrsStore();
     const wrong = collectWrongNotes(words, store);
     container.appendChild(heading(`JLPT 오답노트 (${wrong.length})`));
     if (wrong.length === 0) container.appendChild(renderEmptyState('아직 담긴 단어가 없어요. 모름이나 헷갈림으로 표시하거나 테스트에서 틀린 단어가 여기에 모입니다.'));
+    container.appendChild(renderWrongQuizLinks('#/jlpt/wrong/quiz', wrong, store));
     container.appendChild(renderCardGroups(wrong, store, container, WRONG_GROUPS));
   } else {
     renderHome(container, words);

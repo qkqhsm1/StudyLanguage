@@ -5,6 +5,7 @@ import {
   renderDayList,
   renderVocabHome,
   renderWordCard,
+  resetStayPut,
   WRONG_GROUPS,
 } from './vocab-view';
 import { WORDS_PER_DAY } from '../data/vocab-days';
@@ -157,7 +158,7 @@ describe('renderCardGroups', () => {
   it('groups words by grade into softly-worded sections, skipping empty ones', () => {
     const view = threeGroupView();
     const labels = Array.from(view.querySelectorAll('.vocab-group-label')).map((t) => t.textContent);
-    expect(labels).toEqual(['아직 안 본 단어', '잘 모르는 단어', '외운 단어']);
+    expect(labels).toEqual(['아직 표시 안 한 단어', '잘 모르는 단어', '외운 단어']);
 
     const sections = view.querySelectorAll('.card-list');
     expect(sections[0].querySelectorAll('.word-card')).toHaveLength(2); // ungraded first
@@ -249,6 +250,38 @@ describe('renderDayList', () => {
 describe('renderVocabHome integration', () => {
   beforeEach(() => {
     localStorage.clear();
+    resetStayPut();
+    document.documentElement.classList.remove('vocab-cards-hidden');
+  });
+
+  it('keeps a graded card in its section until I leave the page', () => {
+    const first = renderVocabHome('#/vocab/day/1');
+    const button = first.querySelector<HTMLButtonElement>('.srs-grade-known')!;
+    const id = button.dataset.entryId!;
+    button.click();
+    // 같은 화면을 다시 그려도(채점 후 새로 고침) 카드는 원래 구역에 남고 암기됨으로 칠해진다.
+    const again = renderVocabHome('#/vocab/day/1');
+    const card = again.querySelector(`.srs-grade-known[data-entry-id="${id}"]`)!.closest('.vocab-group') as HTMLElement;
+    expect(card.dataset.label).toBe('아직 표시 안 한 단어');
+    expect(again.querySelector(`.srs-grade-known[data-entry-id="${id}"]`)!.getAttribute('aria-pressed')).toBe('true');
+    resetStayPut();
+    const later = renderVocabHome('#/vocab/day/1');
+    expect((later.querySelector(`.srs-grade-known[data-entry-id="${id}"]`)!.closest('.vocab-group') as HTMLElement).dataset.label).toBe('외운 단어');
+  });
+
+  it('hides meanings and furigana until a card is tapped', () => {
+    const view = renderVocabHome('#/vocab/day/1');
+    document.body.appendChild(view);
+    view.querySelector<HTMLButtonElement>('.card-mode-toggle')!.click();
+    expect(document.documentElement.classList.contains('vocab-cards-hidden')).toBe(true);
+    expect(localStorage.getItem('vocab-cards-hidden')).toBe('yes');
+    const card = view.querySelector<HTMLElement>('.word-card')!;
+    card.querySelector<HTMLButtonElement>('.word-reveal')!.click();
+    expect(card.classList.contains('is-revealed')).toBe(true);
+    // 단어를 한 번 더 누르면 도로 가린다.
+    card.querySelector<HTMLElement>('.word-japanese')!.click();
+    expect(card.classList.contains('is-revealed')).toBe(false);
+    view.remove();
   });
 
   it('offers a separate part-of-speech notebook from the vocabulary home and shared nav', () => {

@@ -29,13 +29,22 @@ describe('renderHomeView', () => {
     const view = renderHomeView(TODAY);
     expect(view.querySelector('.home-stat-vocab .home-stat-value')?.textContent).toBe('1');
     expect(view.querySelector('.home-stat-sentence .home-stat-value')?.textContent).toBe('2');
-    expect(view.querySelector('.home-stat-streak .home-stat-value')?.textContent).toContain('1');
+    expect(view.querySelector('.home-streak')?.textContent).toContain('1일째');
+  });
+
+  it('counts kanji and JLPT reviews on the home screen too', () => {
+    saveJSON('srs-store', { 'j-test-1': dueState('2026-01-10'), 'j-test-2': dueState('2099-01-01') } satisfies SrsStore);
+    saveJSON('srs-store-kanji', { 'r:一': dueState('2026-01-10'), 'w:一': dueState('2026-01-10') } satisfies SrsStore);
+    const view = renderHomeView(TODAY);
+    expect(view.querySelector('.home-stat-jlpt .home-stat-value')?.textContent).toBe('1');
+    expect(view.querySelector('.home-stat-kanji .home-stat-value')?.textContent).toBe('1');
+    expect(view.querySelector<HTMLAnchorElement>('.home-stat-kanji')?.getAttribute('href')).toBe('#/kanji/today');
   });
 
   it('persists the streak across renders on the same day', () => {
     renderHomeView(TODAY);
     const view = renderHomeView(TODAY);
-    expect(view.querySelector('.home-stat-streak .home-stat-value')?.textContent).toContain('1');
+    expect(view.querySelector('.home-streak')?.textContent).toContain('1일째');
     expect(loadJSON('streak-state', { lastDate: '', streak: 0 }).streak).toBe(1);
   });
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildVocabQuiz } from './vocab-quiz-logic';
+import { buildVocabQuiz, checkTypedAnswer } from './vocab-quiz-logic';
 import vocabulary from '../data/vocabulary.json';
 import type { VocabEntry } from '../types';
 
@@ -102,5 +102,46 @@ describe('meaning overlap', () => {
       const [question] = buildVocabQuiz([answer], [answer, trap, ...others]);
       expect(question.options.map((option) => option.id)).not.toContain('b');
     }
+  });
+});
+
+describe('checkTypedAnswer', () => {
+  const extra = [word('橋', 'はし', '다리'), word('箸', 'はし', '젓가락'), word('かっこいい', 'かっこいい', '멋있다, 멋지다'), word('ブラジル', 'ぶらじる', '브라질'), word('どうぶつえん', 'どうぶつえん', '동물원')];
+  const pool = [...foods, ...extra];
+  const ask = (target: VocabEntry, direction: 'ja-ko' | 'ko-ja' = 'ja-ko') => buildVocabQuiz([target], pool, () => 0, direction)[0];
+
+  it('accepts any listed meaning, a conjugated form and several answers at once, but no typo', () => {
+    expect(checkTypedAnswer(ask(foods[0]), '초밥')).toBe(true);
+    expect(checkTypedAnswer(ask(extra[2]), '멋있어요')).toBe(true);
+    expect(checkTypedAnswer(ask(extra[2]), '멋져, 멋지다')).toBe(true);
+    expect(checkTypedAnswer(ask(extra[3]), '브라질 ')).toBe(true);
+    // 한 글자 차이는 다른 말일 때가 많다(재미있다 / 재미없다). 오타는 "내 답도 맞아요"로 고친다.
+    expect(checkTypedAnswer(ask(extra[4]), '동물언')).toBe(false);
+    expect(checkTypedAnswer(ask(foods[1]), '불')).toBe(false);
+    expect(checkTypedAnswer(ask(foods[3]), '')).toBe(false);
+  });
+
+  it('accepts any conjugation of a predicate meaning and rejects a different word', () => {
+    const omoshiroi = { ...word('面白い', 'おもしろい', '재미있다, 유머러스하다, 신기하다'), studyGroup: 'predicate' as const };
+    const question = buildVocabQuiz([omoshiroi], [omoshiroi, ...pool], () => 0)[0];
+    for (const typed of ['재미있다', '재미있는', '재밌는', '재밌어요', '재미있었어요', '유머러스한']) expect(checkTypedAnswer(question, typed)).toBe(true);
+    for (const typed of ['재미없다', '즐겁다', '재미', '유머']) expect(checkTypedAnswer(question, typed)).toBe(false);
+  });
+
+  it('does not accept a homophone meaning when the prompt shows the kanji', () => {
+    expect(checkTypedAnswer(ask(extra[0]), '다리')).toBe(true);
+    expect(checkTypedAnswer(ask(extra[0]), '젓가락')).toBe(false);
+  });
+
+  it('compares typed kana with katakana folded in the reverse direction', () => {
+    expect(checkTypedAnswer(ask(extra[3], 'ko-ja'), 'ブラジル', 'ko-ja')).toBe(true);
+    expect(checkTypedAnswer(ask(extra[3], 'ko-ja'), 'ぶらじる', 'ko-ja')).toBe(true);
+    expect(checkTypedAnswer(ask(extra[3], 'ko-ja'), 'ぶらじ', 'ko-ja')).toBe(false);
+  });
+
+  it('never asks or offers fragments marked quiz: false', () => {
+    const fragment = { ...word('ます', 'ます', '~습니다 (정중형 어미)'), quiz: false as const };
+    expect(buildVocabQuiz([fragment], [...pool, fragment], () => 0)).toHaveLength(0);
+    for (const question of buildVocabQuiz(pool, [...pool, fragment], () => 0.5)) expect(question.options.map(o => o.id)).not.toContain('ます');
   });
 });

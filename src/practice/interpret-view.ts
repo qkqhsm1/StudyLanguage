@@ -1,4 +1,4 @@
-import { allSentences } from '../data/all-sentences';
+import { allSentences, pickUnseenSentence } from '../data/all-sentences';
 import { buildTodayQueue, reviewEntry } from '../srs';
 import {
   loadSentenceSrsStore,
@@ -7,14 +7,8 @@ import {
 } from '../sentence-book/sentence-view';
 import { createReadingToggles } from './furigana';
 import { NAV_HTML } from '../nav';
-import type { SentenceEntry, SrsGrade } from '../types';
+import type { SrsGrade } from '../types';
 
-function pickQueue(): SentenceEntry[] {
-  const srsStore = loadSentenceSrsStore();
-  const entries = allSentences();
-  const due = buildTodayQueue(entries, srsStore);
-  return due.length > 0 ? due : entries;
-}
 
 export function renderInterpretPractice(rng: () => number = Math.random): HTMLElement {
   const container = document.createElement('div');
@@ -24,8 +18,9 @@ export function renderInterpretPractice(rng: () => number = Math.random): HTMLEl
   nav.innerHTML = NAV_HTML;
   container.appendChild(nav);
 
-  const queue = pickQueue();
-  const current = queue[Math.floor(rng() * queue.length)];
+  // 오늘 복습할 문장을 먼저 내되, 북마크 문장처럼 늘 복습 대상인 것도 한 바퀴에 한 번만 낸다.
+  const entries = allSentences();
+  const current = pickUnseenSentence('interpret', buildTodayQueue(entries, loadSentenceSrsStore()), entries, rng);
   container.dataset.currentId = current.id;
 
   const heading = document.createElement('h2');

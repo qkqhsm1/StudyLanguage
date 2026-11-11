@@ -1,4 +1,4 @@
-import { composableSentences } from '../data/all-sentences';
+import { composableSentences, pickUnseenSentence } from '../data/all-sentences';
 import { reviewEntry } from '../srs';
 import {
   loadSentenceSrsStore,
@@ -8,12 +8,14 @@ import {
 import { renderKanaKeyboard } from './keyboard';
 import { fillWithFurigana } from './furigana';
 import { nextHintChar, nextHintCombo } from './hint';
+import { convertRomaji, romajiToKana } from './romaji';
 import { formatPronunciation } from '../data/kana-romanize';
 import { NAV_HTML } from '../nav';
 import type { SentenceEntry, SrsGrade } from '../types';
 
+/** 채점 비교용. 띄어쓰기와 문장부호(。？)는 보지 않는다. */
 function normalize(text: string): string {
-  return text.replace(/\s+/g, '');
+  return text.replace(/[\s\p{P}]/gu, '');
 }
 
 export function renderComposePractice(rng: () => number = Math.random): HTMLElement {
@@ -25,7 +27,7 @@ export function renderComposePractice(rng: () => number = Math.random): HTMLElem
   container.appendChild(nav);
 
   const entries: SentenceEntry[] = composableSentences();
-  const current = entries[Math.floor(rng() * entries.length)];
+  const current = pickUnseenSentence('compose', entries, entries, rng);
   container.dataset.currentId = current.id;
 
   const heading = document.createElement('h2');
@@ -86,7 +88,11 @@ export function renderComposePractice(rng: () => number = Math.random): HTMLElem
   main.appendChild(hintMessage);
 
   let typed = '';
+  // 실제 키보드로 치는 중인, 아직 가나가 되지 않은 로마자 꼬리(k, ky, sh, n).
+  let pending = '';
   let hintUsed = false;
+  // 조사 は를 소리대로 わ로 써도 맞다 (konnichiwa → こんにちわ). 정답 표기는 그대로 보여준다.
+  const answers = [...new Set([current.reading, current.spoken ?? current.reading].map(normalize))];
   // renderTyped needs to clear any pulsing hint key/message on onChar/onClear, but the
   // keyboard (which owns setHighlight) isn't created until after the first renderTyped()
   // call below — so route through a mutable reference instead of reordering everything.
@@ -94,7 +100,13 @@ export function renderComposePractice(rng: () => number = Math.random): HTMLElem
 
   function renderTyped(): void {
     answerField.textContent = typed;
-    const isValidPrefix = normalize(current.reading).startsWith(normalize(typed));
+    if (pending) {
+      const tail = document.createElement('span');
+      tail.className = 'compose-pending';
+      tail.textContent = pending;
+      answerField.appendChild(tail);
+    }
+    const isValidPrefix = answers.some((answer) => answer.startsWith(normalize(typed)));
     answerField.classList.toggle('compose-answer-field-error', !isValidPrefix);
   }
   renderTyped();
@@ -106,22 +118,25 @@ export function renderComposePractice(rng: () => number = Math.random): HTMLElem
     hintMessage.classList.add('hidden');
   }
 
-  const { element: keyboard, setHighlight } = renderKanaKeyboard({
-    onChar: (char) => {
+  const keyboardHandlers = {
+    onChar: (char: string) => {
       typed += char;
       renderTyped();
       clearHint();
     },
     onBackspace: () => {
-      typed = typed.slice(0, -1);
+      if (pending) pending = pending.slice(0, -1);
+      else typed = [...typed].slice(0, -1).join('');
       renderTyped();
     },
     onClear: () => {
       typed = '';
+      pending = '';
       renderTyped();
       clearHint();
     },
-  });
+  };
+  const { element: keyboard, setHighlight, isKatakana } = renderKanaKeyboard(keyboardHandlers);
   highlightSetter = setHighlight;
   panel.appendChild(keyboard);
 
@@ -174,14 +189,52 @@ export function renderComposePractice(rng: () => number = Math.random): HTMLElem
   });
   panel.appendChild(nextBtn);
 
+  // 실제 키보드: 로마자를 치면 가나로 바뀐다 (kasa → かさ, 대문자나 カタカナ 전환은 가타카나).
+  // 입력창이 아니라 문서에서 받는다. 이 화면을 떠나면 스스로 떼어낸다.
+  function onKey(event: KeyboardEvent): void {
+    if (!container.isConnected) {
+      document.removeEventListener('keydown', onKey);
+      return;
+    }
+    if (event.ctrlKey || event.altKey || event.metaKey || event.isComposing) return;
+    if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return;
+    if (event.key === 'Enter') {
+      if (event.target instanceof HTMLButtonElement) return;
+      event.preventDefault();
+      (submitBtn.disabled ? nextBtn : submitBtn).click();
+      return;
+    }
+    if (submitBtn.disabled) return;
+    if (event.key === 'Backspace') {
+      event.preventDefault();
+      keyboardHandlers.onBackspace();
+      return;
+    }
+    if (event.key.length !== 1 || !/[a-zA-Z'.,?!-]/.test(event.key)) return;
+    event.preventDefault();
+    const { kana, rest } = convertRomaji(pending + event.key, isKatakana());
+    pending = rest;
+    if (kana) {
+      typed += kana;
+      clearHint();
+    }
+    renderTyped();
+  }
+  document.addEventListener('keydown', onKey);
+
   submitBtn.addEventListener('click', () => {
+    if (pending) {
+      typed += romajiToKana(pending, isKatakana(), true);
+      pending = '';
+      renderTyped();
+    }
     // 아무것도 안 쓰고 누른 건 답이 아니다. 오답으로 기록하면 복습 일정만 망가진다.
     if (normalize(typed) === '') {
       hintMessage.textContent = '답을 입력한 뒤 제출하세요.';
       hintMessage.classList.remove('hidden');
       return;
     }
-    const isCorrect = normalize(typed) === normalize(current.reading);
+    const isCorrect = answers.includes(normalize(typed));
     feedback.textContent = isCorrect ? '정답!' : '오답';
     feedback.classList.add(isCorrect ? 'is-correct' : 'is-wrong');
     correctAnswer.classList.remove('hidden');

@@ -204,7 +204,7 @@ function renderCaptureSection(container: HTMLElement): HTMLElement {
 }
 
 const HOME_LINKS: Array<{ modifier: string; href: string; glyph: string; title: string; sub: string }> = [
-  { modifier: 'quiz', href: '#/vocab/quiz', glyph: '問', title: '단어 퀴즈', sub: '보기 5개 중에서 고르기' },
+  { modifier: 'quiz', href: '#/vocab/quiz', glyph: '問', title: '단어 퀴즈', sub: '뜻을 직접 쓰고, 막히면 보기' },
   { modifier: 'kanji', href: '#/kanji', glyph: '字', title: '칸지', sub: '일본어로 읽고 직접 쓰기' },
   { modifier: 'hiragana', href: '#/kana/hiragana', glyph: 'あ', title: '히라가나 퀴즈', sub: '글자 보고 발음 쓰기' },
   { modifier: 'katakana', href: '#/kana/katakana', glyph: 'ア', title: '가타카나 퀴즈', sub: '글자 보고 발음 쓰기' },
@@ -225,6 +225,10 @@ export function renderHomeView(today: Date = new Date()): HTMLElement {
   const sentenceSrsStore = loadSentenceSrsStore();
   const vocabQueue = buildTodayQueue(TYPED_VOCAB_DATA.entries, vocabSrsStore, today);
   const sentenceQueue = buildTodayQueue(allSentences(), sentenceSrsStore, today);
+  // JLPT 단어는 따로 불러오는 묶음이라 여기서는 기록만 센다. j- 아이디가 JLPT에만 있는 단어다.
+  const jlptDue = buildTodayQueue(Object.keys(vocabSrsStore).filter((id) => id.startsWith('j-')).map((id) => ({ id })), vocabSrsStore, today).length;
+  const kanjiStore = loadKanjiStore();
+  const dueCount = new Set([...dueKanji(kanjiStore, 'read', today), ...dueKanji(kanjiStore, 'write', today)]).size;
 
   const prevStreak = loadJSON<StreakState>(STREAK_KEY, EMPTY_STREAK);
   const streak = updateStreak(prevStreak.lastDate ? prevStreak : undefined, today);
@@ -238,7 +242,11 @@ export function renderHomeView(today: Date = new Date()): HTMLElement {
   greeting.textContent = greetingFor(today.getHours());
   const subtitle = document.createElement('div');
   subtitle.className = 'home-subtitle';
-  subtitle.textContent = '오늘도 일본어 공부해볼까요?';
+  subtitle.textContent = '오늘도 일본어 공부해볼까요? ';
+  const streakEl = document.createElement('span');
+  streakEl.className = 'home-streak';
+  streakEl.textContent = `${streak.streak}일째 연속 학습`;
+  subtitle.appendChild(streakEl);
   header.append(greeting, subtitle);
   container.appendChild(header);
 
@@ -250,9 +258,11 @@ export function renderHomeView(today: Date = new Date()): HTMLElement {
   side.className = 'home-side';
   const stats = document.createElement('div');
   stats.className = 'home-stats';
+  // 오늘 복습할 것을 한곳에서: 단어장, 칸지(읽기·쓰기), JLPT, 문장.
   stats.appendChild(renderStat('vocab', String(vocabQueue.length), '복습할 단어', '#/vocab/today'));
+  stats.appendChild(renderStat('kanji', String(dueCount), '복습할 칸지', '#/kanji/today'));
+  stats.appendChild(renderStat('jlpt', String(jlptDue), '복습할 JLPT', '#/jlpt/today'));
   stats.appendChild(renderStat('sentence', String(sentenceQueue.length), '복습할 문장', '#/sentences/today'));
-  stats.appendChild(renderStat('streak', `${streak.streak}일`, '연속 학습'));
   side.appendChild(stats);
   side.appendChild(renderCaptureSection(container));
   top.appendChild(side);
@@ -260,8 +270,6 @@ export function renderHomeView(today: Date = new Date()): HTMLElement {
 
   const links = document.createElement('div');
   links.className = 'home-links';
-  const kanjiStore = loadKanjiStore();
-  const dueCount = new Set([...dueKanji(kanjiStore, 'read', today), ...dueKanji(kanjiStore, 'write', today)]).size;
   for (const { modifier, href, glyph, title, sub } of HOME_LINKS) {
     const link = document.createElement('a');
     link.className = `home-link home-link-${modifier}`;
