@@ -1,7 +1,7 @@
 import { formatPronunciation } from '../data/kana-romanize';
 import { NAV_HTML } from '../nav';
 import { renderWord } from '../practice/furigana';
-import { pronunciationOf, renderAudioButton } from '../vocab/vocab-view';
+import { appendDayFill, pronunciationOf, renderAudioButton } from '../vocab/vocab-view';
 import type { SrsStore } from '../types';
 import {
   buildKanjiQuiz, currentSet, dueKanji, findKanji, formatKun, isMastered, KANJI, KANJI_PER_SET, kanjiInSet, loadKanjiStore,
@@ -119,6 +119,7 @@ function renderHome(container: HTMLElement, store: SrsStore, ctx: KanjiContext):
     sub.setAttribute('aria-label', `${entries.length}자 중 ${mastered}자 익힘`);
     body.append(preview, sub);
     tile.appendChild(body);
+    if (mastered > 0) appendDayFill(tile, body);
     grid.appendChild(tile);
   }
   container.appendChild(grid);

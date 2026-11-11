@@ -211,6 +211,16 @@ export function renderWordCard(entry: VocabEntry, srsState: SrsState | undefined
   return card;
 }
 
+/** Day 칸의 외운 만큼: 같은 글자를 완료 색 위에 한 겹 더 깔고 아래에서 비율만큼만 보인다.
+ *  채움을 다 외운 칸만큼 밝게 해도 글자가 양쪽 바탕에서 모두 읽힌다. */
+export function appendDayFill(tile: HTMLElement, body: HTMLElement): void {
+  const fill = document.createElement('span');
+  fill.className = 'day-fill';
+  fill.setAttribute('aria-hidden', 'true');
+  fill.appendChild(body.cloneNode(true));
+  tile.appendChild(fill);
+}
+
 /** Day 목록. 306개 스킬 대신 Day 1..N을 보여주고, 각 Day에 그 50단어 중 몇 개를
  *  "암기됨"으로 표시했는지 진척도를 함께 보여준다(워드마스터식 점증 느낌). */
 export function renderDayList(entries: VocabEntry[], srsStore: SrsStore, group?: VocabStudyGroup, dayHref?: (day: number) => string): HTMLElement {
@@ -251,6 +261,7 @@ export function renderDayList(entries: VocabEntry[], srsStore: SrsStore, group?:
     body.appendChild(sub);
 
     link.appendChild(body);
+    if (known > 0) appendDayFill(link, body);
 
     list.appendChild(link);
   }

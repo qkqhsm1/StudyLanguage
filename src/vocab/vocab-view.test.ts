@@ -239,10 +239,12 @@ describe('renderDayList', () => {
     const entries = makeVocabEntries(WORDS_PER_DAY + 5); // day 1 = 50, day 2 = 5
     const store: SrsStore = { e0: knownState(), e1: knownState() }; // 2 of day 1 known
     const list = renderDayList(entries, store);
-    const subs = Array.from(list.querySelectorAll('.skill-list-sub')).map((s) => s.textContent);
+    const subs = Array.from(list.querySelectorAll('.day-tile > .skill-list-body .skill-list-sub')).map((s) => s.textContent);
 
     expect(subs[0]).toBe(`2 / ${WORDS_PER_DAY}`);
     expect(subs[1]).toBe('0 / 5');
+    // 외운 만큼 차오르는 칸은 글자 사본을 겹친다(화면 읽기 프로그램에는 숨김). 하나도 안 외운 칸엔 없다.
+    expect(list.querySelectorAll('.day-fill[aria-hidden="true"]')).toHaveLength(1);
   });
 });
 
