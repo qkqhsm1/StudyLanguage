@@ -107,7 +107,7 @@ export function renderWordCard(entry: VocabEntry, srsState: SrsState | undefined
   const headword = document.createElement('div');
   headword.className = 'word-card-headword';
   const jp = document.createElement('span');
-  jp.className = `word-japanese has-furigana${[...entry.japanese].length > 7 ? ' is-long' : ''}`;
+  jp.className = `word-japanese has-furigana${[...entry.japanese].length > 4 ? ' is-long' : ''}`;
   jp.lang = 'ja';
   jp.dataset.japanese = entry.japanese;
   jp.appendChild(renderWord(entry.japanese, entry.reading, 'word-reading'));
@@ -260,19 +260,6 @@ export function renderDayList(entries: VocabEntry[], srsStore: SrsStore, group?:
 
 /** 카드 안의 발음 재생·북마크·채점 버튼을 위임으로 처리한다. 카드 목록이 여러
  *  개로 나뉜 화면(Day의 등급별 하위 섹션)에서는 바깥 컨테이너에 한 번만 붙인다. */
-// 채점한 카드는 이 화면을 떠날 때까지 원래 구역에 둔다. 누르자마자 맨 아래 '외운 단어'로 사라지면
-// 잘못 눌렀을 때 찾아서 되돌리기 어렵다. 주소가 바뀌면(다른 Day로 가면) 새로 나눈다.
-const stayPut = new Map<string, string>();
-let stayPutHash = '';
-
-function currentHash(): string {
-  return typeof location === 'undefined' ? '' : location.hash;
-}
-
-export function resetStayPut(): void {
-  stayPut.clear();
-}
-
 const HIDE_CARDS_KEY = 'vocab-cards-hidden';
 
 function cardsHidden(): boolean {
@@ -329,11 +316,6 @@ function attachVocabCardActions(root: HTMLElement, container: HTMLElement): void
     if (!target || !entryId) return;
 
     const store = loadSrsStore();
-    const section = target.closest<HTMLElement>('.vocab-group');
-    if (section?.dataset.label) {
-      stayPutHash = currentHash();
-      stayPut.set(entryId, section.dataset.label);
-    }
 
     if (target.classList.contains('bookmark-toggle')) {
       store[entryId] = toggleBookmark(store[entryId]);
@@ -414,14 +396,9 @@ export function renderCardGroups(
   const wrap = document.createElement('div');
   wrap.className = 'vocab-day-groups';
   if (entries.length > 0) wrap.appendChild(renderCardModeToggle());
-  if (currentHash() !== stayPutHash) stayPut.clear();
-
-  // 다른 화면의 구역에 묶어 둔 카드는 이 화면 구역으로 새로 나눈다.
-  const labels = new Set(groups.map((group) => group.label));
-  const pinnedHere = (id: string) => labels.has(stayPut.get(id) ?? "");
   const taken = new Set<string>();
   for (const group of groups) {
-    const groupEntries = entries.filter((e) => !taken.has(e.id) && (pinnedHere(e.id) ? stayPut.get(e.id) === group.label : group.match(srsStore[e.id])));
+    const groupEntries = entries.filter((e) => !taken.has(e.id) && group.match(srsStore[e.id]));
     for (const entry of groupEntries) taken.add(entry.id);
     if (groupEntries.length === 0) continue;
 

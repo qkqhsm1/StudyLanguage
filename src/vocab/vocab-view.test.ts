@@ -5,7 +5,6 @@ import {
   renderDayList,
   renderVocabHome,
   renderWordCard,
-  resetStayPut,
   WRONG_GROUPS,
 } from './vocab-view';
 import { WORDS_PER_DAY } from '../data/vocab-days';
@@ -250,23 +249,16 @@ describe('renderDayList', () => {
 describe('renderVocabHome integration', () => {
   beforeEach(() => {
     localStorage.clear();
-    resetStayPut();
     document.documentElement.classList.remove('vocab-cards-hidden');
   });
 
-  it('keeps a graded card in its section until I leave the page', () => {
+  it('moves a graded card to its new section at once', () => {
     const first = renderVocabHome('#/vocab/day/1');
     const button = first.querySelector<HTMLButtonElement>('.srs-grade-known')!;
     const id = button.dataset.entryId!;
     button.click();
-    // 같은 화면을 다시 그려도(채점 후 새로 고침) 카드는 원래 구역에 남고 암기됨으로 칠해진다.
     const again = renderVocabHome('#/vocab/day/1');
-    const card = again.querySelector(`.srs-grade-known[data-entry-id="${id}"]`)!.closest('.vocab-group') as HTMLElement;
-    expect(card.dataset.label).toBe('아직 표시 안 한 단어');
-    expect(again.querySelector(`.srs-grade-known[data-entry-id="${id}"]`)!.getAttribute('aria-pressed')).toBe('true');
-    resetStayPut();
-    const later = renderVocabHome('#/vocab/day/1');
-    expect((later.querySelector(`.srs-grade-known[data-entry-id="${id}"]`)!.closest('.vocab-group') as HTMLElement).dataset.label).toBe('외운 단어');
+    expect((again.querySelector(`.srs-grade-known[data-entry-id="${id}"]`)!.closest('.vocab-group') as HTMLElement).dataset.label).toBe('외운 단어');
   });
 
   it('hides meanings and furigana until a card is tapped', () => {
