@@ -36,6 +36,7 @@
 
   --known: #0a8560;
   --known-wash: #d4f2e6;
+  --known-fill: var(--known-wash);
   --confusing: #a56200;
   --confusing-solid: #e49a0c;
   --confusing-wash: #fdeecb;
@@ -75,6 +76,8 @@
 
     --known: #4fdcae;
     --known-wash: #113f35;
+    /* Day 칸 채움: 어두운 바탕에서 다 채운 칸(--known)과 이어지도록 밝게. 글자는 --ink로 4.6:1 */
+    --known-fill: #1f7a60;
     --confusing: #f4bf57;
     --confusing-solid: #f4bf57;
     --confusing-wash: #40300d;
@@ -700,7 +703,7 @@ ruby {
   gap: 0;
   min-height: 96px;
   padding: 12px 14px;
-  background: linear-gradient(to top, var(--known-wash) var(--known-share, 0%), var(--surface) 0);
+  background: linear-gradient(to top, var(--known-fill) var(--known-share, 0%), var(--surface) 0);
 }
 
 .day-tile .skill-list-name {
@@ -710,6 +713,13 @@ ruby {
 .day-tile .skill-list-sub {
   font-size: 15px;
   font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-color-scheme: dark) {
+  /* 밝아진 채움 위에서 흐린 글씨는 안 읽힌다. */
+  .day-tile .skill-list-sub {
+    color: var(--ink);
+  }
 }
 
 .day-tile.is-done {

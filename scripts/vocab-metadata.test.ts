@@ -172,5 +172,7 @@ describe('cleanKorean', () => {
     expect(byJapanese.get('店')?.korean).toBe('가게, 상점, 매장');
     expect(byJapanese.get('はず')?.korean).not.toContain('해야');
     expect(byJapanese.get('十一日')?.korean).not.toContain('열한일');
+    // 개수 세기는 숫자까지 뜻이다 (四つ ≠ 개).
+    expect(byJapanese.get('四つ')?.korean).toBe('넷, 네 개');
   });
 });

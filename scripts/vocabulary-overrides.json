@@ -88,7 +88,7 @@
   "来られます": { "reading": "こられます", "studyGroup": "predicate" },
   "来させます": { "reading": "こさせます", "studyGroup": "predicate" },
   "年目": { "reading": "ねんめ", "studyGroup": "noun", "korean": "~년째, ~년 차" },
-  "円さつ": { "reading": "えんさつ", "studyGroup": "noun" },
+  "円さつ": { "reading": "えんさつ", "studyGroup": "noun", "korean": "지폐, 엔 지폐" },
   "間に": { "reading": "あいだに" },
   "九時間": { "reading": "くじかん" },
   "四時間": { "reading": "よじかん" },
@@ -637,5 +637,14 @@
   "見えてきます": { "korean": "보이기 시작합니다" },
   "傷つけます": { "korean": "상처를 입히다, 다치게 하다" },
   "十本": { "korean": "열 개, 열 자루, 열 병" },
-  "はな": { "korean": "꽃, 코" }
+  "はな": { "korean": "꽃, 코" },
+  "一つ": { "korean": "하나, 한 개" },
+  "二つ": { "korean": "둘, 두 개" },
+  "三つ": { "korean": "셋, 세 개" },
+  "四つ": { "korean": "넷, 네 개" },
+  "五つ": { "korean": "다섯, 다섯 개" },
+  "六つ": { "korean": "여섯, 여섯 개" },
+  "七つ": { "korean": "일곱, 일곱 개" },
+  "八つ": { "korean": "여덟, 여덟 개" },
+  "九つ": { "korean": "아홉, 아홉 개" }
 }
