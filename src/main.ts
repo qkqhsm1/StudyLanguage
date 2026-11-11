@@ -171,3 +171,10 @@ window.addEventListener('online', () => void syncNow());
 if (import.meta.env.PROD && 'serviceWorker' in navigator) {
   void navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`);
 }
+
+// 설치한 앱은 세로로 고정한다. manifest의 orientation은 폰이 앱을 다시 받아야 반영되므로 열 때마다 직접 잠근다.
+// lock은 TypeScript 기본 타입에 없고, 브라우저 탭에서는 거절되므로 실패는 무시한다.
+if (window.matchMedia?.('(display-mode: standalone)').matches) {
+  const orientation = screen.orientation as ScreenOrientation & { lock?: (type: 'portrait') => Promise<void> };
+  orientation?.lock?.('portrait').catch(() => {});
+}
