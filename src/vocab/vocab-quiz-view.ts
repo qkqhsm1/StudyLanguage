@@ -279,11 +279,12 @@ export function renderVocabQuizHome(hash: string, rng: () => number = Math.rando
     const readingToggle = document.createElement('button');
     readingToggle.type = 'button';
     readingToggle.className = 'vocab-quiz-reading-toggle btn btn-plain';
-    readingToggle.textContent = '독음 보기';
+    // 카드 모서리에 들어가도록 짧게 쓴다. 눌린 상태는 aria-pressed 색으로 보인다.
+    readingToggle.textContent = '독음';
+    readingToggle.setAttribute('aria-label', '독음 보기');
     readingToggle.setAttribute('aria-pressed', 'false');
     readingToggle.addEventListener('click', () => {
       const hidden = card.classList.toggle('readings-hidden');
-      readingToggle.textContent = hidden ? '독음 보기' : '독음 숨기기';
       readingToggle.setAttribute('aria-pressed', String(!hidden));
     });
 
