@@ -354,6 +354,22 @@ describe('renderVocabHome integration', () => {
     expect(view.querySelector('.bookmark-toggle')?.getAttribute('data-entry-id')).toBe(wrongId);
   });
 
+  it('collects only my unknown and confusing words on their own page, even ones I also missed', () => {
+    const [missedWeak, confusing, missedOnly] = (vocabData.entries as VocabEntry[]).slice(0, 3).map((e) => e.id);
+    const base = { easeFactor: 2.5, intervalDays: 1, dueDate: '2099-01-01' };
+    localStorage.setItem('srs-store', JSON.stringify({
+      [missedWeak]: { ...base, grade: 'unknown', missed: true },
+      [confusing]: { ...base, grade: 'confusing' },
+      [missedOnly]: { ...base, grade: 'known', missed: true },
+    }));
+    expect(renderVocabHome('#/vocab/wrong').querySelector('a[href="#/vocab/wrong/weak"]')).not.toBeNull();
+    const view = renderVocabHome('#/vocab/wrong/weak');
+    expect(view.querySelector('h2')?.textContent).toBe('모름·헷갈림 단어 (2)');
+    expect([...view.querySelectorAll('.vocab-group')].map((g) => (g as HTMLElement).dataset.label)).toEqual(['모르는 단어', '헷갈리는 단어']);
+    expect(view.querySelector('a[href="#/vocab/quiz/all?only=weak"]')).not.toBeNull();
+    expect(view.querySelector('a[href*="only=missed"]')).toBeNull();
+  });
+
   it('offers the wrong-notes screen from the day list, with its count', () => {
     const view = renderVocabHome('#/vocab');
     const link = view.querySelector('a.skill-list-item[href="#/vocab/wrong"]');

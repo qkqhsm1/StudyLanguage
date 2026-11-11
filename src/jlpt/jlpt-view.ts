@@ -6,8 +6,8 @@ import { buildTodayQueue } from '../srs';
 import type { VocabEntry } from '../types';
 import { renderVocabQuizHome } from '../vocab/vocab-quiz-view';
 import {
-  collectWrongNotes, loadSrsStore, renderCardGroups, renderCardList, renderDayList, renderDayProgress, renderEmptyState,
-  renderPager, renderQuizLinks, renderVocabLink, renderWrongQuizLinks, WRONG_GROUPS,
+  loadSrsStore, renderCardGroups, renderCardList, renderDayList, renderDayProgress, renderEmptyState,
+  renderPager, renderQuizLinks, renderVocabLink, renderWrongNotes, renderWrongQuizLinks,
 } from '../vocab/vocab-view';
 
 export const JLPT_LEVELS = ['N5', 'N4', 'N3', 'N2', 'N1'];
@@ -148,13 +148,8 @@ export function renderJlptView(hash: string, rng: () => number = Math.random): H
     container.appendChild(renderCardList(queue, store, container));
   } else if (path === '#/jlpt/wrong/quiz') {
     return renderVocabQuizHome(hash, rng, { title: 'JLPT 오답 퀴즈', pool: words, scope: words, label: 'JLPT 전체', backHref: '#/jlpt/wrong' });
-  } else if (path === '#/jlpt/wrong') {
-    const store = loadSrsStore();
-    const wrong = collectWrongNotes(words, store);
-    container.appendChild(heading(`JLPT 오답노트 (${wrong.length})`));
-    if (wrong.length === 0) container.appendChild(renderEmptyState('아직 담긴 단어가 없어요. 모름이나 헷갈림으로 표시하거나 테스트에서 틀린 단어가 여기에 모입니다.'));
-    container.appendChild(renderWrongQuizLinks('#/jlpt/wrong/quiz', wrong, store));
-    container.appendChild(renderCardGroups(wrong, store, container, WRONG_GROUPS));
+  } else if (path === '#/jlpt/wrong' || path === '#/jlpt/wrong/weak') {
+    renderWrongNotes(container, words, loadSrsStore(), '#/jlpt/wrong', '#/jlpt/wrong/quiz', path.endsWith('/weak'));
   } else {
     renderHome(container, words);
   }
