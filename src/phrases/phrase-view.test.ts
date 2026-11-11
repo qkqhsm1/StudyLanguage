@@ -77,6 +77,10 @@ describe('renderPhraseView', () => {
     expect(row.textContent).toContain('아직 안 채운 문장');
     expect(row.querySelector('.phrase-japanese-input')).not.toBeNull();
     expect(row.querySelector('.phrase-reading-input')).not.toBeNull();
+    // 번역은 파파고에서 한국어 → 일본어로 바로 열린다.
+    const papago = row.querySelector<HTMLAnchorElement>('.phrase-papago')!;
+    expect(papago.href).toBe('https://papago.naver.com/?sk=ko&tk=ja&st=%EC%95%84%EC%A7%81%20%EC%95%88%20%EC%B1%84%EC%9A%B4%20%EB%AC%B8%EC%9E%A5');
+    expect(papago.target).toBe('_blank');
   });
 
   it('saves the japanese and reading typed into a pending phrase', () => {

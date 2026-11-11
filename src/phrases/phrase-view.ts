@@ -102,6 +102,14 @@ function renderPendingRow(phrase: CapturedPhrase, container: HTMLElement): HTMLE
     container.dispatchEvent(new Event('phrase:refresh'));
   });
   actions.appendChild(save);
+  // ponytail: 번역은 파파고에 맡긴다. 앱 안 자동 번역은 서버와 유료 API 열쇠가 필요해서 하지 않는다.
+  const papago = document.createElement('a');
+  papago.className = 'phrase-papago btn btn-secondary';
+  papago.href = `https://papago.naver.com/?sk=ko&tk=ja&st=${encodeURIComponent(phrase.korean)}`;
+  papago.target = '_blank';
+  papago.rel = 'noopener';
+  papago.textContent = '파파고에서 보기';
+  actions.appendChild(papago);
   actions.appendChild(renderDeleteButton(phrase, container));
 
   row.appendChild(actions);
