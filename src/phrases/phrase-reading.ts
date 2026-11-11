@@ -1,27 +1,34 @@
-import type { IpadicFeatures, Tokenizer } from 'kuromoji';
-import { toHiragana } from '../practice/furigana';
+interface Reply { id: number; reading?: string; error?: string }
 
-// ponytail: 형태소 분석 사전(약 17MB)은 무료 CDN에서 처음 쓸 때 한 번만 받는다.
-// 브라우저가 1년 동안 저장해 두고, 서비스 워커는 다른 출처라 건드리지 않는다.
-const DICT_URL = 'https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/dict/';
-const HAN = /[\p{Script=Han}々〆ヶ]/u;
+let worker: Worker | null = null;
+let nextId = 0;
+const waiting = new Map<number, { resolve: (reading: string) => void; reject: (error: Error) => void }>();
 
-let tokenizer: Promise<Tokenizer<IpadicFeatures>> | null = null;
-
-function loadTokenizer(): Promise<Tokenizer<IpadicFeatures>> {
-  tokenizer ??= import('kuromoji/build/kuromoji.js').then(({ default: kuromoji }) => new Promise<Tokenizer<IpadicFeatures>>((resolve, reject) => {
-    kuromoji.builder({ dicPath: DICT_URL }).build((error, built) => (error ? reject(error) : resolve(built)));
-  }));
-  // 받다가 끊기면 다음에 다시 받을 수 있게 비워 둔다.
-  tokenizer.catch(() => { tokenizer = null; });
-  return tokenizer;
+function startWorker(): Worker {
+  const started = new Worker(new URL('./reading.worker.ts', import.meta.url), { type: 'module' });
+  started.onmessage = (event: MessageEvent<Reply>) => {
+    const { id, reading, error } = event.data;
+    const request = waiting.get(id);
+    waiting.delete(id);
+    if (reading !== undefined) request?.resolve(reading);
+    else request?.reject(new Error(error ?? 'reading failed'));
+  };
+  started.onerror = () => {
+    for (const request of waiting.values()) request.reject(new Error('reading worker failed'));
+    waiting.clear();
+    started.terminate();
+    worker = null;
+  };
+  return started;
 }
 
-/** 칸지가 든 토큰만 사전 읽기로 바꾸고, 가나·기호는 쓴 그대로 둔다(コーヒー는 가타카나 그대로). */
-export function readingFromTokens(tokens: Array<Pick<IpadicFeatures, 'surface_form' | 'reading'>>): string {
-  return tokens.map(({ surface_form: surface, reading }) => (HAN.test(surface) && reading && reading !== '*' ? toHiragana(reading) : surface)).join('');
-}
-
-export async function guessReading(japanese: string): Promise<string> {
-  return readingFromTokens((await loadTokenizer()).tokenize(japanese));
+/** 일본어 문장의 읽기를 만든다. 분석은 작업자(worker)에서 해서 화면이 멈추지 않는다. */
+export function guessReading(japanese: string): Promise<string> {
+  worker ??= startWorker();
+  const id = nextId++;
+  const active = worker;
+  return new Promise((resolve, reject) => {
+    waiting.set(id, { resolve, reject });
+    active.postMessage({ id, japanese });
+  });
 }

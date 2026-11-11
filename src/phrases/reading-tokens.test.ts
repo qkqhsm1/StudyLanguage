@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { readingFromTokens } from './phrase-reading';
+import { readingFromTokens } from './reading-tokens';
 
 describe('readingFromTokens', () => {
   it('reads kanji tokens and keeps kana and punctuation as written', () => {
