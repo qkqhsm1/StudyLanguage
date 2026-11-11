@@ -514,14 +514,19 @@ export function renderQuizLinks(href: string, entries: VocabEntry[], srsStore: S
   return grid;
 }
 
-/** 오답노트의 퀴즈 버튼. 내가 표시한 것과 퀴즈에서 틀린 것을 따로 푼다. */
-export function renderWrongQuizLinks(href: string, entries: VocabEntry[], srsStore: SrsStore, limit = 10): HTMLElement {
+/** 틀린 단어·모름·헷갈림 퀴즈 버튼. 최대 limit문제와, 그보다 많으면 전체 단어로도 푼다. */
+export function renderWrongQuizLinks(href: string, entries: VocabEntry[], srsStore: SrsStore, limit = 10, extra = ''): HTMLElement {
   const grid = document.createElement('div');
   grid.className = 'shortcut-grid';
-  const missed = entries.filter((e) => isMissed(srsStore[e.id])).length;
-  const weak = entries.filter((e) => isWeak(srsStore[e.id])).length;
-  if (missed > 0) grid.appendChild(renderVocabLink(`${href}?only=missed`, '誤', '틀린 단어 퀴즈', `퀴즈에서 틀린 ${missed}단어에서 최대 ${limit}문제`));
-  if (weak > 0) grid.appendChild(renderVocabLink(`${href}?only=weak`, '迷', '모름·헷갈림 퀴즈', `내가 표시한 ${weak}단어에서 최대 ${limit}문제`));
+  const kinds = [
+    { only: 'missed', icon: '誤', title: '틀린 단어', what: '퀴즈에서 틀린', count: entries.filter((e) => isMissed(srsStore[e.id])).length },
+    { only: 'weak', icon: '迷', title: '모름·헷갈림', what: '내가 표시한', count: entries.filter((e) => isWeak(srsStore[e.id])).length },
+  ];
+  for (const { only, icon, title, what, count } of kinds) {
+    if (count === 0) continue;
+    grid.appendChild(renderVocabLink(`${href}?only=${only}${extra}`, icon, `${title} 퀴즈`, `${what} ${count}단어에서 최대 ${limit}문제`));
+    if (count > limit) grid.appendChild(renderVocabLink(`${href}?only=${only}&count=all${extra}`, icon, `${title} 전체 퀴즈`, `${what} ${count}단어 모두`));
+  }
   return grid;
 }
 

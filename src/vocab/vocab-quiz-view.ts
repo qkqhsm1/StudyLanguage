@@ -4,7 +4,7 @@ import { renderWord } from '../practice/furigana';
 import { NAV_HTML } from '../nav';
 import { recordQuizAnswer } from '../srs';
 import type { VocabEntry, VocabStudyGroup } from '../types';
-import { isMissed, isWeak, loadSrsStore, pronunciationOf, renderVocabLink, renderWordAudio, saveSrsStore, STUDY_GROUPS } from './vocab-view';
+import { isMissed, isWeak, loadSrsStore, pronunciationOf, renderVocabLink, renderWordAudio, renderWrongQuizLinks, saveSrsStore, STUDY_GROUPS } from './vocab-view';
 import { buildVocabQuiz, checkTypedAnswer, type VocabQuizQuestion } from './vocab-quiz-logic';
 import { romajiToKana } from '../practice/romaji';
 
@@ -120,8 +120,7 @@ export function renderVocabQuizHome(hash: string, rng: () => number = Math.rando
     scopes.appendChild(renderVocabLink('#/vocab/quiz/all' + suffix, '全', '전체 단어 퀴즈', '단어장 전체에서 무작위로 출제'));
     const store = loadSrsStore();
     const extra = reverse ? '&direction=ko-ja' : '';
-    scopes.appendChild(renderVocabLink(`#/vocab/quiz/all?only=missed${extra}`, '誤', '틀린 단어 퀴즈', `퀴즈에서 틀린 ${ENTRIES.filter(e => isMissed(store[e.id])).length}단어에서 무작위 10문제`));
-    scopes.appendChild(renderVocabLink(`#/vocab/quiz/all?only=weak${extra}`, '迷', '모름·헷갈림 퀴즈', `내가 표시한 ${ENTRIES.filter(e => isWeak(store[e.id])).length}단어에서 무작위 10문제`));
+    scopes.append(...renderWrongQuizLinks('#/vocab/quiz/all', ENTRIES, store, 10, extra).children);
     for (const group of Object.keys(STUDY_GROUPS) as VocabStudyGroup[]) {
       const { icon, label: groupLabel } = STUDY_GROUPS[group];
       scopes.appendChild(renderVocabLink(`#/vocab/quiz/group/${group}${suffix}`, icon, `${groupLabel} 퀴즈`, '이 품사만 모아서 무작위로 출제'));

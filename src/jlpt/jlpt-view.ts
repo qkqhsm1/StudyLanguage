@@ -6,7 +6,7 @@ import { buildTodayQueue } from '../srs';
 import type { VocabEntry } from '../types';
 import { renderVocabQuizHome } from '../vocab/vocab-quiz-view';
 import {
-  collectWrongNotes, isMissed, isWeak, loadSrsStore, renderCardGroups, renderCardList, renderDayList, renderDayProgress, renderEmptyState,
+  collectWrongNotes, loadSrsStore, renderCardGroups, renderCardList, renderDayList, renderDayProgress, renderEmptyState,
   renderPager, renderQuizLinks, renderVocabLink, renderWrongQuizLinks, WRONG_GROUPS,
 } from '../vocab/vocab-view';
 
@@ -75,8 +75,7 @@ function renderLevel(container: HTMLElement, level: string, entries: VocabEntry[
   shortcuts.append(
     renderVocabLink(`${base}/quiz`, '試', `${level} 단어 테스트`, `전체 ${entries.length}단어에서 ${LEVEL_TEST_QUESTIONS}문제`),
     renderVocabLink(`${base}/quiz?count=all`, '全', `${level} 전체 단어 테스트`, `${entries.length}단어 모두 무작위 순서로`),
-    renderVocabLink(`${base}/quiz?only=missed`, '誤', `${level} 틀린 단어 테스트`, `퀴즈에서 틀린 ${entries.filter((e) => isMissed(store[e.id])).length}단어에서 최대 ${LEVEL_TEST_QUESTIONS}문제`),
-    renderVocabLink(`${base}/quiz?only=weak`, '迷', `${level} 모름·헷갈림 테스트`, `내가 표시한 ${entries.filter((e) => isWeak(store[e.id])).length}단어에서 최대 ${LEVEL_TEST_QUESTIONS}문제`),
+    ...renderWrongQuizLinks(`${base}/quiz`, entries, store, LEVEL_TEST_QUESTIONS).children,
     renderVocabLink(`${base}/kanji/read?scope=all`, '読', `${level} 칸지 테스트`, `전체 ${kanji.length}자에서 ${Math.min(LEVEL_TEST_QUESTIONS, kanji.length)}문제`),
     renderVocabLink(`${base}/kanji`, '字', `${level} 칸지`, `${kanji.length}자를 읽고 직접 쓰기`),
   );

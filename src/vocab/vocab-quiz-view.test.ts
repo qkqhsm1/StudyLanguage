@@ -66,6 +66,15 @@ describe('vocabulary quiz', () => {
     expect(missed.querySelector('.vocab-quiz-result')?.textContent).toContain('퀴즈에서 틀린 단어가 없어요');
   });
 
+  it('offers the whole weak list once it has more than ten words', () => {
+    const state = { grade: 'confusing', easeFactor: 2.5, intervalDays: 1, dueDate: '2099-01-01' };
+    localStorage.setItem('srs-store', JSON.stringify(Object.fromEntries(entries.slice(0, 12).map(e => [e.id, state]))));
+    const picker = render('#/vocab/quiz?direction=ko-ja');
+    expect(picker.querySelector('a[href="#/vocab/quiz/all?only=weak&direction=ko-ja"]')).not.toBeNull();
+    expect(picker.querySelector('a[href="#/vocab/quiz/all?only=weak&count=all&direction=ko-ja"]')).not.toBeNull();
+    expect(picker.querySelector('a[href*="only=missed"]')).toBeNull();
+  });
+
   it('shows the real spelling with furigana only over kanji, and five choices without revealing the answer', () => {
     const view = render();
     const entry = entries.find(e => e.id === view.dataset.currentId)!;
