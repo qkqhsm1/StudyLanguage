@@ -82,6 +82,10 @@ describe('vocabulary metadata', () => {
     expect(byId('73-５日')?.japanese).toBe('いつか');
     expect(byId('109-紅')?.japanese).toBe('くれない');
     expect(byId('129-icカード')?.japanese).toBe('ICカード');
+    // 가나 조각이 엉뚱한 칸지로 바뀌어 있었다(くない = 区内, おきて = 掟, がち = 雅致).
+    expect(byId('84-区内')).toMatchObject({ japanese: 'くない', quiz: false });
+    expect(byId('88-掟')).toMatchObject({ japanese: '起きて', korean: '일어나서' });
+    expect(byId('241-雅致')?.japanese).toBe('がち');
   });
 
   it('ships plain romaji with no pinyin and reads topic particles by sound', () => {
@@ -161,5 +165,12 @@ describe('cleanKorean', () => {
     expect(byJapanese.get('は')?.korean).toBe('~은, ~는 (주제)');
     expect(byJapanese.get('面白い')?.korean.split(', ')[0]).toBe('재미있다');
     expect(byJapanese.get('ます')?.quiz).toBe(false);
+    // 구절은 목적어까지 뜻에 들어 있어야 한다 (うみに行きます ≠ 갑니다).
+    expect(byJapanese.get('うみに行きます')?.korean).toBe('바다에 갑니다');
+    expect(byJapanese.get('シャワーをあびます')?.korean).toBe('샤워를 합니다');
+    // 조사가 붙은 조각과 엉뚱한 말(店 = 나가게)은 뺀다.
+    expect(byJapanese.get('店')?.korean).toBe('가게, 상점, 매장');
+    expect(byJapanese.get('はず')?.korean).not.toContain('해야');
+    expect(byJapanese.get('十一日')?.korean).not.toContain('열한일');
   });
 });
