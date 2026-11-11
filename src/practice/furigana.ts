@@ -12,7 +12,7 @@ export interface FuriganaSegment {
 const NEEDS_RUBY = /[\p{Script=Han}々〇ヶ0-9０-９A-Za-zＡ-Ｚａ-ｚ]/u;
 
 // 비교할 때만 가타카나를 히라가나로 접는다(길이 1:1이라 인덱스가 어긋나지 않음).
-function toHiragana(text: string): string {
+export function toHiragana(text: string): string {
   return text.replace(/[ァ-ヶ]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0x60));
 }
 

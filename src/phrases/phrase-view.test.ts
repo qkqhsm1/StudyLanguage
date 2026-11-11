@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderPhraseView } from './phrase-view';
+
+vi.mock('./phrase-reading', () => ({ guessReading: vi.fn(async (japanese: string) => (japanese === '人生はつらい。' ? 'じんせいはつらい。' : 'なにか')) }));
 import { addPhrase, loadPhrases, savePhrases } from './phrase-store';
 import type { CapturedPhrase } from '../types';
 
@@ -94,6 +96,27 @@ describe('renderPhraseView', () => {
     const stored = loadPhrases()[0];
     expect(stored.japanese).toBe('家に帰りたいです');
     expect(stored.reading).toBe('いえにかえりたいです');
+  });
+
+  it('fills an empty reading from the Japanese, but keeps a reading I typed', async () => {
+    savePhrases([UNFILLED]);
+    const view = renderPhraseView();
+    const japanese = view.querySelector<HTMLInputElement>('.phrase-japanese-input')!;
+    const reading = view.querySelector<HTMLInputElement>('.phrase-reading-input')!;
+    japanese.value = '人生はつらい。';
+    japanese.dispatchEvent(new Event('change'));
+    await vi.waitFor(() => expect(reading.value).toBe('じんせいはつらい。'));
+    reading.value = 'わたしがかいた';
+    japanese.dispatchEvent(new Event('change'));
+    await Promise.resolve();
+    expect(reading.value).toBe('わたしがかいた');
+  });
+
+  it('fills the reading of a saved phrase that has none', async () => {
+    savePhrases([NO_READING]);
+    const view = renderPhraseView();
+    view.querySelector<HTMLButtonElement>('.phrase-fill-reading')!.click();
+    await vi.waitFor(() => expect(loadPhrases()[0].reading).toBe('なにか'));
   });
 
   it('renders a completed phrase as a sentence card', () => {

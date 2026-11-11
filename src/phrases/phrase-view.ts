@@ -2,7 +2,10 @@ import { addPhrase, deletePhrase, isComplete, loadPhrases, mergePhrases, parsePh
 import { toSentenceEntry } from '../data/all-sentences';
 import { attachSentenceCardActions, loadSentenceSrsStore, renderSentenceCard } from '../sentence-book/sentence-view';
 import { NAV_HTML } from '../nav';
+import { guessReading } from './phrase-reading';
 import type { CapturedPhrase } from '../types';
+
+const READING_FAILED = '읽기를 만들지 못했어요. 인터넷 연결을 확인하거나 직접 적어 주세요.';
 
 /** 담기 입력 상자. 내 문장 화면과 홈 대시보드가 같은 것을 쓴다 — 두 벌로 두면
  *  한쪽에만 조용히 적용되는 변경이 생긴다. 담은 뒤 `phrase:refresh`를 쏘므로
@@ -79,7 +82,7 @@ function renderPendingRow(phrase: CapturedPhrase, container: HTMLElement): HTMLE
   const readingInput = document.createElement('input');
   readingInput.type = 'text';
   readingInput.className = 'phrase-reading-input';
-  readingInput.placeholder = '읽기, 선택 입력 (예: いえにかえりたいです)';
+  readingInput.placeholder = '읽기 (일본어를 적으면 자동으로 채워져요)';
   readingInput.lang = 'ja';
   readingInput.setAttribute('aria-label', '읽기');
   readingInput.value = phrase.reading;
@@ -87,8 +90,19 @@ function renderPendingRow(phrase: CapturedPhrase, container: HTMLElement): HTMLE
 
   const hint = document.createElement('div');
   hint.className = 'phrase-reading-hint';
-  hint.textContent = '읽기를 채우면 작문 연습에도 나옵니다.';
+  hint.textContent = '읽기가 틀리면 고쳐 주세요. 읽기가 있으면 후리가나가 붙고 작문 연습에도 나옵니다.';
   row.appendChild(hint);
+
+  // 일본어를 다 적고 칸을 벗어나면 읽기가 비어 있을 때만 채운다. 직접 적은 읽기는 덮지 않는다.
+  japaneseInput.addEventListener('change', () => {
+    const japanese = japaneseInput.value.trim();
+    if (!japanese || readingInput.value.trim()) return;
+    hint.textContent = '읽기를 만드는 중이에요. 처음 한 번은 사전을 받느라 조금 걸려요.';
+    guessReading(japanese).then((reading) => {
+      if (!readingInput.value.trim()) readingInput.value = reading;
+      hint.textContent = '읽기가 틀리면 고쳐 주세요. 읽기가 있으면 후리가나가 붙고 작문 연습에도 나옵니다.';
+    }, () => { hint.textContent = READING_FAILED; });
+  });
 
   const actions = document.createElement('div');
   actions.className = 'phrase-actions';
@@ -131,6 +145,25 @@ function renderCompletedCard(phrase: CapturedPhrase, container: HTMLElement): HT
     badge.className = 'badge badge-ok phrase-interpret-only';
     badge.textContent = '해석 연습만';
     footer.appendChild(badge);
+
+    // 읽기 없이 저장한 문장도 나중에 후리가나를 붙일 수 있게 한다.
+    const fill = document.createElement('button');
+    fill.type = 'button';
+    fill.className = 'phrase-fill-reading btn btn-secondary';
+    fill.textContent = '읽기 채우기';
+    fill.addEventListener('click', () => {
+      fill.disabled = true;
+      fill.textContent = '만드는 중…';
+      guessReading(phrase.japanese).then((reading) => {
+        updatePhrase(phrase.id, phrase.japanese, reading);
+        container.dispatchEvent(new Event('phrase:refresh'));
+      }, () => {
+        fill.disabled = false;
+        fill.textContent = '읽기 채우기';
+        badge.textContent = READING_FAILED;
+      });
+    });
+    footer.appendChild(fill);
   }
 
   footer.appendChild(renderDeleteButton(phrase, container));
