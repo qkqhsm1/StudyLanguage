@@ -418,7 +418,7 @@ export function renderVocabQuizHome(hash: string, rng: () => number = Math.rando
           card.classList.replace('kana-wrong', 'kana-correct');
           accept.remove();
           updateProgress();
-          next.focus();
+          next.focus({ preventScroll: true });
         });
         feedback.after(accept);
       }
@@ -435,7 +435,7 @@ export function renderVocabQuizHome(hash: string, rng: () => number = Math.rando
       if (detailAudio) detail.appendChild(detailAudio);
       detail.hidden = false;
       next.hidden = false;
-      next.focus();
+      next.focus({ preventScroll: true });
     }
 
     function updateProgress(): void {
@@ -458,8 +458,11 @@ export function renderVocabQuizHome(hash: string, rng: () => number = Math.rando
     // 칸지가 있어 가릴 독음이 있을 때만 버튼을 둔다.
     if (card.querySelector('rt')) stage.appendChild(readingToggle);
     session.appendChild(card);
-    // 화면에 붙은 뒤에 입력칸으로 커서를 옮긴다.
-    setTimeout(() => { if (input.isConnected && !answered) input.focus(); }, 0);
+    // 마우스가 있는 PC에서만 입력칸으로 커서를 옮긴다. 폰에서는 키보드가 올라와 화면이 움직이고,
+    // 독음 보기나 보기 보기를 먼저 누를 수도 있어서 직접 누를 때까지 둔다.
+    if (window.matchMedia?.('(pointer: fine)').matches) {
+      setTimeout(() => { if (input.isConnected && !answered) input.focus({ preventScroll: true }); }, 0);
+    }
   }
 
   container.addEventListener('keydown', event => {
