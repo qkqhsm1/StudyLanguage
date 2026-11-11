@@ -227,7 +227,7 @@ export function renderDayList(entries: VocabEntry[], srsStore: SrsStore, group?:
     const link = document.createElement('a');
     link.className = 'skill-list-item day-tile';
     link.href = dayHref ? dayHref(day) : group ? `#/vocab/group/${group}/${day}` : `#/vocab/day/${day}`;
-    link.style.setProperty('--known', `${(known / dayEntries.length) * 100}%`);
+    link.style.setProperty('--known-share', `${(known / dayEntries.length) * 100}%`);
     if (done) link.classList.add('is-done');
     // 다 외우지 않은 첫 Day가 지금 공부할 곳이다.
     if (!done && !currentMarked) {

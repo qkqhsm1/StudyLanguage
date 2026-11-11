@@ -107,7 +107,7 @@ function renderHome(container: HTMLElement, store: SrsStore, ctx: KanjiContext):
     const entries = kanjiInSet(n, list);
     const mastered = entries.filter((entry) => isMastered(store, entry.id)).length;
     const tile = link(`${base}/set/${n}`, 'skill-list-item day-tile', '');
-    tile.style.setProperty('--known', `${(mastered / entries.length) * 100}%`);
+    tile.style.setProperty('--known-share', `${(mastered / entries.length) * 100}%`);
     if (mastered === entries.length) tile.classList.add('is-done');
     if (n === set && mastered < entries.length) {
       tile.classList.add('is-current');
