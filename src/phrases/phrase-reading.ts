@@ -1,3 +1,6 @@
+// 처음 한 번은 17MB 사전을 받으므로 느린 연결도 기다려 준다.
+const READING_TIMEOUT_MS = 90_000;
+
 interface Reply { id: number; reading?: string; error?: string }
 
 let worker: Worker | null = null;
@@ -30,5 +33,15 @@ export function guessReading(japanese: string): Promise<string> {
   return new Promise((resolve, reject) => {
     waiting.set(id, { resolve, reject });
     active.postMessage({ id, japanese });
+    // 사전을 못 받으면 분석기가 답을 안 줄 수 있다. 버튼이 '만드는 중'에 영영 머물지 않게 끊는다.
+    setTimeout(() => {
+      if (!waiting.delete(id)) return;
+      reject(new Error('reading timed out'));
+      // 멈춘 작업자는 버리고 다음에 누를 때 새로 시작한다.
+      if (worker === active) {
+        active.terminate();
+        worker = null;
+      }
+    }, READING_TIMEOUT_MS);
   });
 }

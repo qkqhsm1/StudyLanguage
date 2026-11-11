@@ -6,6 +6,13 @@ import { readingFromTokens } from './reading-tokens';
 // 압축 풀기와 사전 만들기가 수 초씩 걸려서 화면이 멈추지 않도록 이 작업자 안에서만 한다.
 const DICT_URL = 'https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/dict/';
 
+// kuromoji는 사전 주소를 path.join으로 붙여 https://를 https:/로 줄인다. https 페이지에서는 그게
+// 같은 사이트 경로(github.io/cdn.jsdelivr.net/...)로 읽혀 사전을 영영 못 받는다. 요청 직전에 되돌린다.
+const open = XMLHttpRequest.prototype.open;
+XMLHttpRequest.prototype.open = function (this: XMLHttpRequest, method: string, url: string | URL) {
+  open.call(this, method, String(url).replace(/^https:\/(?!\/)/, 'https://'), true);
+};
+
 let tokenizer: Promise<Tokenizer<IpadicFeatures>> | null = null;
 
 function build(): Promise<Tokenizer<IpadicFeatures>> {
