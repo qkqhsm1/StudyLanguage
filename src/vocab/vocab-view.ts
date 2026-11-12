@@ -341,7 +341,9 @@ function attachVocabCardActions(root: HTMLElement, container: HTMLElement): void
 
     const grade = target.dataset.grade as SrsGrade | undefined;
     if (grade) {
-      store[entryId] = reviewEntry(store[entryId], grade);
+      // 뜻 가리기에서 후리가나를 열어 보고 채점했으면 '읽기 모름'으로 담는다.
+      const readingUsed = document.documentElement.classList.contains('vocab-cards-hidden') && target.closest('.word-card')?.classList.contains('readings-shown');
+      store[entryId] = reviewEntry(store[entryId], grade, new Date(), readingUsed ? true : undefined);
       saveSrsStore(store);
       container.dispatchEvent(new Event('vocab:refresh'));
     }
@@ -384,11 +386,16 @@ export const WRONG_GROUPS: CardGroup[] = [
   { label: '퀴즈에서 틀린 단어', match: (state) => state?.missed === true },
   { label: '모르는 단어', match: (state) => state?.grade === 'unknown' },
   { label: '헷갈리는 단어', match: (state) => state?.grade === 'confusing' },
+  { label: '읽기를 보고 안 단어', match: (state) => isReadingMissed(state) },
   { label: '북마크한 단어', match: (state) => state?.bookmarked === true },
 ];
 
-// 모름·헷갈림 모음: 퀴즈에서 틀렸어도 내가 표시한 대로 나눈다.
-const WEAK_GROUPS: CardGroup[] = WRONG_GROUPS.slice(1, 3);
+// 모음 화면: 퀴즈에서 틀렸어도 내가 표시한 대로 나눈다.
+type WrongNotesKind = 'all' | 'weak' | 'reading';
+const NOTES: Record<Exclude<WrongNotesKind, 'all'>, { title: string; groups: CardGroup[]; empty: string }> = {
+  weak: { title: '모름·헷갈림 단어', groups: WRONG_GROUPS.slice(1, 3), empty: '아직 모름이나 헷갈림으로 표시한 단어가 없어요. 카드에서 표시하거나 퀴즈에서 틀리면 여기에 모입니다.' },
+  reading: { title: '읽기 모르는 단어', groups: WRONG_GROUPS.slice(3, 4), empty: '아직 없어요. 칸지만 보고는 모르다가 후리가나(독음)를 보고 안 단어가 여기에 모입니다. 퀴즈에서 독음 없이 맞히면 빠져요.' },
+};
 
 /** 오답노트에 담을 단어 — 모름·헷갈림으로 채점했거나 북마크해둔 것. 복습일과
  *  무관하다는 점이 '오늘 복습'과 다르다. 오늘이 아니어도 틀린 건 틀린 거다. */
@@ -396,7 +403,7 @@ export function collectWrongNotes(entries: VocabEntry[], srsStore: SrsStore): Vo
   return entries.filter((entry) => {
     const state = srsStore[entry.id];
     if (!state) return false;
-    return state.bookmarked || state.missed === true || state.grade === 'unknown' || state.grade === 'confusing';
+    return state.bookmarked || state.missed === true || state.readingMissed === true || state.grade === 'unknown' || state.grade === 'confusing';
   });
 }
 
@@ -514,6 +521,14 @@ export function isMissed(state: SrsState | undefined): boolean {
   return state?.missed === true;
 }
 
+export function wrongNotesKind(path: string): WrongNotesKind {
+  return path.endsWith('/weak') ? 'weak' : path.endsWith('/reading') ? 'reading' : 'all';
+}
+
+export function isReadingMissed(state: SrsState | undefined): boolean {
+  return state?.readingMissed === true;
+}
+
 /** 모름·헷갈림으로 채점한 단어. 북마크만 한 단어는 퀴즈 대상이 아니다. */
 export function isWeak(state: SrsState | undefined): boolean {
   return state?.grade === 'unknown' || state?.grade === 'confusing';
@@ -533,29 +548,32 @@ export function renderQuizLinks(href: string, entries: VocabEntry[], srsStore: S
 }
 
 /** 틀린 단어·모름·헷갈림 퀴즈 버튼. 최대 limit문제와, 그보다 많으면 전체 단어로도 푼다. */
-export function renderWrongQuizLinks(href: string, entries: VocabEntry[], srsStore: SrsStore, limit = 10, extra = '', weakOnly = false): HTMLElement {
+export function renderWrongQuizLinks(href: string, entries: VocabEntry[], srsStore: SrsStore, limit = 10, extra = '', kind: WrongNotesKind = 'all'): HTMLElement {
   const grid = document.createElement('div');
   grid.className = 'shortcut-grid';
   const kinds = [
     { only: 'missed', icon: '誤', title: '틀린 단어', what: '퀴즈에서 틀린', count: entries.filter((e) => isMissed(srsStore[e.id])).length },
     { only: 'weak', icon: '迷', title: '모름·헷갈림', what: '내가 표시한', count: entries.filter((e) => isWeak(srsStore[e.id])).length },
+    { only: 'reading', icon: '読', title: '읽기 모름', what: '읽기를 보고 안', count: entries.filter((e) => isReadingMissed(srsStore[e.id])).length },
   ];
   for (const { only, icon, title, what, count } of kinds) {
-    if (count === 0 || (weakOnly && only !== 'weak')) continue;
+    if (count === 0 || (kind !== 'all' && only !== kind)) continue;
     grid.appendChild(renderVocabLink(`${href}?only=${only}${extra}`, icon, `${title} 퀴즈`, `${what} ${count}단어에서 최대 ${limit}문제`));
     if (count > limit) grid.appendChild(renderVocabLink(`${href}?only=${only}&count=all${extra}`, icon, `${title} 전체 퀴즈`, `${what} ${count}단어 모두`));
   }
   return grid;
 }
 
-/** 오답노트(`{base}`)와 모름·헷갈림 모음(`{base}/weak`). 단어장과 JLPT가 같이 쓴다. */
-export function renderWrongNotes(container: HTMLElement, all: VocabEntry[], srsStore: SrsStore, base: string, quizHref: string, weakOnly: boolean): void {
-  const words = weakOnly ? all.filter((e) => isWeak(srsStore[e.id])) : collectWrongNotes(all, srsStore);
+/** 오답노트(`{base}`)와 모음 화면(`{base}/weak` 모름·헷갈림, `{base}/reading` 읽기 모름). 단어장과 JLPT가 같이 쓴다. */
+export function renderWrongNotes(container: HTMLElement, all: VocabEntry[], srsStore: SrsStore, base: string, quizHref: string, kind: WrongNotesKind): void {
+  const notes = kind === 'all' ? null : NOTES[kind];
+  const keep = kind === 'weak' ? isWeak : isReadingMissed;
+  const words = notes ? all.filter((e) => keep(srsStore[e.id])) : collectWrongNotes(all, srsStore);
   const prefix = base.startsWith('#/jlpt') ? 'JLPT ' : '';
   const heading = document.createElement('h2');
-  heading.textContent = `${prefix}${weakOnly ? '모름·헷갈림 단어' : '오답노트'} (${words.length})`;
+  heading.textContent = `${prefix}${notes?.title ?? '오답노트'} (${words.length})`;
   container.appendChild(heading);
-  if (weakOnly) {
+  if (notes) {
     const back = document.createElement('a');
     back.className = 'back-link';
     back.href = base;
@@ -563,19 +581,21 @@ export function renderWrongNotes(container: HTMLElement, all: VocabEntry[], srsS
     container.appendChild(back);
   }
   if (words.length === 0) {
-    container.appendChild(renderEmptyState(weakOnly
-      ? '아직 모름이나 헷갈림으로 표시한 단어가 없어요. 카드에서 표시하거나 퀴즈에서 틀리면 여기에 모입니다.'
-      : '아직 담긴 단어가 없어요. 모름이나 헷갈림으로 표시하거나 퀴즈에서 틀린 단어가 여기에 모입니다.'));
+    container.appendChild(renderEmptyState(notes?.empty ?? '아직 담긴 단어가 없어요. 모름이나 헷갈림으로 표시하거나 퀴즈에서 틀린 단어가 여기에 모입니다.'));
   }
-  const links = renderWrongQuizLinks(quizHref, words, srsStore, 10, '', weakOnly);
-  const weak = words.filter((e) => isWeak(srsStore[e.id])).length;
-  if (!weakOnly && weak > 0) links.prepend(renderVocabLink(`${base}/weak`, '迷', '모름·헷갈림 단어 모음', `내가 표시한 ${weak}단어만 모아 보기`));
+  const links = renderWrongQuizLinks(quizHref, words, srsStore, 10, '', kind);
+  if (!notes) {
+    const reading = words.filter((e) => isReadingMissed(srsStore[e.id])).length;
+    const weak = words.filter((e) => isWeak(srsStore[e.id])).length;
+    if (reading > 0) links.prepend(renderVocabLink(`${base}/reading`, '読', '읽기 모르는 단어 모음', `칸지만 보고는 몰랐던 ${reading}단어`));
+    if (weak > 0) links.prepend(renderVocabLink(`${base}/weak`, '迷', '모름·헷갈림 단어 모음', `내가 표시한 ${weak}단어만 모아 보기`));
+  }
   container.appendChild(links);
-  container.appendChild(renderCardGroups(words, srsStore, container, weakOnly ? WEAK_GROUPS : WRONG_GROUPS));
+  container.appendChild(renderCardGroups(words, srsStore, container, notes?.groups ?? WRONG_GROUPS));
 }
 
 export function renderWrongNotesLink(entries: VocabEntry[], srsStore: SrsStore): HTMLElement {
-  return renderVocabLink('#/vocab/wrong', '誤', '오답노트', `퀴즈에서 틀림, 모름, 헷갈림, 북마크 ${collectWrongNotes(entries, srsStore).length}단어`);
+  return renderVocabLink('#/vocab/wrong', '誤', '오답노트', `퀴즈에서 틀림, 모름, 헷갈림, 읽기 모름, 북마크 ${collectWrongNotes(entries, srsStore).length}단어`);
 }
 
 function renderStudyGroups(srsStore: SrsStore): HTMLElement {
@@ -700,8 +720,8 @@ export function renderVocabHome(hash: string): HTMLElement {
     container.appendChild(heading);
     if (queue.length === 0) container.appendChild(renderEmptyState('오늘 복습할 단어를 모두 끝냈어요. 단어장에서 새 단어를 외워보세요.'));
     container.appendChild(renderCardList(queue, srsStore, container));
-  } else if (hash === '#/vocab/wrong' || hash === '#/vocab/wrong/weak') {
-    renderWrongNotes(container, TYPED_VOCAB_DATA.entries, srsStore, '#/vocab/wrong', '#/vocab/quiz/all', hash.endsWith('/weak'));
+  } else if (/^#\/vocab\/wrong(\/weak|\/reading)?$/.test(hash)) {
+    renderWrongNotes(container, TYPED_VOCAB_DATA.entries, srsStore, '#/vocab/wrong', '#/vocab/quiz/all', wrongNotesKind(hash));
   } else if (day !== null) {
     const heading = document.createElement('h2');
     heading.textContent = `Day ${day}`;

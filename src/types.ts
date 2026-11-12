@@ -39,6 +39,8 @@ export interface SrsState {
   grade?: SrsGrade;
   /** 퀴즈에서 틀렸고 아직 다시 맞히지 않았다. 내 표시(grade)와 따로 둔다. */
   missed?: boolean;
+  /** 칸지만 보고는 몰랐고 읽기(후리가나)를 보고서야 알았다. 퀴즈에서 독음 없이 맞히면 지워진다. */
+  readingMissed?: boolean;
   intervalDays: number;
   easeFactor: number;
   dueDate: string;

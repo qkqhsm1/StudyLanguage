@@ -381,6 +381,24 @@ describe('renderVocabHome integration', () => {
     expect(view.querySelector('a[href*="only=missed"]')).toBeNull();
   });
 
+  it('collects words I knew only after seeing the reading on their own page', () => {
+    const view = renderVocabHome('#/vocab/day/1');
+    document.body.appendChild(view);
+    view.querySelector<HTMLButtonElement>('.card-mode-toggle')!.click();
+    const card = [...view.querySelectorAll<HTMLElement>('.word-card')].find((c) => c.querySelector('.word-japanese rt'))!;
+    card.querySelector<HTMLElement>('.word-japanese')!.click();
+    card.querySelector<HTMLButtonElement>('.word-reveal')!.click();
+    card.querySelector<HTMLButtonElement>('.srs-grade-known')!.click();
+    view.remove();
+    const id = card.querySelector<HTMLElement>('.srs-grade-known')!.dataset.entryId!;
+    expect(JSON.parse(localStorage.getItem('srs-store')!)[id]).toMatchObject({ grade: 'known', readingMissed: true });
+    expect(renderVocabHome('#/vocab/wrong').querySelector('a[href="#/vocab/wrong/reading"]')).not.toBeNull();
+    const page = renderVocabHome('#/vocab/wrong/reading');
+    expect(page.querySelector('h2')?.textContent).toBe('읽기 모르는 단어 (1)');
+    expect(page.querySelector(`[data-entry-id="${id}"]`)).not.toBeNull();
+    expect(page.querySelector('a[href="#/vocab/quiz/all?only=reading"]')).not.toBeNull();
+  });
+
   it('offers the wrong-notes screen from the day list, with its count', () => {
     const view = renderVocabHome('#/vocab');
     const link = view.querySelector('a.skill-list-item[href="#/vocab/wrong"]');

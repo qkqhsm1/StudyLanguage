@@ -4,7 +4,7 @@ import { renderWord } from '../practice/furigana';
 import { NAV_HTML } from '../nav';
 import { recordQuizAnswer } from '../srs';
 import type { VocabEntry, VocabStudyGroup } from '../types';
-import { isMissed, isWeak, loadSrsStore, pronunciationOf, renderVocabLink, renderWordAudio, renderWrongQuizLinks, saveSrsStore, STUDY_GROUPS } from './vocab-view';
+import { isMissed, isReadingMissed, isWeak, loadSrsStore, pronunciationOf, renderVocabLink, renderWordAudio, renderWrongQuizLinks, saveSrsStore, STUDY_GROUPS } from './vocab-view';
 import { buildVocabQuiz, checkTypedAnswer, type VocabQuizQuestion } from './vocab-quiz-logic';
 import { romajiToKana } from '../practice/romaji';
 
@@ -36,10 +36,10 @@ export function renderVocabQuizHome(hash: string, rng: () => number = Math.rando
   const direction = params.get('direction') === 'ko-ja' ? 'ko-ja' : 'ja-ko';
   const reverse = direction === 'ko-ja';
   const suffix = reverse ? '?direction=ko-ja' : '';
-  // ?count=all은 범위의 모든 단어를, ?only=weak는 내가 모름·헷갈림으로 표시한 단어만, ?only=missed는 퀴즈에서 틀린 단어만 낸다.
+  // ?count=all은 범위의 모든 단어를, ?only=weak는 내가 모름·헷갈림으로 표시한 단어만, ?only=missed는 퀴즈에서 틀린 단어만, ?only=reading은 읽기를 보고 안 단어만 낸다.
   const countAll = params.get('count') === 'all';
   const only = params.get('only');
-  const keep = only === 'weak' ? isWeak : only === 'missed' ? isMissed : null;
+  const keep = only === 'weak' ? isWeak : only === 'missed' ? isMissed : only === 'reading' ? isReadingMissed : null;
   const container = document.createElement('div');
   container.className = 'vocab-quiz';
   const nav = document.createElement('nav');
@@ -128,7 +128,7 @@ export function renderVocabQuizHome(hash: string, rng: () => number = Math.rando
     return container;
   }
 
-  if (keep) label += only === 'weak' ? ' · 모름·헷갈림' : ' · 틀린 단어';
+  if (keep) label += only === 'weak' ? ' · 모름·헷갈림' : only === 'reading' ? ' · 읽기 모름' : ' · 틀린 단어';
   // 채점이 바뀌므로 다시 시작할 때마다 지금 모름·헷갈림인 단어를 새로 고른다.
   const roundScope = (): VocabEntry[] => {
     if (!keep) return scope;
@@ -171,7 +171,7 @@ export function renderVocabQuizHome(hash: string, rng: () => number = Math.rando
     card.className = 'card quiz-result-card';
     const result = document.createElement('h3');
     result.className = 'vocab-quiz-result';
-    result.textContent = deck.length ? `${deck.length}문제 중 ${correctCount}개 정답` : keep && roundScope().length === 0 ? (only === 'weak' ? '모름·헷갈림으로 표시한 단어가 없어요.' : '퀴즈에서 틀린 단어가 없어요. 모두 다시 맞혔습니다.') : '이 범위에는 보기 5개를 만들 수 있는 단어가 없어요. 다른 범위를 골라보세요.';
+    result.textContent = deck.length ? `${deck.length}문제 중 ${correctCount}개 정답` : keep && roundScope().length === 0 ? (only === 'weak' ? '모름·헷갈림으로 표시한 단어가 없어요.' : only === 'reading' ? '읽기 모르는 단어가 없어요. 모두 독음 없이 맞혔습니다.' : '퀴즈에서 틀린 단어가 없어요. 모두 다시 맞혔습니다.') : '이 범위에는 보기 5개를 만들 수 있는 단어가 없어요. 다른 범위를 골라보세요.';
     result.setAttribute('role', 'status');
     card.appendChild(result);
 
@@ -282,9 +282,13 @@ export function renderVocabQuizHome(hash: string, rng: () => number = Math.rando
     readingToggle.textContent = '독음';
     readingToggle.setAttribute('aria-label', '독음 보기');
     readingToggle.setAttribute('aria-pressed', 'false');
+    // 칸지 단어를 독음을 보고 맞히면 '읽기 모름'으로 담고, 독음 없이 맞히면 지운다.
+    let readingUsed = false;
+    const readingMatters = !reverse && /\p{Script=Han}/u.test(current.entry.japanese);
     readingToggle.addEventListener('click', () => {
       const hidden = card.classList.toggle('readings-hidden');
       readingToggle.setAttribute('aria-pressed', String(!hidden));
+      if (!hidden) readingUsed = true;
     });
 
     // 일본어를 보는 방향에서는 소리도 바로 들을 수 있게. 뜻을 묻는 문제라 정답이 새지 않는다.
@@ -382,8 +386,8 @@ export function renderVocabQuizHome(hash: string, rng: () => number = Math.rando
       answered = true;
       const store = loadSrsStore();
       const before = store[current.entry.id];
-      // 보기 없이 직접 써서 맞혔을 때만 외운 것으로 본다.
-      store[current.entry.id] = recordQuizAnswer(before, correct, new Date(), correct && !revealed);
+      // 보기·독음 없이 직접 써서 맞혔을 때만 외운 것으로 본다.
+      store[current.entry.id] = recordQuizAnswer(before, correct, new Date(), correct && !revealed && !readingUsed, correct && readingMatters ? readingUsed : undefined);
       saveSrsStore(store);
       if (correct) correctCount += 1;
       else wrong.push(current.entry);
@@ -409,7 +413,7 @@ export function renderVocabQuizHome(hash: string, rng: () => number = Math.rando
         accept.textContent = '내 답도 맞아요';
         accept.addEventListener('click', () => {
           const fixed = loadSrsStore();
-          fixed[current.entry.id] = recordQuizAnswer(before, true, new Date(), true);
+          fixed[current.entry.id] = recordQuizAnswer(before, true, new Date(), !readingUsed, readingMatters ? readingUsed : undefined);
           saveSrsStore(fixed);
           correctCount += 1;
           wrong = wrong.filter(entry => entry.id !== current.entry.id);

@@ -112,3 +112,17 @@ describe('describeReviewStatus', () => {
     expect(describeReviewStatus(state, TODAY)).toEqual({ label: '복습까지 3일', urgent: false });
   });
 });
+
+describe('reading-missed mark', () => {
+  const NOW = new Date('2026-01-10T00:00:00Z');
+  it('is set by needing the reading, kept by other actions, and cleared only by knowing it without the reading', () => {
+    const needed = recordQuizAnswer(undefined, true, NOW, false, true);
+    expect(needed.readingMissed).toBe(true);
+    expect(needed.grade).toBeUndefined();
+    expect(reviewEntry(needed, 'known', NOW).readingMissed).toBe(true);
+    expect(toggleBookmark(needed, NOW).readingMissed).toBe(true);
+    expect(recordQuizAnswer(needed, false, NOW).readingMissed).toBe(true);
+    expect(recordQuizAnswer(needed, true, NOW, true, false).readingMissed).toBeUndefined();
+    expect(reviewEntry(undefined, 'confusing', NOW, true).readingMissed).toBe(true);
+  });
+});

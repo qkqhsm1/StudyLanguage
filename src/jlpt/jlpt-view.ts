@@ -7,7 +7,7 @@ import type { VocabEntry } from '../types';
 import { renderVocabQuizHome } from '../vocab/vocab-quiz-view';
 import {
   loadSrsStore, renderCardGroups, renderCardList, renderDayList, renderDayProgress, renderEmptyState,
-  renderPager, renderQuizLinks, renderVocabLink, renderWrongNotes, renderWrongQuizLinks,
+  renderPager, renderQuizLinks, renderVocabLink, renderWrongNotes, renderWrongQuizLinks, wrongNotesKind,
 } from '../vocab/vocab-view';
 
 export const JLPT_LEVELS = ['N5', 'N4', 'N3', 'N2', 'N1'];
@@ -148,8 +148,8 @@ export function renderJlptView(hash: string, rng: () => number = Math.random): H
     container.appendChild(renderCardList(queue, store, container));
   } else if (path === '#/jlpt/wrong/quiz') {
     return renderVocabQuizHome(hash, rng, { title: 'JLPT 오답 퀴즈', pool: words, scope: words, label: 'JLPT 전체', backHref: '#/jlpt/wrong' });
-  } else if (path === '#/jlpt/wrong' || path === '#/jlpt/wrong/weak') {
-    renderWrongNotes(container, words, loadSrsStore(), '#/jlpt/wrong', '#/jlpt/wrong/quiz', path.endsWith('/weak'));
+  } else if (/^#\/jlpt\/wrong(\/weak|\/reading)?$/.test(path)) {
+    renderWrongNotes(container, words, loadSrsStore(), '#/jlpt/wrong', '#/jlpt/wrong/quiz', wrongNotesKind(path));
   } else {
     renderHome(container, words);
   }

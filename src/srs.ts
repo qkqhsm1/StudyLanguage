@@ -10,9 +10,15 @@ function addDays(date: Date, days: number): string {
 }
 
 /** 내가 직접 등급을 고른다. 퀴즈에서 틀린 기록(missed)은 퀴즈에서 다시 맞혀야 지워진다. */
-export function reviewEntry(prev: SrsState | undefined, grade: SrsGrade, today: Date = new Date()): SrsState {
+export function reviewEntry(prev: SrsState | undefined, grade: SrsGrade, today: Date = new Date(), reading?: boolean): SrsState {
   const next = schedule(prev, grade, today);
   if (prev?.missed) next.missed = true;
+  return carryReading(next, prev, reading);
+}
+
+/** 읽기 표시: true = 읽기를 보고서야 알았다, false = 읽기 없이 알았다, 없으면 이전 표시를 그대로 둔다. */
+function carryReading(next: SrsState, prev: SrsState | undefined, reading?: boolean): SrsState {
+  if (reading ?? prev?.readingMissed) next.readingMissed = true;
   return next;
 }
 
@@ -20,13 +26,13 @@ export function reviewEntry(prev: SrsState | undefined, grade: SrsGrade, today: 
  *  암기됨이었으면 헷갈림, 아직 표시 안 한 단어면 모름. 모름·헷갈림은 그대로 둔다.
  *  표시 안 한 단어를 맞혔을 때는 보기 없이 직접 써서(recalled) 맞혔을 때만 암기됨으로 둔다 — 보기에서 찍어 맞힌 건 외운 게 아니다.
  *  맞히면 missed를 지운다. */
-export function recordQuizAnswer(prev: SrsState | undefined, correct: boolean, today: Date = new Date(), recalled = false): SrsState {
+export function recordQuizAnswer(prev: SrsState | undefined, correct: boolean, today: Date = new Date(), recalled = false, reading?: boolean): SrsState {
   const next = schedule(prev, correct ? 'known' : 'unknown', today);
   const grade = correct ? prev?.grade ?? (recalled ? 'known' : undefined) : prev?.grade === 'known' ? 'confusing' : prev?.grade ?? 'unknown';
   if (grade) next.grade = grade;
   else delete next.grade;
   if (!correct) next.missed = true;
-  return next;
+  return carryReading(next, prev, reading);
 }
 
 function schedule(prev: SrsState | undefined, grade: SrsGrade, today: Date): SrsState {
@@ -57,6 +63,7 @@ export function toggleBookmark(prev: SrsState | undefined, today: Date = new Dat
     // 북마크만 했다고 모름이 되지는 않는다.
     ...(prev?.grade ? { grade: prev.grade } : {}),
     ...(prev?.missed ? { missed: true } : {}),
+    ...(prev?.readingMissed ? { readingMissed: true } : {}),
     easeFactor: prev?.easeFactor ?? DEFAULT_EASE,
     intervalDays: prev?.intervalDays ?? 0,
     dueDate: prev?.dueDate ?? addDays(today, 0),

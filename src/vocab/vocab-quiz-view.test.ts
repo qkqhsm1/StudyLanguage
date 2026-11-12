@@ -75,6 +75,29 @@ describe('vocabulary quiz', () => {
     expect(picker.querySelector('a[href*="only=missed"]')).toBeNull();
   });
 
+  it('marks a kanji word I answered only after showing its reading, and clears it when I know it without', () => {
+    const view = render('#/vocab/quiz/day/1?count=all');
+    const typeAnswer = () => {
+      const entry = entries.find(e => e.id === view.dataset.currentId)!;
+      view.querySelector<HTMLInputElement>('.vocab-quiz-input')!.value = entry.korean.split(', ')[0];
+      view.querySelector<HTMLFormElement>('.vocab-quiz-type')!.requestSubmit();
+      return entry.id;
+    };
+    const store = () => JSON.parse(localStorage.getItem('srs-store')!);
+    const hasKanji = () => /\p{Script=Han}/u.test(entries.find(e => e.id === view.dataset.currentId)!.japanese);
+    const next = () => view.querySelector<HTMLButtonElement>('.vocab-quiz-next')!.click();
+    while (!hasKanji()) { typeAnswer(); next(); }
+    view.querySelector<HTMLButtonElement>('.vocab-quiz-reading-toggle')!.click();
+    const withReading = typeAnswer();
+    expect(store()[withReading].readingMissed).toBe(true);
+    expect(store()[withReading].grade).toBeUndefined();
+    next();
+    while (!hasKanji()) { typeAnswer(); next(); }
+    const without = typeAnswer();
+    expect(store()[without].readingMissed).toBeUndefined();
+    expect(store()[without].grade).toBe('known');
+  });
+
   it('shows the real spelling with furigana only over kanji, and five choices without revealing the answer', () => {
     const view = render();
     const entry = entries.find(e => e.id === view.dataset.currentId)!;
