@@ -10,10 +10,10 @@ function addDays(date: Date, days: number): string {
 }
 
 /** 내가 직접 등급을 고른다. 퀴즈에서 틀린 기록(missed)은 퀴즈에서 다시 맞혀야 지워진다. */
-export function reviewEntry(prev: SrsState | undefined, grade: SrsGrade, today: Date = new Date(), reading?: boolean): SrsState {
+export function reviewEntry(prev: SrsState | undefined, grade: SrsGrade, today: Date = new Date()): SrsState {
   const next = schedule(prev, grade, today);
   if (prev?.missed) next.missed = true;
-  return carryReading(next, prev, reading);
+  return carryReading(next, prev);
 }
 
 /** 읽기 표시: true = 읽기를 보고서야 알았다, false = 읽기 없이 알았다, 없으면 이전 표시를 그대로 둔다. */
@@ -70,6 +70,21 @@ export function toggleBookmark(prev: SrsState | undefined, today: Date = new Dat
     bookmarked: !(prev?.bookmarked ?? false),
     reviewedAt: today.toISOString(),
   };
+}
+
+/** 뜻 가리기에서 후리가나를 열면 바로 '읽기 모름'으로 담는다(잘못 눌러 바로 닫으면 off로 되돌린다). 등급·복습일은 그대로. */
+export function setReadingMissed(prev: SrsState | undefined, on: boolean, today: Date = new Date()): SrsState {
+  const next: SrsState = {
+    ...prev,
+    easeFactor: prev?.easeFactor ?? DEFAULT_EASE,
+    intervalDays: prev?.intervalDays ?? 0,
+    dueDate: prev?.dueDate ?? addDays(today, 0),
+    bookmarked: prev?.bookmarked ?? false,
+    reviewedAt: today.toISOString(),
+  };
+  if (on) next.readingMissed = true;
+  else delete next.readingMissed;
+  return next;
 }
 
 export function buildTodayQueue<T extends { id: string }>(

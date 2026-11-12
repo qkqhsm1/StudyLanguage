@@ -266,9 +266,8 @@ describe('renderVocabHome integration', () => {
   it('hides meanings and furigana until a card is tapped', () => {
     const view = renderVocabHome('#/vocab/day/1');
     document.body.appendChild(view);
-    view.querySelector<HTMLButtonElement>('.card-mode-toggle')!.click();
+    // 처음부터 가린 채로 시작한다.
     expect(document.documentElement.classList.contains('vocab-cards-hidden')).toBe(true);
-    expect(localStorage.getItem('vocab-cards-hidden')).toBe('yes');
     const card = view.querySelector<HTMLElement>('.word-card')!;
     card.querySelector<HTMLButtonElement>('.word-reveal')!.click();
     expect(card.classList.contains('is-revealed')).toBe(true);
@@ -384,14 +383,22 @@ describe('renderVocabHome integration', () => {
   it('collects words I knew only after seeing the reading on their own page', () => {
     const view = renderVocabHome('#/vocab/day/1');
     document.body.appendChild(view);
-    view.querySelector<HTMLButtonElement>('.card-mode-toggle')!.click();
-    const card = [...view.querySelectorAll<HTMLElement>('.word-card')].find((c) => c.querySelector('.word-japanese rt'))!;
-    card.querySelector<HTMLElement>('.word-japanese')!.click();
-    card.querySelector<HTMLButtonElement>('.word-reveal')!.click();
-    card.querySelector<HTMLButtonElement>('.srs-grade-known')!.click();
-    view.remove();
+    const cards = [...view.querySelectorAll<HTMLElement>('.word-card')].filter((c) => c.querySelector('.word-japanese rt'));
+    const [card, misTap] = cards;
     const id = card.querySelector<HTMLElement>('.srs-grade-known')!.dataset.entryId!;
-    expect(JSON.parse(localStorage.getItem('srs-store')!)[id]).toMatchObject({ grade: 'known', readingMissed: true });
+    const stored = (entryId: string) => JSON.parse(localStorage.getItem('srs-store') ?? '{}')[entryId];
+    // 후리가나를 여는 순간 담긴다. 잘못 눌러 바로 닫으면 되돌린다.
+    card.querySelector<HTMLElement>('.word-japanese')!.click();
+    expect(stored(id)?.readingMissed).toBe(true);
+    const misId = misTap.querySelector<HTMLElement>('.srs-grade-known')!.dataset.entryId!;
+    misTap.querySelector<HTMLElement>('.word-japanese')!.click();
+    misTap.querySelector<HTMLElement>('.word-japanese')!.click();
+    expect(stored(misId)?.readingMissed).toBeUndefined();
+    // 채점은 따로 간다: 헷갈림이면 헷갈리는 단어에도 담긴다.
+    card.querySelector<HTMLButtonElement>('.word-reveal')!.click();
+    card.querySelector<HTMLButtonElement>('.srs-grade-confusing')!.click();
+    view.remove();
+    expect(stored(id)).toMatchObject({ grade: 'confusing', readingMissed: true });
     expect(renderVocabHome('#/vocab/wrong').querySelector('a[href="#/vocab/wrong/reading"]')).not.toBeNull();
     const page = renderVocabHome('#/vocab/wrong/reading');
     expect(page.querySelector('h2')?.textContent).toBe('읽기 모르는 단어 (1)');

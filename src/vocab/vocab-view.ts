@@ -1,6 +1,6 @@
 import vocabData from '../data/vocabulary.json';
 import { loadJSON, saveJSON } from '../storage';
-import { buildTodayQueue, describeReviewStatus, reviewEntry, toggleBookmark } from '../srs';
+import { buildTodayQueue, describeReviewStatus, reviewEntry, setReadingMissed, toggleBookmark } from '../srs';
 import { formatPronunciation, spokenReading } from '../data/kana-romanize';
 import { ICONS, paintBookmark } from '../icons';
 import { renderWord } from '../practice/furigana';
@@ -275,9 +275,10 @@ const HIDE_CARDS_KEY = 'vocab-cards-hidden';
 
 function cardsHidden(): boolean {
   try {
-    return localStorage.getItem(HIDE_CARDS_KEY) === 'yes';
+    // 처음엔 가린 채로 시작한다. 끄면 이 기기에서 기억한다.
+    return localStorage.getItem(HIDE_CARDS_KEY) !== 'no';
   } catch {
-    return false;
+    return true;
   }
 }
 
@@ -307,7 +308,7 @@ function renderCardModeToggle(): HTMLElement {
   paint();
   const help = document.createElement('span');
   help.className = 'card-mode-help';
-  help.textContent = '단어를 누르면 읽기만, 아래 뜻 보기를 누르면 뜻까지 보여요';
+  help.textContent = '단어를 누르면 읽기가 보이고 읽기 모름에 담겨요. 아래 뜻 보기를 누르면 뜻까지 보여요';
   bar.append(button, help);
   return bar;
 }
@@ -321,8 +322,18 @@ function attachVocabCardActions(root: HTMLElement, container: HTMLElement): void
     if (card && (!button || button.classList.contains('word-reveal'))) {
       if (!document.documentElement.classList.contains('vocab-cards-hidden')) return;
       const word = (event.target as Element).closest('.word-japanese');
-      if (word?.querySelector('rt') && !card.classList.contains('is-revealed')) card.classList.toggle('readings-shown');
-      else if (!card.classList.toggle('is-revealed')) card.classList.remove('readings-shown');
+      if (word?.querySelector('rt') && !card.classList.contains('is-revealed')) {
+        // 후리가나를 열면 그 자리에서 '읽기 모름'으로 담는다. 같은 화면에서 바로 닫으면 잘못 누른 것으로 보고 되돌린다.
+        const shown = card.classList.toggle('readings-shown');
+        const id = card.querySelector<HTMLElement>('[data-entry-id]')?.dataset.entryId;
+        const store = loadSrsStore();
+        if (id && (shown ? !store[id]?.readingMissed : card.dataset.readingMarked === 'yes')) {
+          store[id] = setReadingMissed(store[id], shown);
+          saveSrsStore(store);
+          if (shown) card.dataset.readingMarked = 'yes';
+          else delete card.dataset.readingMarked;
+        }
+      } else if (!card.classList.toggle('is-revealed')) card.classList.remove('readings-shown');
       return;
     }
     // 아이콘(svg)을 눌러도 버튼으로 잡히도록 위로 올라가 찾는다.
@@ -341,9 +352,7 @@ function attachVocabCardActions(root: HTMLElement, container: HTMLElement): void
 
     const grade = target.dataset.grade as SrsGrade | undefined;
     if (grade) {
-      // 뜻 가리기에서 후리가나를 열어 보고 채점했으면 '읽기 모름'으로 담는다.
-      const readingUsed = document.documentElement.classList.contains('vocab-cards-hidden') && target.closest('.word-card')?.classList.contains('readings-shown');
-      store[entryId] = reviewEntry(store[entryId], grade, new Date(), readingUsed ? true : undefined);
+      store[entryId] = reviewEntry(store[entryId], grade);
       saveSrsStore(store);
       container.dispatchEvent(new Event('vocab:refresh'));
     }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildTodayQueue, describeReviewStatus, reviewEntry, toggleBookmark, recordQuizAnswer } from './srs';
+import { buildTodayQueue, describeReviewStatus, reviewEntry, setReadingMissed, toggleBookmark, recordQuizAnswer } from './srs';
 import type { SrsStore, VocabEntry } from './types';
 
 const TODAY = new Date('2026-01-01T00:00:00Z');
@@ -123,6 +123,7 @@ describe('reading-missed mark', () => {
     expect(toggleBookmark(needed, NOW).readingMissed).toBe(true);
     expect(recordQuizAnswer(needed, false, NOW).readingMissed).toBe(true);
     expect(recordQuizAnswer(needed, true, NOW, true, false).readingMissed).toBeUndefined();
-    expect(reviewEntry(undefined, 'confusing', NOW, true).readingMissed).toBe(true);
+    expect(setReadingMissed(undefined, true, NOW)).toMatchObject({ readingMissed: true, bookmarked: false });
+    expect(setReadingMissed(needed, false, NOW).readingMissed).toBeUndefined();
   });
 });
