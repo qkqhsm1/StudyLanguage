@@ -174,5 +174,8 @@ describe('cleanKorean', () => {
     expect(byJapanese.get('十一日')?.korean).not.toContain('열한일');
     // 개수 세기는 숫자까지 뜻이다 (四つ ≠ 개).
     expect(byJapanese.get('四つ')?.korean).toBe('넷, 네 개');
+    // 세는 말은 숫자까지 (一匹 ≠ 마리, 一本 ≠ 편).
+    expect(byJapanese.get('一匹')?.korean).toBe('한 마리, 1마리');
+    expect(byJapanese.get('一本')?.korean.split(', ')[0]).toBe('한 자루');
   });
 });
