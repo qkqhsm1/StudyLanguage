@@ -587,7 +587,8 @@ export function renderWrongNotes(container: HTMLElement, all: VocabEntry[], srsS
   if (!notes) {
     const reading = words.filter((e) => isReadingMissed(srsStore[e.id])).length;
     const weak = words.filter((e) => isWeak(srsStore[e.id])).length;
-    if (reading > 0) links.prepend(renderVocabLink(`${base}/reading`, '読', '읽기 모르는 단어 모음', `칸지만 보고는 몰랐던 ${reading}단어`));
+    // 아직 하나도 없어도 보여 준다. 어떻게 모이는지 알아야 쓸 수 있다.
+    links.prepend(renderVocabLink(`${base}/reading`, '読', '읽기 모르는 단어 모음', reading > 0 ? `칸지만 보고는 몰랐던 ${reading}단어` : '독음을 보고서야 안 단어가 모여요 (아직 0단어)'));
     if (weak > 0) links.prepend(renderVocabLink(`${base}/weak`, '迷', '모름·헷갈림 단어 모음', `내가 표시한 ${weak}단어만 모아 보기`));
   }
   container.appendChild(links);
