@@ -3395,7 +3395,7 @@ ruby {
   display: none;
 }
 
-.vocab-cards-hidden .word-card:not(.is-revealed) .word-japanese rt {
+.vocab-cards-hidden .word-card:not(.is-revealed):not(.readings-shown) .word-japanese rt {
   visibility: hidden;
 }
 

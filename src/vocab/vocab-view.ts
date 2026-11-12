@@ -307,18 +307,22 @@ function renderCardModeToggle(): HTMLElement {
   paint();
   const help = document.createElement('span');
   help.className = 'card-mode-help';
-  help.textContent = '뜻과 읽기를 가리고 떠올려 본 뒤 카드를 눌러 확인해요';
+  help.textContent = '단어를 누르면 읽기만, 아래 뜻 보기를 누르면 뜻까지 보여요';
   bar.append(button, help);
   return bar;
 }
 
 function attachVocabCardActions(root: HTMLElement, container: HTMLElement): void {
   root.addEventListener('click', (event) => {
-    // 가린 카드는 단어 부분을 눌러도 뜻이 드러난다.
+    // 가린 카드: 단어를 누르면 후리가나만, 나머지(뜻 보기 버튼 포함)를 누르면 뜻까지 드러난다.
+    // 후리가나가 없는 단어(가나만)는 단어를 눌러도 뜻이 드러난다.
     const card = (event.target as Element).closest<HTMLElement>('.word-card');
     const button = (event.target as Element).closest<HTMLElement>('button');
     if (card && (!button || button.classList.contains('word-reveal'))) {
-      if (document.documentElement.classList.contains('vocab-cards-hidden')) card.classList.toggle('is-revealed');
+      if (!document.documentElement.classList.contains('vocab-cards-hidden')) return;
+      const word = (event.target as Element).closest('.word-japanese');
+      if (word?.querySelector('rt') && !card.classList.contains('is-revealed')) card.classList.toggle('readings-shown');
+      else if (!card.classList.toggle('is-revealed')) card.classList.remove('readings-shown');
       return;
     }
     // 아이콘(svg)을 눌러도 버튼으로 잡히도록 위로 올라가 찾는다.

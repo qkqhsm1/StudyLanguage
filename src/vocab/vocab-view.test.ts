@@ -275,6 +275,15 @@ describe('renderVocabHome integration', () => {
     // 단어를 한 번 더 누르면 도로 가린다.
     card.querySelector<HTMLElement>('.word-japanese')!.click();
     expect(card.classList.contains('is-revealed')).toBe(false);
+    // 칸지 단어는 단어를 누르면 후리가나만 보이고 뜻은 가린 채로 둔다.
+    const kanjiCard = [...view.querySelectorAll<HTMLElement>('.word-card')].find((c) => c.querySelector('.word-japanese rt'))!;
+    kanjiCard.querySelector<HTMLElement>('.word-japanese')!.click();
+    expect(kanjiCard.classList.contains('readings-shown')).toBe(true);
+    expect(kanjiCard.classList.contains('is-revealed')).toBe(false);
+    kanjiCard.querySelector<HTMLButtonElement>('.word-reveal')!.click();
+    expect(kanjiCard.classList.contains('is-revealed')).toBe(true);
+    kanjiCard.querySelector<HTMLElement>('.word-japanese')!.click();
+    expect(kanjiCard.className).not.toMatch(/is-revealed|readings-shown/);
     view.remove();
   });
 
